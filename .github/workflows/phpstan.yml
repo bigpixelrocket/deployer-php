@@ -1,0 +1,21 @@
+name: PHPStan
+
+permissions:
+  contents: read
+
+on:
+  pull_request:
+
+jobs:
+  phpstan:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP and install Composer dependencies
+        uses: ./.github/actions/php-setup-composer
+
+      - name: Run static analysis
+        run: vendor/bin/phpstan analyse

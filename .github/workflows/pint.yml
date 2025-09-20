@@ -1,0 +1,21 @@
+name: Pint
+
+permissions:
+  contents: read
+
+on:
+  pull_request:
+
+jobs:
+  pint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP and install Composer dependencies
+        uses: ./.github/actions/php-setup-composer
+
+      - name: Run code style check
+        run: vendor/bin/pint --test --parallel

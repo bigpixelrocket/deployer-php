@@ -1,0 +1,17 @@
+name: 'PHP setup and Composer install'
+description: 'Sets up PHP and installs Composer dependencies (cached)'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.2'
+        coverage: xdebug
+        extensions: json, mbstring, yaml
+
+    - name: Install Composer dependencies (cached)
+      uses: ramsey/composer-install@v3
+      with:
+        composer-options: --no-interaction --no-progress --prefer-dist --no-ansi

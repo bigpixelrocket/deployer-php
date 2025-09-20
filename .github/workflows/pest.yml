@@ -1,0 +1,21 @@
+name: Pest
+
+permissions:
+  contents: read
+
+on:
+  pull_request:
+
+jobs:
+  pest:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup PHP and install Composer dependencies
+        uses: ./.github/actions/php-setup-composer
+
+      - name: Run tests with coverage
+        run: vendor/bin/pest --parallel --coverage
