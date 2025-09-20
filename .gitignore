@@ -1,0 +1,12 @@
+.deployer/
+.experiments/
+.idea/
+.vscode/
+node_modules/
+vendor/
+*.cache
+*.log
+.DS_Store
+.env
+.env.*
+Thumbs.db

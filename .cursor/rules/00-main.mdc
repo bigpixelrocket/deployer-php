@@ -1,0 +1,23 @@
+---
+alwaysApply: true
+---
+
+## Development Rules
+
+We're developing Deployer PHP, a Composer package and CLI tool that simplifies provisioning and setting up servers across multiple Cloud providers, enabling you to deploy your PHP projects effortlessly.
+
+**🔎 Before ANY Task:**
+
+- Check `composer.json` and `package.json` for installed packages
+- Plan with features from the major installed versions
+- Use Context7 MCP
+
+**🫥 Minimalist Code Philosophy:**
+
+- Only write the minimum amount of code necessary to solve the problem — no more, no less
+- Always ask yourself if less code can achieve the same result
+- Refactor relentlessly for code clarity and necessity
+
+**✔️ Don't worry about tests:** Write or run tests ONLY if specifically instructed
+
+**🧠 AI Agent Protocol:** ULTRATHINK → STEP BY STEP → ACT

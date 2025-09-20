@@ -1,0 +1,35 @@
+---
+globs: src/**/*.php,tests/**/*.php,templates/**/*.yaml
+---
+
+## Code Quality Rules
+
+**DocBlock:** Add docblock comments with minimalist descriptions, parameters and return types for classes and functions;
+
+**Comment everything:** Use comments to separate sections of code and explain or summarize complex logic; avoid commenting the obvious:
+
+```
+//
+// {Section Header}
+// -------------------------------------------------------------------------------
+
+//
+// {Section Subheader}
+
+// {Paragraph}
+```
+
+- Separate section headers, subheaders and paragraphs with a single newline;
+- Avoid commenting the obvious or leaving comments behind when removing code.
+
+## Quality Gates
+
+**ALWAYS run these commands against the files you have touched and fix any issues BEFORE considering a task complete:**
+
+```bash
+vendor/bin/rector $CHANGED_PHP_FILES  # Code improvements (changed files only)
+vendor/bin/pint $CHANGED_PHP_FILES    # Fix code style (changed files only)
+
+# Static analysis excluding tests (never do static analysis against tests)
+vendor/bin/phpstan analyze $CHANGED_PHP_FILES_EXCEPT_TESTS
+```

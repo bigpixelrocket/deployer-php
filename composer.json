@@ -1,0 +1,73 @@
+{
+    "name": "deployer-plus/deployer-php",
+    "description": "Deploy your PHP applications with ease",
+    "type": "library",
+    "keywords": [
+        "deployment",
+        "server",
+        "automation",
+        "devops"
+    ],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Lucian Vacaroiu",
+            "email": "lucian@DeployerPlus.com"
+        }
+    ],
+    "require": {
+        "php": "^8.2",
+        "guzzlehttp/guzzle": "^7.0",
+        "phpseclib/phpseclib": "^3.0",
+        "symfony/console": "^6.0|^7.0",
+        "symfony/dotenv": "^7.0",
+        "symfony/filesystem": "^6.0|^7.0",
+        "symfony/yaml": "^7.0"
+    },
+    "require-dev": {
+        "laravel/pint": "^1.24",
+        "pestphp/pest": "^2.0",
+        "phpstan/phpstan": "^2.1",
+        "rector/rector": "^2.1"
+    },
+    "autoload": {
+        "psr-4": {
+            "DeployerPlus\\DeployerPHP\\": "src/app"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "DeployerPlus\\DeployerPHP\\Tests\\": "tests/"
+        }
+    },
+    "bin": [
+        "bin/deployer"
+    ],
+    "scripts": {
+        "pall": [
+            "composer pint && composer pstan && composer rect && composer pest"
+        ],
+        "pest": [
+            "vendor/bin/pest --parallel --coverage"
+        ],
+        "pint": [
+            "bash -c 'FILES=$(composer changed-php-files 2>/dev/null | tail -n +2); if [ -n \"$FILES\" ]; then echo \"$FILES\" | xargs -r ./vendor/bin/pint --parallel; else echo \"No PHP files changed\"; fi'"
+        ],
+        "pstan": [
+            "bash -c 'FILES=$(composer changed-php-files:no-tests 2>/dev/null | tail -n +2); if [ -n \"$FILES\" ]; then echo \"$FILES\" | xargs -r ./vendor/bin/phpstan analyse --memory-limit=2G --; else echo \"No non-test PHP files changed\"; fi'"
+        ],
+        "rect": [
+            "bash -c 'FILES=$(composer changed-php-files 2>/dev/null | tail -n +2); if [ -n \"$FILES\" ]; then echo \"$FILES\" | xargs -r ./vendor/bin/rector process; else echo \"No PHP files changed\"; fi'"
+        ]
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "preferred-install": "dist",
+        "sort-packages": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

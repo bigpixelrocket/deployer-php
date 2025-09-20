@@ -1,0 +1,16 @@
+parameters:
+    paths:
+        - src/
+        - tests/
+
+    # Level 10 is the highest level
+    level: 10
+
+    excludePaths:
+        - ./tests/Arch/ (?)
+        - ./tests/Feature/ (?)
+        - ./tests/Integration/ (?)
+        - ./tests/Unit/ (?)
+        - ./tests/FeatureTestCase.php (?)
+        - ./tests/Pest.php (?)
+        - ./tests/TestCase.php (?)

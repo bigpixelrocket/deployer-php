@@ -1,0 +1,23 @@
+{
+    "plugins": [],
+    "tabWidth": 4,
+    "printWidth": 480,
+    "useTabs": false,
+    "endOfLine": "lf",
+    "insertFinalNewline": true,
+    "singleQuote": true,
+    "overrides": [
+        {
+            "files": ["*.yaml", "*.yml"],
+            "options": {
+                "tabWidth": 2
+            }
+        },
+        {
+            "files": ["*.md"],
+            "options": {
+                "proseWrap": "preserve"
+            }
+        }
+    ]
+}

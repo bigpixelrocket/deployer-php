@@ -1,0 +1,42 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+//
+// Bootstrap the autoloader
+// -------------------------------------------------------------------------------
+
+$autoloadPaths = [
+    __DIR__ . '/../vendor/autoload.php', // local
+    __DIR__ . '/../../../autoload.php', // normal Composer install
+    __DIR__ . '/../../../../autoload.php', // global Composer install
+    __DIR__ . '/../autoload.php', // edge case
+];
+
+$autoloadFound = false;
+foreach ($autoloadPaths as $autoloadPath) {
+    if (file_exists($autoloadPath)) {
+        require_once $autoloadPath;
+        $autoloadFound = true;
+        break;
+    }
+}
+
+if (! $autoloadFound) {
+    fwrite(STDERR, "Error: Could not find autoloader. Please run 'composer install'.\n");
+    exit(1);
+}
+
+//
+// Run Deployer
+// -------------------------------------------------------------------------------
+
+use DeployerPlus\DeployerPHP\Deployer;
+
+try {
+    (new Deployer())->run();
+} catch (Throwable $e) {
+    fwrite(STDERR, "Error: {$e->getMessage()}\n");
+    exit(1);
+}
