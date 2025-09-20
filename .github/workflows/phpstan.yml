@@ -9,6 +9,10 @@ on:
 jobs:
   phpstan:
     runs-on: ubuntu-latest
+    timeout-minutes: 3
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true
 
     steps:
       - name: Checkout code
@@ -18,4 +22,4 @@ jobs:
         uses: ./.github/actions/php-setup-composer
 
       - name: Run static analysis
-        run: vendor/bin/phpstan analyse
+        run: vendor/bin/phpstan analyse --error-format=github
