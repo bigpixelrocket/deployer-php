@@ -1,0 +1,35 @@
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    target-branch: "main"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: "composer"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    target-branch: "main"
+    versioning-strategy: "increase"
+    labels:
+      - "dependencies"
+      - "php"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    target-branch: "main"
+    labels:
+      - "dependencies"
+      - "javascript"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
