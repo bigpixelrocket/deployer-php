@@ -32,4 +32,4 @@ jobs:
             ${{ runner.os }}-rector-
 
       - name: Run modern refactoring code checks
-        run: vendor/bin/rector --dry-run --cache-directory=/tmp/rector
+        run: vendor/bin/rector --dry-run
