@@ -14,4 +14,4 @@ runs:
     - name: Install Composer dependencies (cached)
       uses: ramsey/composer-install@v3
       with:
-        composer-options: --no-interaction --no-progress --prefer-dist --no-ansi
+        composer-options: --no-interaction --no-progress --prefer-dist --no-ansi --no-scripts
