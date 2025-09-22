@@ -5,25 +5,45 @@ declare(strict_types=1);
 namespace Bigpixelrocket\DeployerPHP\Services;
 
 use Symfony\Component\Dotenv\Dotenv;
+use Symfony\Component\Filesystem\Filesystem;
 
 /**
  * Environment variable reader with fallback to .env file if value not found in environment variables.
+ * Defaults to looking for .env file in the current working directory.
+ * Uses Symfony Filesystem component for better testability and mocking capabilities.
  */
 class EnvService
 {
     /** @var array<string, string> */
     private array $dotenv = [];
 
-    public function __construct()
+    public function __construct(
+        private readonly Filesystem $filesystem = new Filesystem()
+    ) {
+        $this->loadDotenvFile();
+    }
+
+    /**
+     * Load and parse the .env file if it exists and is readable.
+     */
+    private function loadDotenvFile(): void
     {
-        $path = getcwd().'/.env';
-        if (is_file($path) && is_readable($path)) {
-            $dotenv = new Dotenv();
-            $parsed = $dotenv->parse((string) file_get_contents($path), $path);
-            foreach ($parsed as $k => $v) {
-                if (is_string($k) && is_string($v)) {
-                    $this->dotenv[$k] = $v;
+        $envPath = rtrim((string) getcwd(), '/') . '/.env';
+
+        if ($this->filesystem->exists($envPath)) {
+            try {
+                $content = $this->filesystem->readFile($envPath);
+                $dotenv = new Dotenv();
+                $parsed = $dotenv->parse($content, $envPath);
+
+                foreach ($parsed as $k => $v) {
+                    if (is_string($k) && is_string($v)) {
+                        $this->dotenv[$k] = $v;
+                    }
                 }
+            } catch (\Throwable) {
+                // Silently ignore file reading errors, similar to original behavior
+                $this->dotenv = [];
             }
         }
     }

@@ -10,212 +10,93 @@ globs: app/**/*.php,tests/**/*.php
 
 ### Running Tests
 
-- `composer pest` run the entire test suite in parallel, with coverage
-- `vendor/bin/pest $TEST_FILE` run a specific test file
+- `composer pest` - run entire test suite in parallel, with coverage
+- `vendor/bin/pest $TEST_FILE` - run specific test file
 
-### Test Minimalism Rules
+### Test Minimalism
 
-**Write only essential tests that would break if business logic fails:**
+**Target:** Keep test files under 1.8x the size of source code they test.
 
-- **Core Business Logic Only:** Test critical paths, skip framework testing
-- **Minimal Test Data:** Use simplest possible setup, avoid complex scenarios
-- **Standard Assertions:** Prefer built-in `expect()` over custom assertions
-- **Essential Edge Cases:** Only test failure modes that actually matter
-- **No Performance Tests:** Unless performance is the primary concern
+**Rules:**
 
-### Static Analysis in Tests
+- Test core business logic only, skip framework testing
+- Use dataset-driven testing: `->with([])` for multiple scenarios
+- Eliminate test overlap: no two tests covering same functionality
+- Consolidate assertions: `expect($x)->toBe(1)->and($y)->toBe(2)`
+- Mock external dependencies only
+- No performance tests unless performance is the primary concern
+- Don't sacrifice readability for ratio targets
 
-- Ignore PHPStan issues in tests.
-- Avoid excessive phpdoc just to appease types; add only when necessary.
+**Don't consolidate when:**
 
-### AAA Pattern Requirements (MANDATORY)
+- Different public methods
+- Exception vs normal flow tests
+- Different setup requirements
+- Distinct business logic
 
-**All tests MUST follow the AAA pattern with explicit section headers:**
+### AAA Pattern (MANDATORY)
 
 ```php
 it('does something specific', function () {
     // ARRANGE
-    $testData = ['key' => 'value'];
-    $mockService = mock(SomeService::class);
+    $service = new Service(mock(Dependency::class));
 
     // ACT
-    $result = $this->service->performAction($testData);
+    $result = $service->performAction();
 
     // ASSERT
-    expect($result)->toBe($expectedValue);
-    $mockService->shouldHaveReceived('method');
+    expect($result)->toBe('expected');
 
     // CLEANUP (when needed)
     $this->resetTimeState();
-    $this->cleanupTempFiles();
+    unlink($tempFile);
 });
 ```
 
-**Required Section Headers:**
+**Exception tests:** Use `// ACT & ASSERT` when act triggers assertion.
 
-- `// ARRANGE` - Setup test data, mocks, and dependencies
-- `// ACT` - Execute the code under test (single action)
-- `// ASSERT` - Verify expected outcomes and behaviors
-- `// CLEANUP` - Reset state when necessary (time state, temp files, etc.)
+**Organization:** Use `describe()` blocks, `beforeEach()` setup, extract helpers/traits for DRY tests.
 
-**Exception Pattern:**
+### Testing Patterns
 
-- `// ACT & ASSERT` - For exception tests where the act triggers the assertion
-
-### Organizing Tests & Helpers
-
-**DRY Principle:** Tests should be as DRY and streamlined as the code they're testing.
-
-**Best Practices:**
-
-- Logical grouping with `describe()` blocks
-- Extract repeated mocking into reusable helper methods
-- Create test traits for shared behavior across test classes
-- Use `beforeEach()` blocks for common setup within test groups
-- Use proper cleanup in tests (temp files, reset state) for test isolation
-- Build helper functions for creating test configurations and mock data
-
-#### Test Helpers
-
-- Evolution-friendly, loosely coupled
-- Support interface changes
-
-**Helper Examples:**
+**❌ FORBIDDEN:**
 
 ```php
-// Test trait for common mocking
-trait MocksExternalServices
-{
-    protected function mockSuccessfulProcess(): void
-    {
-        // Mock external process calls
-        $this->processRunner = mock(ProcessRunner::class);
-        $this->processRunner->shouldReceive('run')
-            ->andReturn(['output' => 'Success', 'exitCode' => 0]);
-    }
-}
-
-// Reusable test data builders
-function createCommandOptions(array $overrides = []): array
-{
-    return array_merge([
-        'composer' => true,
-        'npm' => false,
-        'force' => false,
-    ], $overrides);
-}
-
-// beforeEach for common setup
-describe('package installation', function () {
-    beforeEach(function () {
-        $this->mockSuccessfulProcess();
-        $this->baseOptions = createCommandOptions();
-    });
-});
-```
-
-**Benefits:**
-
-- Reduces test maintenance burden
-- Ensures consistent mocking patterns
-- Makes tests more readable and focused
-- Easier to update when dependencies change
-
-### FORBIDDEN Patterns (Auto-Reject)
-
-```php
-expect($x)->toBeInstanceOf(Class::class);     // Type-only
-expect($x)->toBeArray();                      // Generic
+expect($x)->toBeInstanceOf(Class::class);     // Type-only testing
+expect($x)->toBeArray();                      // Generic assertions
 expect($x)->not->toBeNull();                  // Meaningless
-expect($x)->toBeTrue();                       // No context
-expect(true)->toBeTrue();                     // This is literally meaningless
-expect($object->property())->toBeInstanceOf(); // Property type testing
-sleep(...);                                   // Use proper time mocking instead
+expect(true)->toBeTrue();                     // Literally meaningless
+sleep(...);                                   // Use time mocking
 ```
 
-### REQUIRED Patterns
+**✅ REQUIRED:**
 
 ```php
-// Test specific values and behavior
-expect($config->getValue('host'))->toBe('example.com')
-    ->and($config->getValue('port'))->toBe(22);
-
-// Test with datasets
-it('validates server hostnames', function (string $hostname, bool $valid) {
-    expect($this->validator->isValidHostname($hostname))->toBe($valid);
-})->with([
-    ['server.example.com', true],
-    ['invalid_hostname!', false],
-]);
-
-// Mock only external dependencies
-$processRunner = mock(ProcessRunner::class);
-$processRunner->shouldReceive('run')->with('ls *')->andReturn('file1.txt');
-
-$httpClient = mock(HttpClient::class);
-$httpClient->shouldReceive('get')->with('api/endpoint')->andReturn(['status' => 'ok']);
+expect($config->getValue('host'))->toBe('example.com');
+expect($this->validator->isValid($input))->toBe($expected);
+$mock->shouldReceive('method')->with('param')->andReturn('result');
 ```
 
-### Unit Test Isolation
+### Test Types
 
-**Core Principle:** True unit tests must be isolated from external dependencies.
+**Unit Tests:**
 
-**Unit tests should:**
-
-- Test single units of code in isolation
-- Use mocks/fakes for all external dependencies
-- Run without external dependencies
+- Mock all external dependencies (filesystem, HTTP, processes)
+- Test single units in isolation
 - Complete in milliseconds
 
-**Unit tests MUST NOT:**
+**Integration Tests:**
 
-- Use real file system, network calls, or shell commands
-- Test service integrations with external systems
-- Make actual HTTP requests or process executions
-- Depend on external services, APIs, or system processes
+- Real file operations and external processes
+- CLI commands and full workflows
 
-**Integration vs Unit:** Use integration tests for file system operations and external processes, unit tests (with mocks) for pure business logic.
+**Layer Strategy:**
 
-### Layer Testing Strategy
+- CLI Commands → Integration tests
+- Business Services → Unit tests (mocked dependencies)
+- Utilities/Helpers → Unit tests
 
-- **CLI Commands:** Integration tests, mock external processes and services
-- **Business Services:** Unit tests, mock all external calls and file operations
-- **Utilities/Helpers:** Unit tests with isolated scenarios
+### Static Analysis
 
-```php
-// ✅ Service unit test (mocked dependencies)
-$this->fileSystem->shouldReceive('exists')->andReturn(true);
-$this->processRunner->shouldReceive('execute')->andReturn(['output' => 'success']);
-
-// ✅ Command integration test (real file operations)
-$testFile = '/tmp/test-config.yml';
-file_put_contents($testFile, 'host: example.com');
-$result = $this->command->execute(['--config' => $testFile]);
-expect($result->exitCode)->toBe(0);
-unlink($testFile); // cleanup
-```
-
-### Performance Testing
-
-**When testing CLI operations:**
-
-- Monitor execution time for file operations and external processes
-- Test with realistic server counts and configuration sizes to expose performance issues
-- Verify efficient processing of multiple servers or long-running deployment operations
-
-```php
-// ✅ CLI performance monitoring pattern
-it('processes server provisioning efficiently', function () {
-    // ARRANGE
-    $serverConfigs = createTestServerConfigs(5);
-
-    // ACT
-    $startTime = microtime(true);
-    $result = $this->provisioningService->processServers($serverConfigs);
-    $executionTime = microtime(true) - $startTime;
-
-    // ASSERT
-    expect($result->getSuccessCount())->toBe(5)
-        ->and($executionTime)->toBeLessThan(2.0); // Should complete provisioning in under 2 seconds
-});
-```
+- Ignore PHPStan issues in tests - focus on test functionality over compliance
+- Avoid excessive phpdoc just to appease types
