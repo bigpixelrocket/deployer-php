@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace DeployerPlus\DeployerPHP\Services;
+namespace Bigpixelrocket\DeployerPHP\Services;
 
 use Symfony\Component\Dotenv\Dotenv;
 
