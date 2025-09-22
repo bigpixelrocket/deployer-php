@@ -1,5 +1,5 @@
 ---
-globs: src/**/*.php,templates/**/*.yaml
+globs: app/**/*.php,templates/**/*.yaml
 ---
 
 ### Architecture (MANDATORY)
