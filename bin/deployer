@@ -32,7 +32,7 @@ if (! $autoloadFound) {
 // Run Deployer
 // -------------------------------------------------------------------------------
 
-use DeployerPlus\DeployerPHP\Deployer;
+use Bigpixelrocket\DeployerPHP\Deployer;
 
 try {
     (new Deployer())->run();

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace DeployerPlus\DeployerPHP;
+namespace Bigpixelrocket\DeployerPHP;
 
 use Symfony\Component\Console\Application;
 use Symfony\Component\Console\Input\InputInterface;
@@ -58,7 +58,7 @@ class Deployer extends Application
             '',
             '  <fg=gray>The Server Provisioning & Deployment Tool for PHP</>',
             '',
-            '  <fg=gray>Support this project on GitHub</> <fg=red>♥</>  <fg=magenta>https://github.com/deployer-plus/deployer-php</>',
+            '  <fg=gray>Support this project on GitHub</> <fg=red>♥</>  <fg=magenta>https://github.com/bigpixelrocket/deployer-php</>',
             '',
         ];
 
@@ -83,7 +83,7 @@ class Deployer extends Application
         // Try Composer's InstalledVersions API first
         if (class_exists(\Composer\InstalledVersions::class)) {
             try {
-                $version = \Composer\InstalledVersions::getVersion('deployer-plus/deployer-php');
+                $version = \Composer\InstalledVersions::getVersion('bigpixelrocket/deployer-php');
                 if (null !== $version) {
                     return $version;
                 }
