@@ -5,13 +5,16 @@ declare(strict_types=1);
 namespace Bigpixelrocket\DeployerPHP;
 
 use Symfony\Component\Console\Application;
+use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
+use Bigpixelrocket\DeployerPHP\Console\Server\ServerCreateCommand;
 
 class Deployer extends Application
 {
     private SymfonyStyle $io;
+    private Container $container;
 
     public function __construct()
     {
@@ -20,6 +23,10 @@ class Deployer extends Application
         parent::__construct('Deployer', $version);
 
         $this->setDefaultCommand('list');
+        $this->container = new Container();
+
+        // Register commands
+        $this->registerCommands();
     }
 
     /**
@@ -67,6 +74,23 @@ class Deployer extends Application
             $this->io->writeln($line);
         }
 
+    }
+
+    //
+    // Command registration / DI wiring
+    // -------------------------------------------------------------------------------
+
+    private function registerCommands(): void
+    {
+        $commands = [
+            ServerCreateCommand::class,
+        ];
+
+        foreach ($commands as $command) {
+            /** @var Command $commandInstance */
+            $commandInstance = $this->container->build($command);
+            $this->add($commandInstance);
+        }
     }
 
     //

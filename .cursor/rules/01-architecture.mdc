@@ -4,11 +4,22 @@ globs: app/**/*.php,templates/**/*.yaml
 
 ### Architecture (MANDATORY)
 
-- **PHP:** PSR-12, strict types, PHP 8.x features (unions, match, attributes, readonly);
-- **Imports:** Always add `use` statements instead of fully qualified class names;
-- **Type Safety:** All methods must have explicit return types with proper generics (e.g., `Collection<int, User>`).
+- **PHP:** PSR-12, strict types, PHP 8.x features (unions, match, attributes, readonly)
+- **Imports:** Always add `use` statements instead of fully qualified class names
+- **Type Safety:** All methods must have explicit return types with proper generics (e.g., `Collection<int, User>`)
 
 **🚨 Architecture rules are IMMUTABLE - fix violating code, not the architecture rules**
+
+### Symfony Patterns (MANDATORY)
+
+- **Dependency Injection:** instead of manually resolving and instantiating classes
+- **Symfony Classes:** instead of native PHP functions for easier mocking during testing (eg. `Filesystem::`, `Process::`, etc.)
+
+### Dependency Injection (MANDATORY)
+
+- Dependencies are automatically injected by the `app/Container` class
+- ALL dependencies MUST be injected through constructors - NO manual instantiation
+- **Exceptions:** Only value objects, DTOs, and pure data structures can be manually instantiated
 
 ### Command Layer
 
@@ -26,31 +37,17 @@ globs: app/**/*.php,templates/**/*.yaml
 - Services handle core business logic, external API calls, file operations
 - Complex orchestration shared by multiple Commands should be extracted to dedicated Services
 
-### Shared Utilities
-
-- Common path resolution, configuration loading goes in dedicated utility classes
-- Utility classes are static or singleton patterns for simple operations
-- No business logic or state in utilities - pure functions only
-
 ### Console I/O Rules
 
 - Only Commands perform console input/output operations
-- Services return exceptions or structured data for Commands to handle
 - Use SymfonyStyle consistently for all user-facing output
+- Services return exceptions or structured data for Commands to handle
 - Validation errors and business exceptions bubble up to Commands for display
-
-### Dependency Injection (Mandatory)
-
-- ALL dependencies MUST be injected through constructors - NO manual instantiation
-- Commands receive Services via constructor injection
-- Services receive other Services/utilities via constructor injection
-- Use ServiceContainer or dependency injection container for all object creation
-- NEVER use `new ClassName()` inside methods - always inject dependencies
-- Exceptions: Only value objects, DTOs, and pure data structures can be manually instantiated
 
 ### Dependency Rules
 
 - Commands depend on Services
 - Services depend on other Services or utilities
-- No circular dependencies allowed
 - All dependencies declared in constructor signatures
+
+**IMPORTANT:** No circular dependencies allowed.
