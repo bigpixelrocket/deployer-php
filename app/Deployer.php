@@ -54,7 +54,7 @@ class Deployer extends Application
             '',
             '  <fg=cyan>┌┬┐┌─┐┌─┐┬  ┌─┐┬ ┬┌─┐┬─┐</>',
             '  <fg=cyan> ││├┤ ├─┘│  │ │└┬┘├┤ ├┬┘</>',
-            '  <fg=blue>─┴┘└─┘┴  ┴─┘└─┘ ┴ └─┘┴└─PHP</> <fg=bright-blue>v1.33.7</>',
+            '  <fg=blue>─┴┘└─┘┴  ┴─┘└─┘ ┴ └─┘┴└─PHP</> <fg=bright-blue>'.$version.'</>',
             '',
             '  <fg=gray>The Server Provisioning & Deployment Tool for PHP</>',
             '',
@@ -83,7 +83,7 @@ class Deployer extends Application
         // Try Composer's InstalledVersions API first
         if (class_exists(\Composer\InstalledVersions::class)) {
             try {
-                $version = \Composer\InstalledVersions::getVersion('bigpixelrocket/deployer-php');
+                $version = \Composer\InstalledVersions::getPrettyVersion('bigpixelrocket/deployer-php');
                 if (null !== $version) {
                     return $version;
                 }
