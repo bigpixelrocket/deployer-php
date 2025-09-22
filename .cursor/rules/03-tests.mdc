@@ -1,5 +1,5 @@
 ---
-globs: src/**/*.php,tests/**/*.php
+globs: app/**/*.php,tests/**/*.php
 ---
 
 ## PHP CLI Testing Rules

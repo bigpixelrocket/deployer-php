@@ -1,5 +1,5 @@
 ---
-globs: src/**/*.php,tests/**/*.php,templates/**/*.yaml
+globs: app/**/*.php,tests/**/*.php,templates/**/*.yaml
 ---
 
 ## Code Quality Rules
