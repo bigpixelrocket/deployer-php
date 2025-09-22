@@ -109,7 +109,7 @@ class Deployer extends Application
      */
     private function getVersionFromGit(): ?string
     {
-        $projectRoot = dirname(__DIR__, 2);
+        $projectRoot = dirname(__DIR__, 1);
 
         // Check if we're in a git repository
         if (!is_dir($projectRoot.'/.git')) {

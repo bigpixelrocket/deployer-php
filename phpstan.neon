@@ -1,6 +1,6 @@
 parameters:
     paths:
-        - src/
+        - app/
         - tests/
 
     # Level 10 is the highest level
