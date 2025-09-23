@@ -37,7 +37,7 @@ jobs:
           - PR Head SHA: ${{ github.event.pull_request.head.sha }}
           - PR Base SHA: ${{ github.event.pull_request.base.sha }}
 
-          Review the current PR diff with a focus on finding inconsistencies in logic or implementation patterns with other similar areas of the codebase. All code in this repository should look and feel like it was written by a single person with a consistent set of easthetic principles: everything from how classes and variables are named to how code is organized and flows logically.
+          Review the current PR diff with a focus on finding inconsistencies in logic or implementation patterns with other similar areas of the codebase. All code in this repository should look and feel like it was written by a single person with a consistent set of aesthetic principles: everything from how classes and variables are named to how code is organized and flows logically.
 
           Leave very short inline comments (1-2 sentences) on suggested changes and a brief summary at the end.
 

@@ -2,7 +2,7 @@
 globs: app/**/*.php,tests/**/*.php
 ---
 
-## PHP CLI Testing Rules
+## Testing Rules
 
 **Philosophy:** "A test that never fails is not a test, it's a lie."
 

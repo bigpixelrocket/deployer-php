@@ -1,8 +1,9 @@
 ---
-globs: app/**/*.php,templates/**/*.yaml
+globs: app/**/*.php,tests/**/*.php
+alwaysApply: false
 ---
 
-### Architecture (MANDATORY)
+## Architecture Rules
 
 - **PHP:** PSR-12, strict types, PHP 8.x features (unions, match, attributes, readonly)
 - **Imports:** Always add `use` statements instead of fully qualified class names
@@ -10,12 +11,12 @@ globs: app/**/*.php,templates/**/*.yaml
 
 **🚨 Architecture rules are IMMUTABLE - fix violating code, not the architecture rules**
 
-### Symfony Patterns (MANDATORY)
+### Symfony Patterns
 
 - **Dependency Injection:** instead of manually resolving and instantiating classes
 - **Symfony Classes:** instead of native PHP functions for easier mocking during testing (eg. `Filesystem::`, `Process::`, etc.)
 
-### Dependency Injection (MANDATORY)
+### Dependency Injection
 
 - Dependencies are automatically injected by the `app/Container` class
 - ALL dependencies MUST be injected through constructors - NO manual instantiation
@@ -51,3 +52,36 @@ globs: app/**/*.php,templates/**/*.yaml
 - All dependencies declared in constructor signatures
 
 **IMPORTANT:** No circular dependencies allowed.
+
+### Comments
+
+**DocBlock:** Add docblock comments with minimalist descriptions, parameters and return types for classes and functions;
+
+**Comment everything:** Use comments to separate sections and explain or summarize complex logic;
+
+```
+//
+// {Section Header}
+// -------------------------------------------------------------------------------
+
+//
+// {Section Subheader}
+
+// {Paragraph}
+```
+
+- Use comments as visual separators to help separate different sections
+- Separate section headers, subheaders and paragraphs with a single newline
+- Avoid commenting the obvious or leaving comments behind when removing code
+
+### Quality Gates
+
+**ALWAYS run these commands against the files you have touched and fix any issues BEFORE considering a task complete:**
+
+```bash
+vendor/bin/rector $CHANGED_PHP_FILES  # Code improvements (changed files only)
+vendor/bin/pint $CHANGED_PHP_FILES    # Fix code style (changed files only)
+
+# Static analysis excluding tests (never do static analysis against tests)
+vendor/bin/phpstan analyze $CHANGED_PHP_FILES_EXCEPT_TESTS
+```

@@ -18,7 +18,7 @@ class EnvService
     private array $dotenv = [];
 
     public function __construct(
-        private readonly Filesystem $filesystem = new Filesystem()
+        private readonly Filesystem $filesystem
     ) {
         $this->loadDotenvFile();
     }
