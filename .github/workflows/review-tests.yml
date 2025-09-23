@@ -1,4 +1,4 @@
-name: Testing Rules
+name: Review Tests
 
 permissions:
   contents: read
@@ -8,7 +8,7 @@ on:
   pull_request:
 
 jobs:
-  testing-rules:
+  review-tests:
     runs-on: ubuntu-latest
     timeout-minutes: 3
     concurrency:
@@ -24,7 +24,7 @@ jobs:
           curl https://cursor.com/install -fsS | bash
           echo "$HOME/.cursor/bin" >> $GITHUB_PATH
 
-      - name: Testing rules review
+      - name: Review tests
         env:
           CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
           GH_TOKEN: ${{ github.token }}
