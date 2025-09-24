@@ -4,14 +4,19 @@ declare(strict_types=1);
 
 namespace Bigpixelrocket\DeployerPHP;
 
+use Composer\InstalledVersions;
 use Symfony\Component\Console\Application;
+use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
+use Symfony\Component\Process\Process;
+use Bigpixelrocket\DeployerPHP\Console\HelloCommand;
 
 class Deployer extends Application
 {
     private SymfonyStyle $io;
+    private readonly Container $container;
 
     public function __construct()
     {
@@ -20,6 +25,10 @@ class Deployer extends Application
         parent::__construct('Deployer', $version);
 
         $this->setDefaultCommand('list');
+        $this->container = new Container();
+
+        // Register commands
+        $this->registerCommands();
     }
 
     /**
@@ -70,6 +79,23 @@ class Deployer extends Application
     }
 
     //
+    // Command registration / DI wiring
+    // -------------------------------------------------------------------------------
+
+    private function registerCommands(): void
+    {
+        $commands = [
+            HelloCommand::class,
+        ];
+
+        foreach ($commands as $command) {
+            /** @var Command $commandInstance */
+            $commandInstance = $this->container->build($command);
+            $this->add($commandInstance);
+        }
+    }
+
+    //
     // Version functions
     // -------------------------------------------------------------------------------
 
@@ -81,9 +107,9 @@ class Deployer extends Application
     private function getVersionFromComposer(): string
     {
         // Try Composer's InstalledVersions API first
-        if (class_exists(\Composer\InstalledVersions::class)) {
+        if (class_exists(InstalledVersions::class)) {
             try {
-                $version = \Composer\InstalledVersions::getPrettyVersion('bigpixelrocket/deployer-php');
+                $version = InstalledVersions::getPrettyVersion('bigpixelrocket/deployer-php');
                 if (null !== $version) {
                     return $version;
                 }
@@ -117,23 +143,30 @@ class Deployer extends Application
         }
 
         // Try to get the current tag
-        $tag = @shell_exec('cd '.escapeshellarg($projectRoot).' && git describe --tags --exact-match 2>/dev/null');
-        if ($tag) {
-            return trim($tag);
+        $tagProcess = new Process(['git', 'describe', '--tags', '--exact-match'], $projectRoot);
+        $tagProcess->run();
+        if ($tagProcess->isSuccessful()) {
+            return trim($tagProcess->getOutput());
         }
 
         // Get the latest tag + commit info
-        $describe = @shell_exec('cd '.escapeshellarg($projectRoot).' && git describe --tags --always 2>/dev/null');
-        if ($describe) {
-            return trim($describe);
+        $describeProcess = new Process(['git', 'describe', '--tags', '--always'], $projectRoot);
+        $describeProcess->run();
+        if ($describeProcess->isSuccessful()) {
+            return trim($describeProcess->getOutput());
         }
 
         // Get current branch + short commit hash
-        $branch = @shell_exec('cd '.escapeshellarg($projectRoot).' && git rev-parse --abbrev-ref HEAD 2>/dev/null');
-        $commit = @shell_exec('cd '.escapeshellarg($projectRoot).' && git rev-parse --short HEAD 2>/dev/null');
+        $branchProcess = new Process(['git', 'rev-parse', '--abbrev-ref', 'HEAD'], $projectRoot);
+        $branchProcess->run();
 
-        if ($branch && $commit) {
-            return trim($branch).'@'.trim($commit);
+        $commitProcess = new Process(['git', 'rev-parse', '--short', 'HEAD'], $projectRoot);
+        $commitProcess->run();
+
+        if ($branchProcess->isSuccessful() && $commitProcess->isSuccessful()) {
+            $branch = trim($branchProcess->getOutput());
+            $commit = trim($commitProcess->getOutput());
+            return $branch.'@'.$commit;
         }
 
         return null;
