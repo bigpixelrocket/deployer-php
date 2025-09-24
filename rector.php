@@ -6,12 +6,9 @@ use Rector\Config\RectorConfig;
 
 return RectorConfig::configure()
     ->withPaths([
-        __DIR__.'/bin',
         __DIR__.'/app',
+        __DIR__.'/bin',
         __DIR__.'/tests',
     ])
-    ->withCache('/tmp/rector')
-    ->withPhpSets()
-    ->withSkip([
-        __DIR__.'/tests/CICanary.php',
-    ]);
+    ->withCache(sys_get_temp_dir() . '/rector')
+    ->withPhpSets();

@@ -1,4 +1,3 @@
 {
-    "preset": "psr12",
-    "exclude": ["tests/CICanary.php"]
+    "preset": "psr12"
 }
