@@ -6,13 +6,15 @@ use Bigpixelrocket\DeployerPHP\Services\EnvService;
 use Symfony\Component\Filesystem\Filesystem;
 
 //
-// Test Helpers
+// Test helpers
 // -------------------------------------------------------------------------------
+
+require_once __DIR__ . '/../TestHelpers.php';
 
 function mockFilesystem(bool $exists = true, string $content = '', bool $throwError = false): Filesystem
 {
     return new class ($exists, $content, $throwError) extends Filesystem {
-        public function __construct(private bool $exists, private string $content, private bool $error)
+        public function __construct(private readonly bool $exists, private readonly string $content, private readonly bool $error)
         {
         }
         public function exists(string|iterable $files): bool
@@ -29,19 +31,8 @@ function mockFilesystem(bool $exists = true, string $content = '', bool $throwEr
     };
 }
 
-function setEnv(string $key, ?string $value): void
-{
-    if ($value === null) {
-        unset($_ENV[$key]);
-        putenv("{$key}");
-    } else {
-        $_ENV[$key] = $value;
-        putenv("{$key}={$value}");
-    }
-}
-
 //
-// EnvService Unit Tests
+// Unit tests
 // -------------------------------------------------------------------------------
 
 describe('EnvService', function () {
