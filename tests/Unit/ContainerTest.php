@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+namespace Bigpixelrocket\DeployerPHP\Tests\Unit;
+
 use Bigpixelrocket\DeployerPHP\Container;
 
 //
@@ -109,6 +111,37 @@ class PrivateConstructor
     }
 }
 
+class ServiceWithUnionType
+{
+    public function __construct(private readonly SimpleService|ServiceWithDependency $service)
+    {
+    }
+
+    public function getServiceType(): string
+    {
+        return $this->service instanceof SimpleService ? 'simple' : 'complex';
+    }
+}
+
+class ServiceWithIntersectionType
+{
+    public function __construct(private readonly (\Countable&\ArrayAccess)|null $data = null)
+    {
+    }
+
+    public function hasData(): bool
+    {
+        return $this->data !== null;
+    }
+}
+
+class ServiceWithUnresolvableDependency
+{
+    public function __construct(private readonly AbstractClass $dependency)
+    {
+    }
+}
+
 //
 // Unit tests
 // -------------------------------------------------------------------------------
@@ -157,26 +190,26 @@ describe('Container', function () {
     it('detects circular dependencies', function () {
         // ARRANGE & ACT & ASSERT
         expect(fn () => $this->container->build(CircularA::class))
-            ->toThrow(RuntimeException::class, 'Cannot resolve dependency');
+            ->toThrow(\RuntimeException::class, 'Cannot resolve dependency');
     });
 
     it('throws exceptions for invalid classes', function (string $className, string $errorPattern) {
         // ARRANGE & ACT & ASSERT
         expect(fn () => $this->container->build($className))
-            ->toThrow(RuntimeException::class, $errorPattern);
+            ->toThrow(\RuntimeException::class, $errorPattern);
     })->with([
         ['NonExistentClass', 'does not exist'],
         [TestInterface::class, 'does not exist'], // Interfaces don't pass class_exists()
         [AbstractClass::class, 'not instantiable'],
         [PrivateConstructor::class, 'not instantiable'],
-        [ServiceWithScalarParam::class, 'Cannot resolve parameter'],
+        [ServiceWithScalarParam::class, 'Cannot resolve parameter [required] in [Bigpixelrocket\DeployerPHP\Tests\Unit\ServiceWithScalarParam]'],
     ]);
 
     it('cleans up state after errors', function () {
         // ARRANGE
         try {
             $this->container->build(CircularA::class);
-        } catch (RuntimeException) {
+        } catch (\RuntimeException) {
             // Expected
         }
 
@@ -185,5 +218,27 @@ describe('Container', function () {
 
         // ASSERT
         expect($result->getName())->toBe('simple');
+    });
+
+    it('resolves union types by trying each class arm', function () {
+        // ARRANGE & ACT
+        $service = $this->container->build(ServiceWithUnionType::class);
+
+        // ASSERT
+        expect($service->getServiceType())->toBe('simple'); // First resolvable arm (SimpleService)
+    });
+
+    it('falls back to defaults for intersection types', function () {
+        // ARRANGE & ACT
+        $service = $this->container->build(ServiceWithIntersectionType::class);
+
+        // ASSERT
+        expect($service->hasData())->toBeFalse(); // Uses default null value
+    });
+
+    it('includes declaring class in dependency resolution errors', function () {
+        // ARRANGE & ACT & ASSERT
+        expect(fn () => $this->container->build(ServiceWithUnresolvableDependency::class))
+            ->toThrow(\RuntimeException::class, 'Cannot resolve dependency [Bigpixelrocket\DeployerPHP\Tests\Unit\AbstractClass] for parameter [dependency] in [Bigpixelrocket\DeployerPHP\Tests\Unit\ServiceWithUnresolvableDependency]');
     });
 });

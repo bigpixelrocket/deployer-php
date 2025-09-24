@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Bigpixelrocket\DeployerPHP\Services\EnvService;
+use Symfony\Component\Dotenv\Dotenv;
 use Symfony\Component\Filesystem\Filesystem;
 
 //
@@ -31,6 +32,7 @@ function mockFilesystem(bool $exists = true, string $content = '', bool $throwEr
     };
 }
 
+
 //
 // Unit tests
 // -------------------------------------------------------------------------------
@@ -42,9 +44,13 @@ describe('EnvService', function () {
         }
     });
 
+
     it('reports correct status for different .env file scenarios', function ($fileExists, $fileContent, $fileError, $expectedStatusPattern) {
         // ARRANGE
-        $service = new EnvService(mockFilesystem($fileExists, $fileContent, $fileError));
+        $service = new EnvService(
+            mockFilesystem($fileExists, $fileContent, $fileError),
+            new Dotenv()
+        );
 
         // ACT
         $status = $service->getEnvFileStatus();
@@ -76,7 +82,10 @@ describe('EnvService', function () {
         foreach ($env as $key => $value) {
             setEnv($key, $value);
         }
-        $service = new EnvService(mockFilesystem(!empty($fileContent), $fileContent, $fileError));
+        $service = new EnvService(
+            mockFilesystem(!empty($fileContent), $fileContent, $fileError),
+            new Dotenv()
+        );
 
         // ACT
         $result = $service->get($keys, false);
@@ -105,7 +114,10 @@ describe('EnvService', function () {
 
     it('handles required vs optional parameters', function ($keys, $required, $expectsException, $expectedMessage) {
         // ARRANGE
-        $service = new EnvService(mockFilesystem(false));
+        $service = new EnvService(
+            mockFilesystem(false),
+            new Dotenv()
+        );
 
         // ACT & ASSERT
         if ($expectsException) {

@@ -86,7 +86,7 @@ describe('SymfonyApp Console Application', function () {
     })->with([
         'hello command execution' => ['hello', 0, ['Hello', '┌┬┐┌─┐┌─┐'], null],
         'list command execution' => ['list', 0, ['Available commands', '┌┬┐┌─┐┌─┐'], null],
-        'invalid command handling' => ['non-existent-command', 0, [], CommandNotFoundException::class],
+        'invalid command handling' => ['non-existent-command', 1, [], CommandNotFoundException::class],
     ]);
 
     it('maintains state consistency across multiple executions', function () {

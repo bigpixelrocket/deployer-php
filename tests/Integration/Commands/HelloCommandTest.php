@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 use Bigpixelrocket\DeployerPHP\Console\HelloCommand;
 use Bigpixelrocket\DeployerPHP\Container;
-use Symfony\Component\Console\Application;
 use Symfony\Component\Console\Tester\CommandTester;
 
 //
@@ -17,8 +16,6 @@ function createCommandTester(): CommandTester
 {
     $container = new Container();
     $command = $container->build(HelloCommand::class);
-    $application = new Application();
-    $application->add($command);
     return new CommandTester($command);
 }
 
