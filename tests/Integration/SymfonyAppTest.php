@@ -7,6 +7,7 @@ use Bigpixelrocket\DeployerPHP\SymfonyApp;
 use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Output\BufferedOutput;
 use Symfony\Component\Console\Exception\CommandNotFoundException;
+use Symfony\Component\Console\Command\Command;
 
 describe('SymfonyApp', function () {
 
@@ -40,8 +41,12 @@ describe('SymfonyApp', function () {
         // ARRANGE
         $container = new Container();
         $app = $container->build(SymfonyApp::class);
+
         $input = new ArrayInput(['command' => 'list']);
+
         $output = new BufferedOutput();
+        $output->setDecorated(false);
+
         $version = $app->getVersion();
 
         // ACT
@@ -75,8 +80,11 @@ describe('SymfonyApp', function () {
         // ARRANGE
         $container = new Container();
         $app = $container->build(SymfonyApp::class);
+
         $input = new ArrayInput(['command' => $command]);
+
         $output = new BufferedOutput();
+        $output->setDecorated(false);
 
         // ACT
         $exitCode = $app->doRun($input, $output);
@@ -96,8 +104,11 @@ describe('SymfonyApp', function () {
         // ARRANGE
         $container = new Container();
         $app = $container->build(SymfonyApp::class);
+
         $input = new ArrayInput(['command' => $command]);
+
         $output = new BufferedOutput();
+        $output->setDecorated(false);
 
         // ACT & ASSERT
         try {
@@ -119,8 +130,11 @@ describe('SymfonyApp', function () {
         // ARRANGE
         $container = new Container();
         $app = $container->build(SymfonyApp::class);
+
         $input = new ArrayInput(['command' => 'list']);
+
         $output = new BufferedOutput();
+        $output->setDecorated(false);
 
         // ACT - Multiple runs
         $exitCode1 = $app->doRun($input, $output);
@@ -130,8 +144,8 @@ describe('SymfonyApp', function () {
         $output2 = $output->fetch();
 
         // ASSERT - Consistent behavior
-        expect($exitCode1)->toBe(0)
-            ->and($exitCode2)->toBe(0)
+        expect($exitCode1)->toBe(Command::SUCCESS)
+            ->and($exitCode2)->toBe(Command::SUCCESS)
             ->and($output1)->toContain('┌┬┐┌─┐┌─┐')
             ->and($output2)->toContain('┌┬┐┌─┐┌─┐');
     });
