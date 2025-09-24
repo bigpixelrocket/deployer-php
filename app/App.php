@@ -10,7 +10,7 @@ use Bigpixelrocket\DeployerPHP\Services\VersionService;
 /**
  * Application entry point
  */
-class App
+final class App
 {
     private static ?Container $container = null;
 

@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace Bigpixelrocket\DeployerPHP;
 
 use ReflectionClass;
+use ReflectionIntersectionType;
 use ReflectionNamedType;
 use ReflectionParameter;
+use ReflectionUnionType;
 
 /**
  * Automatically resolves constructor dependencies using reflection.
@@ -18,7 +20,7 @@ use ReflectionParameter;
  * $service = $container->build(MyService::class);
  * ```
  */
-class Container
+final class Container
 {
     /** @var array<string, array{reflector: ReflectionClass<object>, constructor: ?\ReflectionMethod, parameters: ReflectionParameter[]}> */
     private array $reflectionCache = [];
@@ -84,6 +86,24 @@ class Container
     {
         $type = $parameter->getType();
 
+        if ($type instanceof ReflectionUnionType) {
+            foreach ($type->getTypes() as $t) {
+                if ($t instanceof ReflectionNamedType && !$t->isBuiltin()) {
+                    try {
+                        return $this->resolveClassParameter($parameter, $t->getName());
+                    } catch (\RuntimeException) {
+                        // try next arm
+                    }
+                }
+            }
+            return $this->resolveNonClassParameter($parameter);
+        }
+
+        if ($type instanceof ReflectionIntersectionType) {
+            // Cannot generically construct an intersection; require a default.
+            return $this->resolveNonClassParameter($parameter);
+        }
+
         if (!$type instanceof ReflectionNamedType || $type->isBuiltin()) {
             return $this->resolveNonClassParameter($parameter);
         }
@@ -108,7 +128,7 @@ class Container
             }
 
             throw new \RuntimeException(
-                "Cannot resolve dependency [{$className}] for parameter [{$parameter->getName()}]",
+                "Cannot resolve dependency [{$className}] for parameter [{$parameter->getName()}] in [{$parameter->getDeclaringClass()?->getName()}]",
                 previous: $e
             );
         }
@@ -124,7 +144,7 @@ class Container
         }
 
         throw new \RuntimeException(
-            "Cannot resolve parameter [{$parameter->getName()}] in class [{$parameter->getDeclaringClass()?->getName()}]"
+            "Cannot resolve parameter [{$parameter->getName()}] in [{$parameter->getDeclaringClass()?->getName()}]"
         );
     }
 
