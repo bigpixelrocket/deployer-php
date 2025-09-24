@@ -55,6 +55,17 @@ $service = new MyService(new Dependency());
 
 **Rule:** ALL object creation must use `App::build()` except for value objects, DTOs, and pure data structures.
 
+**Testing Exception:** Direct `Container` instantiation is acceptable in tests to isolate state and avoid shared singleton behavior. Production code must always use `App::build()`.
+
+```php
+// ✅ ACCEPTABLE IN TESTS - Isolated container for test isolation
+$container = new Container();
+$service = $container->build(TestService::class);
+
+// ✅ PRODUCTION CODE - Use singleton container via App
+$service = App::build(TestService::class);
+```
+
 ### Command Layer
 
 - Commands handle user interaction (input/output) and orchestrate Services
