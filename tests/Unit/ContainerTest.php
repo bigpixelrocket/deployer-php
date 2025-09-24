@@ -5,7 +5,7 @@ declare(strict_types=1);
 use Bigpixelrocket\DeployerPHP\Container;
 
 //
-// Inline Test Fixtures
+// Inline test fixtures
 // -------------------------------------------------------------------------------
 
 class SimpleService
@@ -82,6 +82,18 @@ class ServiceWithScalarParam
     }
 }
 
+class ServiceWithOptionalClassDep
+{
+    public function __construct(private readonly ?AbstractClass $dep = null)
+    {
+    }
+
+    public function hasDep(): bool
+    {
+        return $this->dep !== null;
+    }
+}
+
 interface TestInterface
 {
 }
@@ -97,6 +109,9 @@ class PrivateConstructor
     }
 }
 
+//
+// Unit tests
+// -------------------------------------------------------------------------------
 
 describe('Container', function () {
     beforeEach(function () {
@@ -131,6 +146,14 @@ describe('Container', function () {
         expect($service->getName())->toBe('default');
     });
 
+    it('uses default values when class dependencies fail to resolve', function () {
+        // ARRANGE & ACT
+        $service = $this->container->build(ServiceWithOptionalClassDep::class);
+
+        // ASSERT
+        expect($service->hasDep())->toBeFalse();
+    });
+
     it('detects circular dependencies', function () {
         // ARRANGE & ACT & ASSERT
         expect(fn () => $this->container->build(CircularA::class))
@@ -143,7 +166,7 @@ describe('Container', function () {
             ->toThrow(RuntimeException::class, $errorPattern);
     })->with([
         ['NonExistentClass', 'does not exist'],
-        [TestInterface::class, 'does not exist'], // Interfaces don't exist as classes
+        [TestInterface::class, 'does not exist'], // Interfaces don't pass class_exists()
         [AbstractClass::class, 'not instantiable'],
         [PrivateConstructor::class, 'not instantiable'],
         [ServiceWithScalarParam::class, 'Cannot resolve parameter'],
@@ -161,6 +184,6 @@ describe('Container', function () {
         $result = $this->container->build(SimpleService::class);
 
         // ASSERT
-        expect($result)->toBeInstanceOf(SimpleService::class);
+        expect($result->getName())->toBe('simple');
     });
 });
