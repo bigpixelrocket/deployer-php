@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Bigpixelrocket\DeployerPHP\Container;
 use Bigpixelrocket\DeployerPHP\Deployer;
 use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Output\BufferedOutput;
@@ -13,7 +14,8 @@ describe('Deployer Symfony Console application', function () {
 
     it('initializes properly with version detection and command registration', function () {
         // ARRANGE & ACT
-        $app = new Deployer();
+        $container = new Container();
+        $app = $container->build(Deployer::class);
         $version = $app->getVersion();
         $command = $app->find('hello');
         $commands = $app->all();
@@ -34,7 +36,8 @@ describe('Deployer Symfony Console application', function () {
 
     it('displays complete banner with version and branding when running commands', function () {
         // ARRANGE
-        $app = new Deployer();
+        $container = new Container();
+        $app = $container->build(Deployer::class);
         $input = new ArrayInput(['command' => 'list']);
         $output = new BufferedOutput();
         $version = $app->getVersion();
@@ -59,7 +62,8 @@ describe('Deployer Symfony Console application', function () {
 
     it('executes commands and handles various scenarios', function (string $command, int $expectedExitCode, array $expectedContent, ?string $expectedException) {
         // ARRANGE
-        $app = new Deployer();
+        $container = new Container();
+        $app = $container->build(Deployer::class);
         $input = new ArrayInput(['command' => $command]);
         $output = new BufferedOutput();
 
@@ -85,7 +89,8 @@ describe('Deployer Symfony Console application', function () {
 
     it('maintains state consistency across multiple executions', function () {
         // ARRANGE
-        $app = new Deployer();
+        $container = new Container();
+        $app = $container->build(Deployer::class);
         $input = new ArrayInput(['command' => 'list']);
         $output = new BufferedOutput();
 

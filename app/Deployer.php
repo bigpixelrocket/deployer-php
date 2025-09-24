@@ -15,17 +15,12 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 class Deployer extends Application
 {
     private SymfonyStyle $io;
-    private readonly Container $container;
-    private readonly VersionDetectionService $versionService;
 
-    public function __construct(?VersionDetectionService $versionService = null)
-    {
-        $this->versionService = $versionService ?? new VersionDetectionService();
+    public function __construct(
+        private readonly VersionDetectionService $versionService,
+    ) {
         $version = $this->versionService->getVersion();
-
         parent::__construct('Deployer', $version);
-
-        $this->container = new Container(); // Manual instantiation required
 
         $this->registerCommands();
 
@@ -91,7 +86,7 @@ class Deployer extends Application
 
         foreach ($commands as $command) {
             /** @var Command $commandInstance */
-            $commandInstance = $this->container->build($command);
+            $commandInstance = App::build($command);
             $this->add($commandInstance);
         }
     }
