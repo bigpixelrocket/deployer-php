@@ -37,17 +37,46 @@ function mockFilesystem(bool $exists = true, string $content = '', bool $throwEr
 
 describe('EnvService', function () {
     beforeEach(function () {
-        foreach (['TEST_KEY', 'API_KEY', 'KEY1', 'KEY2', 'MISSING_KEY', 'CUSTOM_KEY'] as $key) {
+        foreach (['TEST_KEY', 'API_KEY', 'KEY1', 'KEY2', 'MISSING_KEY'] as $key) {
             setEnv($key, null);
         }
     });
+
+    it('reports correct status for different .env file scenarios', function ($fileExists, $fileContent, $fileError, $expectedStatusPattern) {
+        // ARRANGE
+        $service = new EnvService(mockFilesystem($fileExists, $fileContent, $fileError));
+
+        // ACT
+        $status = $service->getEnvFileStatus();
+
+        // ASSERT
+        expect($status)->toMatch($expectedStatusPattern);
+    })->with([
+        // No .env file exists
+        [false, '', false, '/^No \.env file found at .+$/'],
+
+        // File exists and loads successfully with variables
+        [true, "API_KEY=test\nDB_HOST=localhost", false, '/^Loaded 2 variables from .+\.env$/'],
+
+        // File exists with single variable
+        [true, 'SINGLE_KEY=value', false, '/^Loaded 1 variables from .+\.env$/'],
+
+        // File exists but is empty (no variables)
+        [true, '', false, '/^Loaded 0 variables from .+\.env$/'],
+
+        // File exists but has read error
+        [true, 'API_KEY=test', true, '/^Error reading \.env file from .+\.env$/'],
+
+        // File exists with malformed content (triggers parse error)
+        [true, "VALID=test\nINVALID_LINE\nOTHER=value", false, '/^Error reading \.env file from .+\.env$/'],
+    ]);
 
     it('resolves environment variables from multiple sources with correct precedence', function ($env, $fileContent, $fileError, $keys, $expected) {
         // ARRANGE
         foreach ($env as $key => $value) {
             setEnv($key, $value);
         }
-        $service = new EnvService(mockFilesystem(!empty($fileContent), $fileContent, $fileError), '.env');
+        $service = new EnvService(mockFilesystem(!empty($fileContent), $fileContent, $fileError));
 
         // ACT
         $result = $service->get($keys, false);
@@ -62,7 +91,7 @@ describe('EnvService', function () {
     })->with([
         // Single key scenarios
         [[], 'API_KEY=from_file', false, 'API_KEY', 'from_file'],                           // File only
-        [['API_KEY' => 'from_env'], 'API_KEY=from_file', false, 'API_KEY', 'from_env'],    // Env wins
+        [['API_KEY' => 'from_env'], 'API_KEY=from_file', false, 'API_KEY', 'from_file'],    // File wins over env
         [['API_KEY' => ''], 'API_KEY=from_file', false, 'API_KEY', 'from_file'],           // Empty env ignored
         [[], 'API_KEY=', false, 'API_KEY', null],                                          // Empty file ignored
         [[], '', false, 'API_KEY', null],                                                  // File missing
@@ -76,7 +105,7 @@ describe('EnvService', function () {
 
     it('handles required vs optional parameters', function ($keys, $required, $expectsException, $expectedMessage) {
         // ARRANGE
-        $service = new EnvService(mockFilesystem(false), '.env');
+        $service = new EnvService(mockFilesystem(false));
 
         // ACT & ASSERT
         if ($expectsException) {
@@ -91,15 +120,4 @@ describe('EnvService', function () {
         ['MISSING_KEY', false, false, null],
         ['MISSING_KEY', true, true, 'Missing environment variable: MISSING_KEY'], // Default required=true
     ]);
-
-    it('loads from custom .env path and returns correct values', function () {
-        // ARRANGE
-        $service = new EnvService(mockFilesystem(true, 'CUSTOM_KEY=custom_value'), '/custom/.env');
-
-        // ACT
-        $result = $service->get('CUSTOM_KEY', false);
-
-        // ASSERT
-        expect($result)->toBe('custom_value');
-    });
 });
