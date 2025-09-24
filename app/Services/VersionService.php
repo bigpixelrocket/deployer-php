@@ -15,7 +15,7 @@ use Symfony\Component\Process\Process;
  * 2. Git tag detection
  * 3. Fallback to 'dev-main'
  */
-class VersionDetectionService
+class VersionService
 {
     public function __construct(
         private readonly string $packageName = 'bigpixelrocket/deployer-php',

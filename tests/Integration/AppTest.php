@@ -67,7 +67,7 @@ describe('App', function () {
         // ACT
         $version = App::getVersion();
 
-        // ASSERT - Should be a non-empty string version from VersionDetectionService
+        // ASSERT - Should be a non-empty string version from VersionService
         expect($version)->toBeString()
             ->and(strlen($version))->toBeGreaterThan(0);
     });

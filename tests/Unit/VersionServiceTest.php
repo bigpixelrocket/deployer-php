@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-use Bigpixelrocket\DeployerPHP\Services\VersionDetectionService;
+use Bigpixelrocket\DeployerPHP\Services\VersionService;
 
-describe('VersionDetectionService', function () {
+describe('VersionService', function () {
 
     it('returns version from available sources with fallback priority', function (string $packageName, string $fallback) {
         // ARRANGE
-        $service = new VersionDetectionService($packageName, $fallback);
+        $service = new VersionService($packageName, $fallback);
 
         // ACT
         $version = $service->getVersion();
@@ -38,7 +38,7 @@ describe('VersionDetectionService', function () {
             mkdir($tempDir . '/.git');
         }
 
-        $service = new VersionDetectionService();
+        $service = new VersionService();
 
         // ACT
         $result = $service->isGitRepository($tempDir);
@@ -58,7 +58,7 @@ describe('VersionDetectionService', function () {
 
     it('handles git command failures gracefully', function (string $method, string $invalidPath) {
         // ARRANGE
-        $service = new VersionDetectionService();
+        $service = new VersionService();
 
         // ACT
         $result = $service->$method($invalidPath);
@@ -73,7 +73,7 @@ describe('VersionDetectionService', function () {
 
     it('returns null for non-existent composer packages', function () {
         // ARRANGE
-        $service = new VersionDetectionService('absolutely/non/existent/package');
+        $service = new VersionService('absolutely/non/existent/package');
 
         // ACT
         $result = $service->getVersionFromComposer();

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Bigpixelrocket\DeployerPHP;
 
 use Bigpixelrocket\DeployerPHP\Services\EnvService;
-use Bigpixelrocket\DeployerPHP\Services\VersionDetectionService;
+use Bigpixelrocket\DeployerPHP\Services\VersionService;
 
 /**
  * Application entry point
@@ -43,7 +43,7 @@ class App
 
     public static function getVersion(): string
     {
-        return self::build(VersionDetectionService::class)->getVersion();
+        return self::build(VersionService::class)->getVersion();
     }
 
     //
