@@ -16,11 +16,44 @@ alwaysApply: false
 - **Dependency Injection:** instead of manually resolving and instantiating classes
 - **Symfony Classes:** instead of native PHP functions for easier mocking during testing (eg. `Filesystem::`, `Process::`, etc.)
 
-### Dependency Injection
+## Dependency Injection System
 
-- Dependencies are automatically injected by the `app/Container` class
-- ALL dependencies MUST be injected through constructors - NO manual instantiation
-- **Exceptions:** Only value objects, DTOs, and pure data structures can be manually instantiated
+Use `App::build(ClassName::class)` for all object creation instead of `new ClassName()`.
+
+**Core Flow:**
+
+```php
+// ✅ CORRECT - Auto-wires dependencies
+$service = App::build(MyService::class);
+$command = App::build(HelloCommand::class);
+
+// ❌ WRONG - Manual instantiation breaks DI
+$service = new MyService(new Dependency());
+```
+
+**How It Works:**
+
+1. `App::build()` delegates to singleton [Container](mdc:app/Container.php)
+2. Container uses reflection to analyze constructor parameters
+3. Recursively builds all dependencies automatically
+4. Caches reflection data for performance
+5. Handles circular dependencies and error cases
+
+**Integration Points:**
+
+- Entry point: [bin/deployer](mdc:bin/deployer) → `App::run()`
+- Command registration: [Deployer.php](mdc:app/Deployer.php) → `App::build(HelloCommand::class)`
+- Services: Auto-inject dependencies like `Filesystem`, `EnvService` via constructor
+
+**Key Benefits:**
+
+- Zero configuration - pure PHP reflection
+- Type-safe with generics support
+- Automatic error detection and meaningful messages
+- Easy testing with mockable dependencies
+- No manual dependency wiring required
+
+**Rule:** ALL object creation must use `App::build()` except for value objects, DTOs, and pure data structures.
 
 ### Command Layer
 

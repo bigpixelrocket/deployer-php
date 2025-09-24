@@ -1,1 +1,1 @@
-Analyze and meticulously catalog all the changes in this branch, including all the changes that haven't been committed yet. Report back on where the changes fall short of our development, architecture and testing rules.
+Review everything thoroughly and report back on where the changes fall short of our development, architecture and testing rules.
