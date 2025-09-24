@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Bigpixelrocket\DeployerPHP\Console\HelloCommand;
 use Bigpixelrocket\DeployerPHP\Container;
+use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Tester\CommandTester;
 
 //
@@ -41,7 +42,7 @@ describe('HelloCommand', function () {
         $exitCode = $tester->execute([]);
 
         // ASSERT
-        expect($exitCode)->toBe(0)
+        expect($exitCode)->toBe(Command::SUCCESS)
             ->and($tester->getDisplay())->toContain($expectedMessage);
 
         // CLEANUP
