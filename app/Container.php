@@ -91,7 +91,11 @@ final class Container
                 if ($t instanceof ReflectionNamedType && !$t->isBuiltin()) {
                     try {
                         return $this->resolveClassParameter($parameter, $t->getName());
-                    } catch (\RuntimeException) {
+                    } catch (\RuntimeException $e) {
+                        // Let circular dependency exceptions bubble up directly
+                        if (str_contains($e->getMessage(), 'Circular dependency detected')) {
+                            throw $e;
+                        }
                         // try next arm
                     }
                 }
@@ -123,6 +127,11 @@ final class Container
             /** @var class-string $className */
             return $this->build($className);
         } catch (\RuntimeException $e) {
+            // Let circular dependency exceptions bubble up directly
+            if (str_contains($e->getMessage(), 'Circular dependency detected')) {
+                throw $e;
+            }
+
             if ($parameter->isDefaultValueAvailable()) {
                 return $parameter->getDefaultValue();
             }

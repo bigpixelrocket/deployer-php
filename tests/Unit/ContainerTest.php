@@ -135,6 +135,18 @@ class ServiceWithIntersectionType
     }
 }
 
+class ServiceWithUnionAndCircular
+{
+    public function __construct(private readonly CircularA|SimpleService $dependency)
+    {
+    }
+
+    public function getDependency(): CircularA|SimpleService
+    {
+        return $this->dependency;
+    }
+}
+
 class ServiceWithUnresolvableDependency
 {
     public function __construct(private readonly AbstractClass $dependency)
@@ -190,7 +202,7 @@ describe('Container', function () {
     it('detects circular dependencies', function () {
         // ARRANGE & ACT & ASSERT
         expect(fn () => $this->container->build(CircularA::class))
-            ->toThrow(\RuntimeException::class, 'Cannot resolve dependency');
+            ->toThrow(\RuntimeException::class, 'Circular dependency detected');
     });
 
     it('throws exceptions for invalid classes', function (string $className, string $errorPattern) {
@@ -240,5 +252,11 @@ describe('Container', function () {
         // ARRANGE & ACT & ASSERT
         expect(fn () => $this->container->build(ServiceWithUnresolvableDependency::class))
             ->toThrow(\RuntimeException::class, 'Cannot resolve dependency [Bigpixelrocket\DeployerPHP\Tests\Unit\AbstractClass] for parameter [dependency] in [Bigpixelrocket\DeployerPHP\Tests\Unit\ServiceWithUnresolvableDependency]');
+    });
+
+    it('detects circular dependencies in union types', function () {
+        // ARRANGE & ACT & ASSERT
+        expect(fn () => $this->container->build(ServiceWithUnionAndCircular::class))
+            ->toThrow(\RuntimeException::class, 'Circular dependency detected');
     });
 });
