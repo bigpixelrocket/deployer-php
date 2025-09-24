@@ -11,8 +11,8 @@ describe('App', function () {
 
     it('provides singleton container instance', function () {
         // ACT
-        $container1 = App::container();
-        $container2 = App::container();
+        $container1 = App::getContainer();
+        $container2 = App::getContainer();
 
         // ASSERT
         expect($container1)->toBeInstanceOf(Container::class)
@@ -21,7 +21,7 @@ describe('App', function () {
 
     it('delegates build to singleton container', function () {
         // ARRANGE
-        $container = App::container();
+        $container = App::getContainer();
 
         // ACT
         $service = App::build(EnvService::class);
@@ -47,8 +47,8 @@ describe('App', function () {
 
     it('provides singleton environment service instance', function () {
         // ACT
-        $env1 = App::env();
-        $env2 = App::env();
+        $env1 = App::getEnvService();
+        $env2 = App::getEnvService();
 
         // ASSERT
         expect($env1)->toBeInstanceOf(EnvService::class)

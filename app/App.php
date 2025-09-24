@@ -16,6 +16,18 @@ class App
     private static ?EnvService $envService = null;
 
     /**
+     * Build and run the Deployer application.
+     */
+    public static function run(): int
+    {
+        return self::build(Deployer::class)->run();
+    }
+
+    //
+    // Container methods
+    // -------------------------------------------------------------------------------
+
+    /**
      * Build a class instance with auto-wired dependencies.
      *
      * @template T of object
@@ -24,29 +36,35 @@ class App
      */
     public static function build(string $className): object
     {
-        return self::container()->build($className);
+        return self::getContainer()->build($className);
     }
 
     /**
      * Get the shared container instance.
      */
-    public static function container(): Container
+    public static function getContainer(): Container
     {
         return self::$container ??= new Container();
     }
 
+    //
+    // Environment service methods
+    // -------------------------------------------------------------------------------
+
     /**
-     * Build and run the Deployer application.
+     * Get an environment variable.
+     *
+     * @param array<int, string>|string $keys
      */
-    public static function run(): int
+    public static function env(array|string $keys, bool $required = true): ?string
     {
-        return self::build(Deployer::class)->run();
+        return self::getEnvService()->get($keys, $required);
     }
 
     /**
      * Get the environment service instance.
      */
-    public static function env(): EnvService
+    public static function getEnvService(): EnvService
     {
         return self::$envService ??= self::build(EnvService::class);
     }

@@ -17,9 +17,9 @@ class Deployer extends Application
     private SymfonyStyle $io;
 
     public function __construct(
-        private readonly VersionDetectionService $versionService,
+        private readonly VersionDetectionService $version,
     ) {
-        $version = $this->versionService->getVersion();
+        $version = $this->version->getVersion();
         parent::__construct('Deployer', $version);
 
         $this->registerCommands();
@@ -53,7 +53,7 @@ class Deployer extends Application
     private function displayBanner(): void
     {
         $version = $this->getVersion();
-        $envFileStatus = App::env()->getEnvFileStatus();
+        $envFileStatus = App::getEnvService()->getEnvFileStatus();
 
         // Simple, compact banner
         $banner = [
