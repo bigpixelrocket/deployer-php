@@ -14,23 +14,24 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 #[AsCommand(name: 'hello', description: 'Display a friendly hello message')]
 class HelloCommand extends Command
 {
+    private SymfonyStyle $io;
+
     public function __construct(
         private readonly EnvService $envService,
     ) {
         parent::__construct();
     }
 
+    /**
+     * The main execution method in Symfony commands.
+     */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $io = new SymfonyStyle($input, $output);
+        $this->io = new SymfonyStyle($input, $output);
 
-        // ARRANGE
         $user = $this->envService->get(['USER', 'USERNAME'], false) ?? 'there';
+        $this->io->text("Hello {$user}!");
 
-        // ACT
-        $io->text("Hello {$user}!");
-
-        // CLEANUP (none needed)
         return Command::SUCCESS;
     }
 }
