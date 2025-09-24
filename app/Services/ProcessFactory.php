@@ -14,12 +14,20 @@ final class ProcessFactory
     /**
      * Create a new Process with timeout.
      *
-     * @param array<string> $command
+     * @param list<string> $command
      */
     public function create(array $command, string $cwd, ?float $timeout = 3.0): Process
     {
+        if ($command === []) {
+            throw new \InvalidArgumentException('Process command cannot be empty');
+        }
+
+        if (!is_dir($cwd)) {
+            throw new \InvalidArgumentException("Invalid working directory: {$cwd}");
+        }
+
         $process = new Process($command, $cwd);
-        $process->setTimeout($timeout);
+        $process->setTimeout($timeout ?? 3.0);
 
         return $process;
     }
