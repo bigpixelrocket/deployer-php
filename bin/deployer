@@ -29,13 +29,14 @@ if (! $autoloadFound) {
 }
 
 //
-// Run Deployer
+// Run the app
 // -------------------------------------------------------------------------------
 
-use Bigpixelrocket\DeployerPHP\Deployer;
+use Bigpixelrocket\DeployerPHP\App;
 
 try {
-    (new Deployer())->run();
+    $exitCode = App::run();
+    exit($exitCode);
 } catch (Throwable $e) {
     fwrite(STDERR, "Error: {$e->getMessage()}\n");
     exit(1);
