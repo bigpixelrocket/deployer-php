@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Bigpixelrocket\DeployerPHP;
 
 use Bigpixelrocket\DeployerPHP\Services\EnvService;
+use Bigpixelrocket\DeployerPHP\Services\VersionDetectionService;
 
 /**
  * Application entry point
@@ -16,11 +17,33 @@ class App
     private static ?EnvService $envService = null;
 
     /**
+     * Prevent instantiation - this is a static utility class.
+     */
+    private function __construct()
+    {
+        // This class should never be instantiated
+    }
+
+    //
+    // App methods
+    // -------------------------------------------------------------------------------
+
+    /**
      * Build and run the Deployer application.
      */
     public static function run(): int
     {
-        return self::build(Deployer::class)->run();
+        return self::build(SymfonyApp::class)->run();
+    }
+
+    public static function getName(): string
+    {
+        return 'Deployer PHP';
+    }
+
+    public static function getVersion(): string
+    {
+        return self::build(VersionDetectionService::class)->getVersion();
     }
 
     //

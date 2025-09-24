@@ -5,27 +5,30 @@ declare(strict_types=1);
 namespace Bigpixelrocket\DeployerPHP;
 
 use Bigpixelrocket\DeployerPHP\Console\HelloCommand;
-use Bigpixelrocket\DeployerPHP\Services\VersionDetectionService;
-use Symfony\Component\Console\Application;
+use Symfony\Component\Console\Application as SymfonyApplication;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
-class Deployer extends Application
+class SymfonyApp extends SymfonyApplication
 {
     private SymfonyStyle $io;
 
-    public function __construct(
-        private readonly VersionDetectionService $version,
-    ) {
-        $version = $this->version->getVersion();
-        parent::__construct('Deployer', $version);
+    public function __construct()
+    {
+        $name = App::getName();
+        $version = App::getVersion();
+        parent::__construct($name, $version);
 
         $this->registerCommands();
 
         $this->setDefaultCommand('list');
     }
+
+    //
+    // Public
+    // -------------------------------------------------------------------------------
 
     /**
      * Override to hide default Symfony application name/version display.
@@ -46,6 +49,10 @@ class Deployer extends Application
 
         return parent::doRun($input, $output);
     }
+
+    //
+    // Private
+    // -------------------------------------------------------------------------------
 
     /**
      * Display retro BBS-style ASCII art banner.
@@ -77,10 +84,9 @@ class Deployer extends Application
 
     }
 
-    //
-    // Command registration / DI wiring
-    // -------------------------------------------------------------------------------
-
+    /**
+     * Register commands with auto-wired dependencies.
+     */
     private function registerCommands(): void
     {
         $commands = [
