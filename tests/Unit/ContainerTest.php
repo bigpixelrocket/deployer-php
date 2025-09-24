@@ -5,154 +5,26 @@ declare(strict_types=1);
 namespace Bigpixelrocket\DeployerPHP\Tests\Unit;
 
 use Bigpixelrocket\DeployerPHP\Container;
+use Bigpixelrocket\DeployerPHP\Tests\Fixtures\SimpleService;
+use Bigpixelrocket\DeployerPHP\Tests\Fixtures\NoConstructorService;
+use Bigpixelrocket\DeployerPHP\Tests\Fixtures\ServiceWithMultipleDeps;
+use Bigpixelrocket\DeployerPHP\Tests\Fixtures\ServiceWithDefaults;
+use Bigpixelrocket\DeployerPHP\Tests\Fixtures\ServiceWithOptionalClassDep;
+use Bigpixelrocket\DeployerPHP\Tests\Fixtures\CircularA;
+use Bigpixelrocket\DeployerPHP\Tests\Fixtures\ServiceWithScalarParam;
+use Bigpixelrocket\DeployerPHP\Tests\Fixtures\TestInterface;
+use Bigpixelrocket\DeployerPHP\Tests\Fixtures\AbstractClass;
+use Bigpixelrocket\DeployerPHP\Tests\Fixtures\PrivateConstructor;
+use Bigpixelrocket\DeployerPHP\Tests\Fixtures\ServiceWithUnionType;
+use Bigpixelrocket\DeployerPHP\Tests\Fixtures\ServiceWithIntersectionType;
+use Bigpixelrocket\DeployerPHP\Tests\Fixtures\ServiceWithUnionAndCircular;
+use Bigpixelrocket\DeployerPHP\Tests\Fixtures\ServiceWithUnresolvableDependency;
 
 //
-// Inline test fixtures
+// Load test fixtures
 // -------------------------------------------------------------------------------
 
-class SimpleService
-{
-    public function getName(): string
-    {
-        return 'simple';
-    }
-}
-
-class NoConstructorService
-{
-    public function getType(): string
-    {
-        return 'no-constructor';
-    }
-}
-
-class ServiceWithDependency
-{
-    public function __construct(private readonly SimpleService $service)
-    {
-    }
-    public function getDependency(): SimpleService
-    {
-        return $this->service;
-    }
-}
-
-class ServiceWithMultipleDeps
-{
-    public function __construct(private readonly SimpleService $s1, private readonly ServiceWithDependency $s2)
-    {
-    }
-    public function getSimple(): SimpleService
-    {
-        return $this->s1;
-    }
-    public function getComplex(): ServiceWithDependency
-    {
-        return $this->s2;
-    }
-}
-
-class ServiceWithDefaults
-{
-    public function __construct(private readonly SimpleService $service, private readonly string $name = 'default')
-    {
-    }
-    public function getName(): string
-    {
-        return $this->name;
-    }
-}
-
-class CircularA
-{
-    public function __construct(private readonly CircularB $b)
-    {
-    }
-}
-
-class CircularB
-{
-    public function __construct(private readonly CircularA $a)
-    {
-    }
-}
-
-class ServiceWithScalarParam
-{
-    public function __construct(private readonly string $required)
-    {
-    }
-}
-
-class ServiceWithOptionalClassDep
-{
-    public function __construct(private readonly ?AbstractClass $dep = null)
-    {
-    }
-
-    public function hasDep(): bool
-    {
-        return $this->dep !== null;
-    }
-}
-
-interface TestInterface
-{
-}
-
-abstract class AbstractClass
-{
-}
-
-class PrivateConstructor
-{
-    private function __construct()
-    {
-    }
-}
-
-class ServiceWithUnionType
-{
-    public function __construct(private readonly SimpleService|ServiceWithDependency $service)
-    {
-    }
-
-    public function getServiceType(): string
-    {
-        return $this->service instanceof SimpleService ? 'simple' : 'complex';
-    }
-}
-
-class ServiceWithIntersectionType
-{
-    public function __construct(private readonly (\Countable&\ArrayAccess)|null $data = null)
-    {
-    }
-
-    public function hasData(): bool
-    {
-        return $this->data !== null;
-    }
-}
-
-class ServiceWithUnionAndCircular
-{
-    public function __construct(private readonly CircularA|SimpleService $dependency)
-    {
-    }
-
-    public function getDependency(): CircularA|SimpleService
-    {
-        return $this->dependency;
-    }
-}
-
-class ServiceWithUnresolvableDependency
-{
-    public function __construct(private readonly AbstractClass $dependency)
-    {
-    }
-}
+require_once __DIR__ . '/../Fixtures/ContainerFixtures.php';
 
 //
 // Unit tests
@@ -210,11 +82,11 @@ describe('Container', function () {
         expect(fn () => $this->container->build($className))
             ->toThrow(\RuntimeException::class, $errorPattern);
     })->with([
-        ['NonExistentClass', 'does not exist'],
-        [TestInterface::class, 'does not exist'], // Interfaces don't pass class_exists()
-        [AbstractClass::class, 'not instantiable'],
-        [PrivateConstructor::class, 'not instantiable'],
-        [ServiceWithScalarParam::class, 'Cannot resolve parameter [required] in [Bigpixelrocket\DeployerPHP\Tests\Unit\ServiceWithScalarParam]'],
+        'non-existent class' => ['NonExistentClass', 'does not exist'],
+        'interface' => [TestInterface::class, 'does not exist'], // Interfaces don't pass class_exists()
+        'abstract class' => [AbstractClass::class, 'not instantiable'],
+        'private constructor' => [PrivateConstructor::class, 'not instantiable'],
+        'unresolvable scalar parameter' => [ServiceWithScalarParam::class, 'Cannot resolve parameter [required] in [Bigpixelrocket\\DeployerPHP\\Tests\\Fixtures\\ServiceWithScalarParam]'],
     ]);
 
     it('cleans up state after errors', function () {
@@ -251,7 +123,7 @@ describe('Container', function () {
     it('includes declaring class in dependency resolution errors', function () {
         // ARRANGE & ACT & ASSERT
         expect(fn () => $this->container->build(ServiceWithUnresolvableDependency::class))
-            ->toThrow(\RuntimeException::class, 'Cannot resolve dependency [Bigpixelrocket\DeployerPHP\Tests\Unit\AbstractClass] for parameter [dependency] in [Bigpixelrocket\DeployerPHP\Tests\Unit\ServiceWithUnresolvableDependency]');
+            ->toThrow(\RuntimeException::class, 'Cannot resolve dependency [Bigpixelrocket\\DeployerPHP\\Tests\\Fixtures\\AbstractClass] for parameter [dependency] in [Bigpixelrocket\\DeployerPHP\\Tests\\Fixtures\\ServiceWithUnresolvableDependency]');
     });
 
     it('detects circular dependencies in union types', function () {

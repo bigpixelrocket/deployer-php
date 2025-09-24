@@ -10,34 +10,22 @@ describe('ProcessFactory', function () {
         $this->validCwd = __DIR__;
     });
 
-    it('creates process with valid command and timeout configuration', function (?float $timeout, float $expected) {
-        // ARRANGE
-        $command = ['ls', '-la'];
-
-        // ACT
-        $process = $this->factory->create($command, $this->validCwd, $timeout);
-
-        // ASSERT
-        expect($process->getCommandLine())->toContain('ls')
-            ->and($process->getWorkingDirectory())->toBe($this->validCwd)
-            ->and($process->getTimeout())->toBe($expected);
-    })->with([
-        'default timeout' => [3.0, 3.0],
-        'null timeout defaults to 3.0' => [null, 3.0],
-    ]);
-
-    it('creates process with custom timeout', function (float $timeout, ?float $expected) {
+    it('configures process timeout correctly', function (?float $inputTimeout, ?float $expectedTimeout) {
         // ARRANGE
         $command = ['echo', 'test'];
 
         // ACT
-        $process = $this->factory->create($command, $this->validCwd, $timeout);
+        $process = $this->factory->create($command, $this->validCwd, $inputTimeout);
 
         // ASSERT
-        expect($process->getTimeout())->toBe($expected);
+        expect($process->getCommandLine())->toContain('echo')
+            ->and($process->getWorkingDirectory())->toBe($this->validCwd)
+            ->and($process->getTimeout())->toBe($expectedTimeout);
     })->with([
-        'short timeout' => [1.5, 1.5],
-        'long timeout' => [10.0, 10.0],
+        'null timeout defaults to 3.0' => [null, 3.0],
+        'explicit default timeout' => [3.0, 3.0],
+        'short custom timeout' => [1.5, 1.5],
+        'long custom timeout' => [10.0, 10.0],
         'zero timeout removes timeout' => [0.0, null],
     ]);
 

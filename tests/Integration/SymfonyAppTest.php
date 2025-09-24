@@ -36,7 +36,7 @@ describe('SymfonyApp', function () {
     //
     // Banner display
 
-    it('displays complete banner with version and branding when running commands', function () {
+    it('displays complete banner with branding elements', function (array $expectedBannerElements) {
         // ARRANGE
         $container = new Container();
         $app = $container->build(SymfonyApp::class);
@@ -48,21 +48,51 @@ describe('SymfonyApp', function () {
         $app->doRun($input, $output);
         $outputContent = $output->fetch();
 
-        // ASSERT - Complete banner verification
-        expect($outputContent)
-            ->toContain('┌┬┐┌─┐┌─┐┬  ┌─┐┬ ┬┌─┐┬─┐')
-            ->toContain(' ││├┤ ├─┘│  │ │└┬┘├┤ ├┬┘')
-            ->toContain('─┴┘└─┘┴  ┴─┘└─┘ ┴ └─┘┴└─PHP '.$version)
-            ->toContain('The Server Provisioning & Deployment Tool for PHP')
-            ->toContain('Support this project on GitHub ♥')
-            ->toContain('https://github.com/bigpixelrocket/deployer-php')
-            ->toContain('Environment:');
-    });
+        // ASSERT - Banner elements verification
+        foreach ($expectedBannerElements as $element) {
+            if ($element === 'VERSION_LINE') {
+                expect($outputContent)->toContain('─┴┘└─┘┴  ┴─┘└─┘ ┴ └─┘┴└─PHP '.$version);
+            } else {
+                expect($outputContent)->toContain($element);
+            }
+        }
+    })->with([
+        'complete banner' => [[
+            '┌┬┐┌─┐┌─┐┬  ┌─┐┬ ┬┌─┐┬─┐', // ASCII art line 1
+            ' ││├┤ ├─┘│  │ │└┬┘├┤ ├┬┘', // ASCII art line 2
+            'VERSION_LINE', // Dynamic version line
+            'The Server Provisioning & Deployment Tool for PHP',
+            'Support this project on GitHub ♥',
+            'https://github.com/bigpixelrocket/deployer-php',
+            'Environment:'
+        ]]
+    ]);
 
     //
-    // Application Execution & Edge Cases
+    // Command Execution
 
-    it('executes commands and handles various scenarios', function (string $command, int $expectedExitCode, array $expectedContent, ?string $expectedException) {
+    it('executes valid commands successfully', function (string $command, array $expectedContent) {
+        // ARRANGE
+        $container = new Container();
+        $app = $container->build(SymfonyApp::class);
+        $input = new ArrayInput(['command' => $command]);
+        $output = new BufferedOutput();
+
+        // ACT
+        $exitCode = $app->doRun($input, $output);
+        $outputContent = $output->fetch();
+
+        // ASSERT
+        expect($exitCode)->toBe(0);
+        foreach ($expectedContent as $content) {
+            expect($outputContent)->toContain($content);
+        }
+    })->with([
+        'hello command' => ['hello', ['Hello', '┌┬┐┌─┐┌─┐']], // Banner + greeting
+        'list command' => ['list', ['Available commands', '┌┬┐┌─┐┌─┐']], // Banner + command list
+    ]);
+
+    it('handles invalid commands gracefully', function (string $command, string $expectedError) {
         // ARRANGE
         $container = new Container();
         $app = $container->build(SymfonyApp::class);
@@ -70,29 +100,19 @@ describe('SymfonyApp', function () {
         $output = new BufferedOutput();
 
         // ACT & ASSERT
-        if ($expectedException) {
-            expect(fn () => $app->doRun($input, $output))
-                ->toThrow($expectedException);
-        } else {
-            try {
-                $exitCode = $app->doRun($input, $output);
-                $outputContent = $output->fetch();
-            } catch (CommandNotFoundException $e) {
-                // Handle command not found exceptions manually (simulating Symfony's default behavior)
-                $exitCode = 1;
-                $outputContent = $e->getMessage();
-            }
-
-            expect($exitCode)->toBe($expectedExitCode);
-
-            foreach ($expectedContent as $content) {
-                expect($outputContent)->toContain($content);
-            }
+        try {
+            $exitCode = $app->doRun($input, $output);
+            $outputContent = $output->fetch();
+        } catch (CommandNotFoundException $e) {
+            $exitCode = 1;
+            $outputContent = $e->getMessage();
         }
+
+        expect($exitCode)->toBe(1)
+            ->and($outputContent)->toContain($expectedError);
     })->with([
-        'hello command execution' => ['hello', 0, ['Hello', '┌┬┐┌─┐┌─┐'], null],
-        'list command execution' => ['list', 0, ['Available commands', '┌┬┐┌─┐┌─┐'], null],
-        'invalid command handling' => ['non-existent-command', 1, ['Command "non-existent-command" is not defined'], null],
+        'non-existent command' => ['non-existent-command', 'Command "non-existent-command" is not defined'],
+        'typo command' => ['helo', 'Command "helo" is not defined'],
     ]);
 
     it('maintains state consistency across multiple executions', function () {

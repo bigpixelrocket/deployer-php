@@ -38,10 +38,7 @@
     "autoload-dev": {
         "psr-4": {
             "Bigpixelrocket\\DeployerPHP\\Tests\\": "tests/"
-        },
-        "exclude-from-classmap": [
-            "tests/Unit/ContainerTest.php"
-        ]
+        }
     },
     "bin": [
         "bin/deployer"

@@ -7,7 +7,7 @@ use Bigpixelrocket\DeployerPHP\Services\VersionService;
 
 describe('VersionService', function () {
 
-    it('returns version from available sources with fallback priority', function (string $packageName, string $fallback) {
+    it('returns version with correct fallback priority', function (string $packageName, string $fallback) {
         // ARRANGE
         $processFactory = new ProcessFactory();
         $service = new VersionService($processFactory, $packageName, $fallback);
@@ -26,9 +26,9 @@ describe('VersionService', function () {
             expect($version)->toBe($fallback); // Fallback used
         }
     })->with([
-        'non-existent package' => ['definitely/non/existent', 'v2.0.0-fallback'],
-        'custom fallback' => ['missing/package', 'dev-custom'],
-        'default fallback' => ['another/missing', 'dev-main'],
+        'non-existent package with version fallback' => ['definitely/non/existent', 'v2.0.0-fallback'],
+        'missing package with custom fallback' => ['missing/package', 'dev-custom'],
+        'missing package with default fallback' => ['another/missing', 'dev-main'],
     ]);
 
     it('detects git repository correctly', function (bool $hasGitDir, bool $expectedResult) {
@@ -55,14 +55,15 @@ describe('VersionService', function () {
         }
         rmdir($tempDir);
     })->with([
-        'directory with .git' => [true, true],
-        'directory without .git' => [false, false],
+        'git repository' => [true, true],
+        'non-git directory' => [false, false],
     ]);
 
-    it('handles git command failures gracefully', function (string $method, string $invalidPath) {
+    it('handles git command failures gracefully for all git methods', function (string $method) {
         // ARRANGE
         $processFactory = new ProcessFactory();
         $service = new VersionService($processFactory);
+        $invalidPath = '/absolutely/non/existent/path';
 
         // ACT
         $result = $service->$method($invalidPath);
@@ -70,9 +71,9 @@ describe('VersionService', function () {
         // ASSERT
         expect($result)->toBeNull();
     })->with([
-        'exact git tag on invalid path' => ['getExactGitTag', '/absolutely/non/existent/path'],
-        'git describe on invalid path' => ['getGitDescribeVersion', '/absolutely/non/existent/path'],
-        'branch with commit on invalid path' => ['getBranchWithCommit', '/absolutely/non/existent/path'],
+        'exact git tag method' => ['getExactGitTag'],
+        'git describe method' => ['getGitDescribeVersion'],
+        'branch with commit method' => ['getBranchWithCommit'],
     ]);
 
     it('returns null for non-existent composer packages', function () {

@@ -7,6 +7,12 @@ use Bigpixelrocket\DeployerPHP\Container;
 use Bigpixelrocket\DeployerPHP\Services\EnvService;
 use Bigpixelrocket\DeployerPHP\SymfonyApp;
 
+//
+// Test helpers
+// -------------------------------------------------------------------------------
+
+require_once __DIR__ . '/../TestHelpers.php';
+
 describe('App', function () {
 
     it('provides singleton container instance', function () {
@@ -72,20 +78,21 @@ describe('App', function () {
             ->and(strlen($version))->toBeGreaterThan(0);
     });
 
-    it('delegates environment variable access to env service', function () {
-        // ARRANGE - Set a test environment variable
-        putenv('TEST_VAR=test_value');
+    it('delegates environment variable access to env service', function (string|array $keys, string $expectedValue) {
+        // ARRANGE
+        setEnv('TEST_VAR', 'test_value');
 
-        // ACT & ASSERT - Test string key
-        $value = App::env('TEST_VAR', false);
-        expect($value)->toBe('test_value');
+        // ACT
+        $value = App::env($keys, false);
 
-        // ACT & ASSERT - Test array keys
-        $valueFromArray = App::env(['TEST_VAR'], false);
-        expect($valueFromArray)->toBe('test_value');
+        // ASSERT
+        expect($value)->toBe($expectedValue);
 
         // CLEANUP
-        putenv('TEST_VAR=');
-    });
+        setEnv('TEST_VAR', null);
+    })->with([
+        'string key access' => ['TEST_VAR', 'test_value'],
+        'array key access' => [['TEST_VAR'], 'test_value'],
+    ]);
 
 });
