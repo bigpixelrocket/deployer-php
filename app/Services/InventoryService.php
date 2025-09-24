@@ -18,8 +18,11 @@ class InventoryService
     }
 
     //
+    // Public
+    // -------------------------------------------------------------------------------
+
+    //
     // CREATE Operations
-    // ----
 
     /**
      * Set a single record in a collection (create or overwrite).
@@ -27,11 +30,12 @@ class InventoryService
     public function set(string $collection, string $key, mixed $value): void
     {
         $inventory = $this->readInventory();
-        if (!isset($inventory[$collection]) || !is_array($inventory[$collection])) {
-            $inventory[$collection] = [];
-        }
+        $this->ensureCollection($inventory, $collection);
 
-        $inventory[$collection][$key] = $value;
+        /** @var array<string, mixed> $collectionData */
+        $collectionData = $inventory[$collection];
+        $collectionData[$key] = $value;
+        $inventory[$collection] = $collectionData;
         $this->writeInventory($inventory);
     }
 
@@ -49,7 +53,19 @@ class InventoryService
 
     //
     // READ Operations
-    // ----
+
+    /**
+     * Get a single record from a collection.
+     */
+    public function get(string $collection, string $key): mixed
+    {
+        $inventory = $this->readInventory();
+        $this->validateCollectionKey($inventory, $collection, $key);
+
+        /** @var array<string, mixed> $collectionData */
+        $collectionData = $inventory[$collection];
+        return $collectionData[$key];
+    }
 
     /**
      * Get the entire inventory structure.
@@ -62,6 +78,15 @@ class InventoryService
     }
 
     /**
+     * Check if a key exists in a collection.
+     */
+    public function has(string $collection, string $key): bool
+    {
+        $inventory = $this->readInventory();
+        return $this->collectionKeyExists($inventory, $collection, $key);
+    }
+
+    /**
      * Get all records from a collection.
      *
      * @return array<string, mixed>
@@ -69,41 +94,15 @@ class InventoryService
     public function list(string $collection): array
     {
         $inventory = $this->readInventory();
-
         $records = $inventory[$collection] ?? [];
-        /** @var array<string, mixed> $safe */
-        $safe = is_array($records) ? $records : [];
-        return $safe;
-    }
 
-    /**
-     * Get a single record from a collection.
-     */
-    public function get(string $collection, string $key): mixed
-    {
-        $inventory = $this->readInventory();
-        if (!isset($inventory[$collection]) || !is_array($inventory[$collection]) || !array_key_exists($key, $inventory[$collection])) {
-            throw new \RuntimeException("Key '{$key}' not found in collection '{$collection}'.");
-        }
-
-        return $inventory[$collection][$key];
-    }
-
-    /**
-     * Check if a key exists in a collection.
-     */
-    public function has(string $collection, string $key): bool
-    {
-        $inventory = $this->readInventory();
-
-        return isset($inventory[$collection])
-            && is_array($inventory[$collection])
-            && array_key_exists($key, $inventory[$collection]);
+        /** @var array<string, mixed> $result */
+        $result = is_array($records) ? $records : [];
+        return $result;
     }
 
     //
     // DELETE Operations
-    // ----
 
     /**
      * Delete a single record from a collection.
@@ -112,21 +111,78 @@ class InventoryService
     {
         $inventory = $this->readInventory();
 
-        if (!isset($inventory[$collection]) || !is_array($inventory[$collection]) || !array_key_exists($key, $inventory[$collection])) {
+        if (!$this->collectionKeyExists($inventory, $collection, $key)) {
             if ($mustExist) {
-                throw new \RuntimeException("Key '{$key}' not found in collection '{$collection}'.");
+                $this->throwKeyNotFound($collection, $key);
             }
-
             return;
         }
 
-        unset($inventory[$collection][$key]);
+        /** @var array<string, mixed> $collectionData */
+        $collectionData = $inventory[$collection];
+        unset($collectionData[$key]);
+        $inventory[$collection] = $collectionData;
         $this->writeInventory($inventory);
     }
 
     //
-    // Private Helper Methods
-    // ----
+    // Private
+    // -------------------------------------------------------------------------------
+
+    //
+    // Collection Validation
+
+    /**
+     * Check if a collection key exists.
+     *
+     * @param array<string, mixed> $inventory
+     */
+    private function collectionKeyExists(array $inventory, string $collection, string $key): bool
+    {
+        return isset($inventory[$collection])
+            && is_array($inventory[$collection])
+            && array_key_exists($key, $inventory[$collection]);
+    }
+
+    /**
+     * Ensure a collection exists and is properly initialized.
+     *
+     * @param array<string, mixed> $inventory
+     */
+    private function ensureCollection(array &$inventory, string $collection): void
+    {
+        if (!isset($inventory[$collection]) || !is_array($inventory[$collection])) {
+            $inventory[$collection] = [];
+        }
+    }
+
+    /**
+     * Throw consistent key not found exception.
+     */
+    private function throwKeyNotFound(string $collection, string $key): never
+    {
+        throw new \RuntimeException("Key '{$key}' not found in collection '{$collection}'.");
+    }
+
+    /**
+     * Validate that a collection key exists, throw exception if not.
+     *
+     * @param array<string, mixed> $inventory
+     */
+    private function validateCollectionKey(array $inventory, string $collection, string $key): void
+    {
+        if (!$this->collectionKeyExists($inventory, $collection, $key)) {
+            $this->throwKeyNotFound($collection, $key);
+        }
+    }
+
+    //
+    // File Operations
+
+    private function getInventoryPath(): string
+    {
+        return rtrim((string) getcwd(), '/').'/.deployer/inventory.yml';
+    }
 
     /**
      * Read inventory YAML into a structured array.
@@ -173,10 +229,5 @@ class InventoryService
         } catch (\Throwable $e) {
             throw new \RuntimeException("Failed to write inventory file at {$path}", 0, $e);
         }
-    }
-
-    private function getInventoryPath(): string
-    {
-        return rtrim((string) getcwd(), '/').'/.deployer/inventory.yml';
     }
 }

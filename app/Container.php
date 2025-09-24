@@ -20,14 +20,18 @@ use ReflectionParameter;
  */
 class Container
 {
-    /** @var array<string, bool> Currently resolving classes (circular dependency detection) */
-    private array $resolving = [];
-
-    /** @var array<string, array{reflector: ReflectionClass<object>, constructor: ?\ReflectionMethod, parameters: ReflectionParameter[]}> Reflection data cache */
+    /** @var array<string, array{reflector: ReflectionClass<object>, constructor: ?\ReflectionMethod, parameters: ReflectionParameter[]}> */
     private array $reflectionCache = [];
 
+    /** @var array<string, bool> */
+    private array $resolving = [];
+
+    //
+    // Public
+    // -------------------------------------------------------------------------------
+
     /**
-     * Build a class instance using reflection and auto-wire dependencies.
+     * Build a class instance with auto-wired dependencies.
      *
      * @template T of object
      * @param class-string<T> $className
@@ -35,112 +39,70 @@ class Container
      */
     public function build(string $className): object
     {
-        // Circular dependency detection
-        if (isset($this->resolving[$className])) {
-            $chain = implode(' -> ', array_keys($this->resolving)) . " -> {$className}";
-            throw new \RuntimeException("Circular dependency detected: {$chain}");
-        }
+        $this->guardAgainstCircularDependency($className);
+        $this->guardAgainstInvalidClass($className);
 
-        if (!class_exists($className)) {
-            throw new \RuntimeException("Class [{$className}] does not exist");
-        }
+        $reflectionData = $this->getCachedReflectionData($className);
+        $this->guardAgainstNonInstantiableClass($className, $reflectionData['reflector']);
 
-        // Get cached reflection data
-        $reflectionData = $this->getReflectionData($className);
-        $reflector = $reflectionData['reflector'];
-        $constructor = $reflectionData['constructor'];
-        $parameters = $reflectionData['parameters'];
-
-        if (!$reflector->isInstantiable()) {
-            throw new \RuntimeException("Class [{$className}] is not instantiable");
-        }
-
-        // Mark as currently resolving
         $this->resolving[$className] = true;
 
         try {
-            // If no constructor, return new instance
-            if ($constructor === null) {
-                /** @var T */
-                return $reflector->newInstance();
-            }
-
-            // Resolve constructor dependencies
-            $dependencies = $this->resolveDependencies($parameters);
-
             /** @var T */
-            return $reflector->newInstanceArgs($dependencies);
+            return $reflectionData['constructor'] === null
+                ? $reflectionData['reflector']->newInstance()
+                : $reflectionData['reflector']->newInstanceArgs(
+                    $this->buildDependencies($reflectionData['parameters'])
+                );
         } finally {
-            // Always clean up resolving state
             unset($this->resolving[$className]);
         }
     }
 
-    /**
-     * Get cached reflection data for a class.
-     *
-     * @param class-string $className
-     * @return array{reflector: ReflectionClass<object>, constructor: ?\ReflectionMethod, parameters: ReflectionParameter[]}
-     */
-    private function getReflectionData(string $className): array
-    {
-        if (!isset($this->reflectionCache[$className])) {
-            $reflector = new ReflectionClass($className);
-            $constructor = $reflector->getConstructor();
-            $parameters = $constructor?->getParameters() ?? [];
+    //
+    // Private
+    // -------------------------------------------------------------------------------
 
-            $this->reflectionCache[$className] = [
-                'reflector' => $reflector,
-                'constructor' => $constructor,
-                'parameters' => $parameters,
-            ];
-        }
-
-        return $this->reflectionCache[$className];
-    }
+    //
+    // Dependency Resolution
 
     /**
-     * Resolve all dependencies for constructor parameters.
+     * Build dependencies for constructor parameters.
      *
      * @param ReflectionParameter[] $parameters
      * @return array<int, mixed>
      */
-    private function resolveDependencies(array $parameters): array
+    private function buildDependencies(array $parameters): array
     {
-        $dependencies = [];
-
-        foreach ($parameters as $parameter) {
-            $dependencies[] = $this->resolveParameter($parameter);
-        }
-
-        return $dependencies;
+        return array_values(array_map([$this, 'buildParameter'], $parameters));
     }
 
     /**
-     * Resolve a single constructor parameter.
+     * Build a single constructor parameter dependency.
      */
-    private function resolveParameter(ReflectionParameter $parameter): mixed
+    private function buildParameter(ReflectionParameter $parameter): mixed
     {
         $type = $parameter->getType();
 
-        // Handle union types and built-in types
         if (!$type instanceof ReflectionNamedType || $type->isBuiltin()) {
-            if ($parameter->isDefaultValueAvailable()) {
-                return $parameter->getDefaultValue();
-            }
-
-            throw new \RuntimeException(
-                "Cannot resolve parameter [{$parameter->getName()}] in class [{$parameter->getDeclaringClass()?->getName()}]"
-            );
+            return $this->resolveNonClassParameter($parameter);
         }
 
-        $className = $type->getName();
+        return $this->resolveClassParameter($parameter, $type->getName());
+    }
 
+    //
+    // Parameter Resolution
+
+    /**
+     * Resolve a class-type parameter by building its dependency.
+     */
+    private function resolveClassParameter(ReflectionParameter $parameter, string $className): mixed
+    {
         try {
             /** @var class-string $className */
             return $this->build($className);
         } catch (\RuntimeException $e) {
-            // If dependency resolution fails and parameter has default, use it
             if ($parameter->isDefaultValueAvailable()) {
                 return $parameter->getDefaultValue();
             }
@@ -149,6 +111,88 @@ class Container
                 "Cannot resolve dependency [{$className}] for parameter [{$parameter->getName()}]",
                 previous: $e
             );
+        }
+    }
+
+    /**
+     * Resolve a non-class parameter by using its default value.
+     */
+    private function resolveNonClassParameter(ReflectionParameter $parameter): mixed
+    {
+        if ($parameter->isDefaultValueAvailable()) {
+            return $parameter->getDefaultValue();
+        }
+
+        throw new \RuntimeException(
+            "Cannot resolve parameter [{$parameter->getName()}] in class [{$parameter->getDeclaringClass()?->getName()}]"
+        );
+    }
+
+    //
+    // Reflection Caching
+
+    /**
+     * Get cached reflection data for a class.
+     *
+     * @param class-string $className
+     * @return array{reflector: ReflectionClass<object>, constructor: ?\ReflectionMethod, parameters: ReflectionParameter[]}
+     */
+    private function getCachedReflectionData(string $className): array
+    {
+        return $this->reflectionCache[$className] ??= $this->buildReflectionData($className);
+    }
+
+    /**
+     * Build reflection data for a class.
+     *
+     * @param class-string $className
+     * @return array{reflector: ReflectionClass<object>, constructor: ?\ReflectionMethod, parameters: ReflectionParameter[]}
+     */
+    private function buildReflectionData(string $className): array
+    {
+        $reflector = new ReflectionClass($className);
+        $constructor = $reflector->getConstructor();
+
+        return [
+            'reflector' => $reflector,
+            'constructor' => $constructor,
+            'parameters' => $constructor?->getParameters() ?? [],
+        ];
+    }
+
+    //
+    // Guard Methods
+
+    /**
+     * Guard against circular dependencies.
+     */
+    private function guardAgainstCircularDependency(string $className): void
+    {
+        if (isset($this->resolving[$className])) {
+            $chain = implode(' -> ', array_keys($this->resolving)) . " -> {$className}";
+            throw new \RuntimeException("Circular dependency detected: {$chain}");
+        }
+    }
+
+    /**
+     * Guard against invalid class names.
+     */
+    private function guardAgainstInvalidClass(string $className): void
+    {
+        if (!class_exists($className)) {
+            throw new \RuntimeException("Class [{$className}] does not exist");
+        }
+    }
+
+    /**
+     * Guard against non-instantiable classes.
+     *
+     * @param ReflectionClass<object> $reflector
+     */
+    private function guardAgainstNonInstantiableClass(string $className, ReflectionClass $reflector): void
+    {
+        if (!$reflector->isInstantiable()) {
+            throw new \RuntimeException("Class [{$className}] is not instantiable");
         }
     }
 }

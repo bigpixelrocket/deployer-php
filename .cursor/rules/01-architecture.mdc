@@ -74,6 +74,14 @@ alwaysApply: false
 - Separate section headers, subheaders and paragraphs with a single newline
 - Avoid commenting the obvious or leaving comments behind when removing code
 
+**ALWAYS use the correct section header comment format and not the simplified one:**
+
+```
+    //
+    // {Section Header}
+    // ---- ❌ Too few dashes
+```
+
 ### Quality Gates
 
 **ALWAYS run these commands against the files you have touched and fix any issues BEFORE considering a task complete:**
