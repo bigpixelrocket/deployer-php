@@ -4,12 +4,16 @@ declare(strict_types=1);
 
 namespace Bigpixelrocket\DeployerPHP;
 
+use Bigpixelrocket\DeployerPHP\Services\EnvService;
+
 /**
  * Application entry point
  */
 class App
 {
     private static ?Container $container = null;
+
+    private static ?EnvService $envService = null;
 
     /**
      * Build a class instance with auto-wired dependencies.
@@ -37,5 +41,13 @@ class App
     public static function run(): int
     {
         return self::build(Deployer::class)->run();
+    }
+
+    /**
+     * Get the environment service instance.
+     */
+    public static function env(): EnvService
+    {
+        return self::$envService ??= self::build(EnvService::class);
     }
 }

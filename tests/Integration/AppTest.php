@@ -45,4 +45,14 @@ describe('App', function () {
         // Integration tests verify the full App::run() behavior
     });
 
+    it('provides singleton environment service instance', function () {
+        // ACT
+        $env1 = App::env();
+        $env2 = App::env();
+
+        // ASSERT
+        expect($env1)->toBeInstanceOf(EnvService::class)
+            ->and($env1)->toBe($env2); // Same instance (singleton)
+    });
+
 });
