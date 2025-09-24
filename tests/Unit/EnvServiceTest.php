@@ -59,7 +59,7 @@ describe('EnvService', function () {
         [true, "API_KEY=test\nDB_HOST=localhost", false, '/^Loaded 2 variables from .+\.env$/'],
 
         // File exists with single variable
-        [true, 'SINGLE_KEY=value', false, '/^Loaded 1 variables from .+\.env$/'],
+        [true, 'SINGLE_KEY=value', false, '/^Loaded 1 variable from .+\.env$/'],
 
         // File exists but is empty (no variables)
         [true, '', false, '/^Loaded 0 variables from .+\.env$/'],

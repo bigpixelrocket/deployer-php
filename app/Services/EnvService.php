@@ -95,7 +95,8 @@ class EnvService
             }
 
             $varCount = count($this->dotenv);
-            $this->envFileStatus = "Loaded {$varCount} variables from {$envPath}";
+            $label = $varCount === 1 ? 'variable' : 'variables';
+            $this->envFileStatus = "Loaded {$varCount} {$label} from {$envPath}";
         } catch (\Throwable) {
             $this->dotenv = [];
             $this->envFileStatus = "Error reading .env file from {$envPath}";
