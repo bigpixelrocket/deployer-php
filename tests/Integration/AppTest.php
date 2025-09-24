@@ -31,7 +31,7 @@ describe('App', function () {
 
         expect($service)->toBeInstanceOf(EnvService::class)
             ->and($service)->not->toBe($directBuild) // Different instances (not singleton services)
-            ->and(get_class($service))->toBe(get_class($directBuild)); // Same class
+            ->and($service::class)->toBe($directBuild::class); // Same class
     });
 
     it('can build deployer instance via delegation', function () {
