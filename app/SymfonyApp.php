@@ -11,7 +11,10 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
-class SymfonyApp extends SymfonyApplication
+/**
+ * The Symfony application entry point.
+ */
+final class SymfonyApp extends SymfonyApplication
 {
     private SymfonyStyle $io;
 

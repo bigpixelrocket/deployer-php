@@ -19,6 +19,7 @@ class EnvService
 
     public function __construct(
         private readonly Filesystem $filesystem,
+        private readonly Dotenv $dotenvParser,
     ) {
         $this->loadDotenvFile();
     }
@@ -85,8 +86,7 @@ class EnvService
 
         try {
             $content = $this->filesystem->readFile($envPath);
-            $dotenv = new Dotenv();
-            $parsed = $dotenv->parse($content, $envPath);
+            $parsed = $this->dotenvParser->parse($content, $envPath);
 
             foreach ($parsed as $k => $v) {
                 if (is_string($k) && is_string($v)) {

@@ -18,6 +18,7 @@ use Symfony\Component\Process\Process;
 class VersionService
 {
     public function __construct(
+        private readonly ProcessFactory $processFactory,
         private readonly string $packageName = 'bigpixelrocket/deployer-php',
         private readonly string $fallbackVersion = 'dev-main'
     ) {
@@ -112,7 +113,7 @@ class VersionService
     public function getExactGitTag(string $projectRoot): ?string
     {
         try {
-            $process = new Process(['git', 'describe', '--tags', '--exact-match'], $projectRoot);
+            $process = $this->processFactory->create(['git', 'describe', '--tags', '--exact-match'], $projectRoot);
             $process->run();
 
             if ($process->isSuccessful()) {
@@ -131,7 +132,7 @@ class VersionService
     public function getGitDescribeVersion(string $projectRoot): ?string
     {
         try {
-            $process = new Process(['git', 'describe', '--tags', '--always'], $projectRoot);
+            $process = $this->processFactory->create(['git', 'describe', '--tags', '--always'], $projectRoot);
             $process->run();
 
             if ($process->isSuccessful()) {
@@ -150,10 +151,10 @@ class VersionService
     public function getBranchWithCommit(string $projectRoot): ?string
     {
         try {
-            $branchProcess = new Process(['git', 'rev-parse', '--abbrev-ref', 'HEAD'], $projectRoot);
+            $branchProcess = $this->processFactory->create(['git', 'rev-parse', '--abbrev-ref', 'HEAD'], $projectRoot);
             $branchProcess->run();
 
-            $commitProcess = new Process(['git', 'rev-parse', '--short', 'HEAD'], $projectRoot);
+            $commitProcess = $this->processFactory->create(['git', 'rev-parse', '--short', 'HEAD'], $projectRoot);
             $commitProcess->run();
 
             if ($branchProcess->isSuccessful() && $commitProcess->isSuccessful()) {
