@@ -6,7 +6,7 @@ globs: app/**/*.php,tests/**/*.php
 
 **Philosophy:** "A test that never fails is not a test, it's a lie."
 
-**Framework:** Pest exclusively with `it()` syntax, 60%+ coverage
+**Framework:** Pest exclusively with `it()` syntax, 80%+ coverage
 
 ### Running Tests
 
