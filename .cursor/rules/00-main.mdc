@@ -6,6 +6,8 @@ alwaysApply: true
 
 We're developing Deployer PHP, a Composer package and CLI tool that simplifies provisioning and setting up servers across multiple Cloud providers, enabling you to deploy your PHP projects effortlessly.
 
+**🚨 All our rules are MANDATORY and IMPORTANT!**
+
 **🔎 Before ANY Task:**
 
 - Check `composer.json` and `package.json` for installed packages
@@ -17,6 +19,18 @@ We're developing Deployer PHP, a Composer package and CLI tool that simplifies p
 - Only write the minimum amount of code necessary to solve the problem — no more, no less
 - Always ask yourself if less code can achieve the same result
 - Refactor relentlessly for code clarity and necessity
+
+**🤓 Organize & Catalog Like A Librarian:**
+
+Organize and catalog code like a librarian. Group related functions into comment-separated sections for visual clarity and prefer alphabetical ordering when it doesn’t fight logical grouping. Code should be functional and visually appealing; there is beauty in order.
+
+**🤖 Obsessive Code Consistency:**
+
+Be rigorous to the point of perfectionism in maintaining implementation consistency and logical coherence across similar areas of the codebase. Additionally, make it a habit to regularly review other code in and around the files you are working on to identify reusable patterns.
+
+The goal is for all the code in this repository to appear as if it were written by a single individual, adhering to a uniform style, a consistent set of standards, and aesthetic principles in software development.
+
+This can include everything from naming files, classes, variables, or array keys to the precedence and type of parameters passed to a function, to how logic flows and how the code is organized or commented.
 
 **✔️ Don't worry about tests:** Write or run tests ONLY if specifically instructed
 

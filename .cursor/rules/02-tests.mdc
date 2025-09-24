@@ -1,0 +1,102 @@
+---
+globs: app/**/*.php,tests/**/*.php
+---
+
+## Testing Rules
+
+**Philosophy:** "A test that never fails is not a test, it's a lie."
+
+**Framework:** Pest exclusively with `it()` syntax, 80%+ coverage
+
+### Running Tests
+
+- `composer pest` - run entire test suite in parallel, with coverage
+- `vendor/bin/pest $TEST_FILE` - run specific test file
+
+### Test Minimalism
+
+**Target:** Keep test files under 1.8x the size of source code they test.
+
+**Rules:**
+
+- Test core business logic only, skip framework testing
+- Use dataset-driven testing: `->with([])` for multiple scenarios
+- Eliminate test overlap: no two tests covering same functionality
+- Consolidate assertions: `expect($x)->toBe(1)->and($y)->toBe(2)`
+- Mock external dependencies only
+- No performance tests unless performance is the primary concern
+- Don't sacrifice readability for ratio targets
+
+**Don't consolidate when:**
+
+- Different public methods
+- Exception vs normal flow tests
+- Different setup requirements
+- Distinct business logic
+
+### AAA Pattern (MANDATORY)
+
+```php
+it('does something specific', function () {
+    // ARRANGE
+    $service = new Service(mock(Dependency::class));
+
+    // ACT
+    $result = $service->performAction();
+
+    // ASSERT
+    expect($result)->toBe('expected');
+
+    // CLEANUP (when needed)
+    $this->resetTimeState();
+    unlink($tempFile);
+});
+```
+
+**Exception tests:** Use `// ACT & ASSERT` when act triggers assertion.
+
+**Organization:** Use `describe()` blocks, `beforeEach()` setup, extract helpers/traits for DRY tests.
+
+### Testing Patterns
+
+**❌ FORBIDDEN:**
+
+```php
+expect($x)->toBeInstanceOf(Class::class);     // Type-only testing
+expect($x)->toBeArray();                      // Generic assertions
+expect($x)->not->toBeNull();                  // Meaningless
+expect(true)->toBeTrue();                     // Literally meaningless
+sleep(...);                                   // Use time mocking
+```
+
+**✅ REQUIRED:**
+
+```php
+expect($config->getValue('host'))->toBe('example.com');
+expect($this->validator->isValid($input))->toBe($expected);
+$mock->shouldReceive('method')->with('param')->andReturn('result');
+```
+
+### Test Types
+
+**Unit Tests:**
+
+- Mock all external dependencies (filesystem, HTTP, processes)
+- Test single units in isolation
+- Complete in milliseconds
+
+**Integration Tests:**
+
+- Real file operations and external processes
+- CLI commands and full workflows
+
+**Layer Strategy:**
+
+- CLI Commands → Integration tests
+- Business Services → Unit tests (mocked dependencies)
+- Utilities/Helpers → Unit tests
+
+### Static Analysis
+
+- Ignore PHPStan issues in tests - focus on test functionality over compliance
+- Avoid excessive phpdoc just to appease types
