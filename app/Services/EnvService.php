@@ -8,12 +8,14 @@ use Symfony\Component\Dotenv\Dotenv;
 use Symfony\Component\Filesystem\Filesystem;
 
 /**
- * Environment variable reader with .env file fallback.
+ * Environment variable reader (first checks .env file then system environment variables)
  */
 class EnvService
 {
     /** @var array<string, string> */
     private array $dotenv = [];
+
+    private string $envFileStatus = '';
 
     public function __construct(
         private readonly Filesystem $filesystem,
@@ -35,15 +37,15 @@ class EnvService
         $keysList = is_array($keys) ? $keys : [$keys];
 
         foreach ($keysList as $key) {
-            // Check environment variables first
+            // Check .env file first
+            if (isset($this->dotenv[$key]) && $this->dotenv[$key] !== '') {
+                return $this->dotenv[$key];
+            }
+
+            // Check environment variables second
             $value = $_ENV[$key] ?? getenv($key);
             if (is_string($value) && $value !== '') {
                 return $value;
-            }
-
-            // Check .env file fallback
-            if (isset($this->dotenv[$key]) && $this->dotenv[$key] !== '') {
-                return $this->dotenv[$key];
             }
         }
 
@@ -54,6 +56,14 @@ class EnvService
         }
 
         return null;
+    }
+
+    /**
+     * Get the status of the .env file.
+     */
+    public function getEnvFileStatus(): string
+    {
+        return $this->envFileStatus;
     }
 
     //
@@ -68,6 +78,8 @@ class EnvService
         $envPath = rtrim((string) getcwd(), '/') . '/.env';
 
         if (!$this->filesystem->exists($envPath)) {
+            $envDir = dirname($envPath);
+            $this->envFileStatus = "No .env file found at {$envDir}";
             return;
         }
 
@@ -81,9 +93,12 @@ class EnvService
                     $this->dotenv[$k] = $v;
                 }
             }
+
+            $varCount = count($this->dotenv);
+            $this->envFileStatus = "Loaded {$varCount} variables from {$envPath}";
         } catch (\Throwable) {
-            // Silently ignore file reading errors
             $this->dotenv = [];
+            $this->envFileStatus = "Error reading .env file from {$envPath}";
         }
     }
 }
