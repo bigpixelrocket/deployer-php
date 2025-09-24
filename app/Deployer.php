@@ -53,6 +53,7 @@ class Deployer extends Application
     private function displayBanner(): void
     {
         $version = $this->getVersion();
+        $envFileStatus = App::env()->getEnvFileStatus();
 
         // Simple, compact banner
         $banner = [
@@ -64,6 +65,8 @@ class Deployer extends Application
             '  <fg=gray>The Server Provisioning & Deployment Tool for PHP</>',
             '',
             '  <fg=gray>Support this project on GitHub</> <fg=red>♥</>  <fg=magenta>https://github.com/bigpixelrocket/deployer-php</>',
+            '',
+            '  <fg=yellow>Environment:</> <fg=gray>'.$envFileStatus.'</>',
             '',
         ];
 

@@ -54,7 +54,8 @@ describe('Deployer Symfony Console application', function () {
             ->toContain('The Server Provisioning & Deployment Tool for PHP') // Tagline
             ->toContain('Support this project on GitHub ♥') // Support message
             ->toContain('https://github.com/bigpixelrocket/deployer-php') // URL
-            ->toContain($version); // Version in banner
+            ->toContain($version) // Version in banner
+            ->toContain('Environment:'); // Environment status display
     });
 
     //
