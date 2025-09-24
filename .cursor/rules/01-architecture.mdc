@@ -42,7 +42,7 @@ $service = new MyService(new Dependency());
 **Integration Points:**
 
 - Entry point: [bin/deployer](mdc:bin/deployer) → `App::run()`
-- Command registration: [Deployer.php](mdc:app/Deployer.php) → `App::build(HelloCommand::class)`
+- Command registration: [SymfonyApp.php](mdc:app/SymfonyApp.php) → `App::build(HelloCommand::class)`
 - Services: Auto-inject dependencies like `Filesystem`, `EnvService` via constructor
 
 **Key Benefits:**
