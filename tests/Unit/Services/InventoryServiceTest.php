@@ -5,7 +5,7 @@ declare(strict_types=1);
 use Bigpixelrocket\DeployerPHP\Services\InventoryService;
 use Symfony\Component\Yaml\Yaml;
 
-require_once __DIR__ . '/../TestHelpers.php';
+require_once __DIR__ . '/../../TestHelpers.php';
 
 //
 // Unit tests

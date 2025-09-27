@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+namespace Bigpixelrocket\DeployerPHP\Tests\Unit\Contracts;
+
 use Bigpixelrocket\DeployerPHP\Contracts\BaseCommand;
 use Bigpixelrocket\DeployerPHP\Container;
 use Bigpixelrocket\DeployerPHP\Services\EnvService;
@@ -11,7 +13,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Tester\CommandTester;
 
-require_once __DIR__ . '/../TestHelpers.php';
+require_once __DIR__ . '/../../TestHelpers.php';
 
 //
 // Test fixtures
@@ -40,7 +42,6 @@ class TestableBaseCommand extends BaseCommand
         return $result;
     }
 }
-
 
 //
 // Unit tests

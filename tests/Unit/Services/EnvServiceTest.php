@@ -5,7 +5,7 @@ declare(strict_types=1);
 use Bigpixelrocket\DeployerPHP\Services\EnvService;
 use Symfony\Component\Dotenv\Dotenv;
 
-require_once __DIR__ . '/../TestHelpers.php';
+require_once __DIR__ . '/../../TestHelpers.php';
 
 //
 // Unit tests

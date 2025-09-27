@@ -37,9 +37,9 @@
         }
     },
     "autoload-dev": {
-        "psr-4": {
-            "Bigpixelrocket\\DeployerPHP\\Tests\\": "tests/"
-        }
+        "classmap": [
+            "tests/"
+        ]
     },
     "bin": [
         "bin/deployer"
