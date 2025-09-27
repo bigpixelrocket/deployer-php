@@ -6,7 +6,6 @@ use Bigpixelrocket\DeployerPHP\Services\ProcessFactory;
 use Bigpixelrocket\DeployerPHP\Services\VersionService;
 
 describe('VersionService', function () {
-
     it('returns version with correct fallback priority', function (string $packageName, string $fallback) {
         // ARRANGE
         $processFactory = new ProcessFactory();
