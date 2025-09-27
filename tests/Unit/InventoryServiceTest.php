@@ -10,45 +10,7 @@ use Symfony\Component\Yaml\Yaml;
 // Test Helpers
 // -------------------------------------------------------------------------------
 
-/**
- * Create a mock filesystem with YAML data
- */
-function mockFilesystem(bool $exists = true, string $yamlContent = '', bool $throwOnMkdir = false, bool $throwOnDump = false): Filesystem
-{
-    return new class ($exists, $yamlContent, $throwOnMkdir, $throwOnDump) extends Filesystem {
-        public function __construct(
-            private bool $exists,
-            private string $yamlContent,
-            private bool $throwOnMkdir,
-            private bool $throwOnDump
-        ) {
-        }
-
-        public function exists($files): bool
-        {
-            return $this->exists;
-        }
-
-        public function readFile(string $filename): string
-        {
-            return $this->yamlContent;
-        }
-
-        public function mkdir($dirs, int $mode = 0777): void
-        {
-            if ($this->throwOnMkdir) {
-                throw new \Exception('Permission denied');
-            }
-        }
-
-        public function dumpFile(string $filename, $content): void
-        {
-            if ($this->throwOnDump) {
-                throw new \Exception('Write failed');
-            }
-        }
-    };
-}
+require_once __DIR__ . '/../TestHelpers.php';
 
 
 //
@@ -69,7 +31,7 @@ describe('InventoryService', function () {
         // ARRANGE
         if ($fileExists && $existingData) {
             $yamlContent = Yaml::dump($existingData, 2, 4, Yaml::DUMP_EMPTY_ARRAY_AS_SEQUENCE);
-            $this->filesystem = mockFilesystem(true, $yamlContent);
+            $this->filesystem = mockFilesystem(true, $yamlContent, false);
         } else {
             $this->filesystem = mockFilesystem(false);
         }
@@ -102,7 +64,7 @@ describe('InventoryService', function () {
         // ARRANGE
         if ($fileExists && $inventoryData) {
             $yamlContent = Yaml::dump($inventoryData, 2, 4, Yaml::DUMP_EMPTY_ARRAY_AS_SEQUENCE);
-            $this->filesystem = mockFilesystem(true, $yamlContent);
+            $this->filesystem = mockFilesystem(true, $yamlContent, false);
         } else {
             $this->filesystem = mockFilesystem(false);
         }
@@ -171,7 +133,7 @@ describe('InventoryService', function () {
                 'databases' => ['db1' => ['host' => 'db.com']],
             ];
             $yamlContent = Yaml::dump($inventoryData, 2, 4, Yaml::DUMP_EMPTY_ARRAY_AS_SEQUENCE);
-            $this->filesystem = mockFilesystem(true, $yamlContent);
+            $this->filesystem = mockFilesystem(true, $yamlContent, false);
         } else {
             $this->filesystem = mockFilesystem(false);
         }
@@ -208,7 +170,7 @@ describe('InventoryService', function () {
     it('handles delete operations', function (string $path, array $inventoryData, string $scenario) {
         // ARRANGE
         $yamlContent = Yaml::dump($inventoryData, 2, 4, Yaml::DUMP_EMPTY_ARRAY_AS_SEQUENCE);
-        $this->filesystem = mockFilesystem(true, $yamlContent);
+        $this->filesystem = mockFilesystem(true, $yamlContent, false);
         $this->service = new InventoryService($this->filesystem);
 
         // ACT
@@ -242,7 +204,7 @@ describe('InventoryService', function () {
         // ARRANGE
         if ($fileExists) {
             $yamlContent = Yaml::dump($expected, 2, 4, Yaml::DUMP_EMPTY_ARRAY_AS_SEQUENCE);
-            $this->filesystem = mockFilesystem(true, $yamlContent);
+            $this->filesystem = mockFilesystem(true, $yamlContent, false);
         } else {
             $this->filesystem = mockFilesystem(false);
         }
@@ -270,7 +232,7 @@ describe('InventoryService', function () {
 
     it('handles invalid YAML parsing gracefully', function () {
         // ARRANGE
-        $this->filesystem = mockFilesystem(true, ''); // Empty content returns null when parsed
+        $this->filesystem = mockFilesystem(true, '', false); // Empty content returns null when parsed
         $this->service = new InventoryService($this->filesystem);
 
         // ACT
@@ -320,21 +282,21 @@ describe('InventoryService', function () {
         // ARRANGE & ACT & ASSERT
         match ($scenario) {
             'directory_creation_failure' => [
-                $filesystem = mockFilesystem(false, '', true, false),
+                $filesystem = mockFilesystem(false, '', false, true, false),
                 $service = new InventoryService($filesystem),
                 expect(fn () => $service->set('servers.web1', 'value'))
                     ->toThrow(RuntimeException::class, 'Unable to create inventory directory')
             ],
 
             'file_write_failure' => [
-                $filesystem = mockFilesystem(true, Yaml::dump([], 2, 4), false, true),
+                $filesystem = mockFilesystem(true, Yaml::dump([], 2, 4), false, false, true),
                 $service = new InventoryService($filesystem),
                 expect(fn () => $service->set('servers.web1', 'value'))
                     ->toThrow(RuntimeException::class, 'Failed to write inventory file')
             ],
 
             'yaml_parsing_error' => [
-                $filesystem = mockFilesystem(true, "invalid: [\n  - broken"), // Malformed YAML
+                $filesystem = mockFilesystem(true, "invalid: [\n  - broken", false), // Malformed YAML
                 $service = new InventoryService($filesystem),
                 expect(fn () => $service->get('servers'))
                     ->toThrow(\Symfony\Component\Yaml\Exception\ParseException::class)

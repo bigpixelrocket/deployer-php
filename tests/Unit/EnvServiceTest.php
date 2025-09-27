@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 use Bigpixelrocket\DeployerPHP\Services\EnvService;
 use Symfony\Component\Dotenv\Dotenv;
-use Symfony\Component\Filesystem\Filesystem;
 
 //
 // Test helpers
@@ -12,25 +11,6 @@ use Symfony\Component\Filesystem\Filesystem;
 
 require_once __DIR__ . '/../TestHelpers.php';
 
-function mockFilesystem(bool $exists = true, string $content = '', bool $throwError = false): Filesystem
-{
-    return new class ($exists, $content, $throwError) extends Filesystem {
-        public function __construct(private readonly bool $exists, private readonly string $content, private readonly bool $error)
-        {
-        }
-        public function exists(string|iterable $files): bool
-        {
-            return $this->exists;
-        }
-        public function readFile(string $filename): string
-        {
-            if ($this->error) {
-                throw new \RuntimeException('Permission denied');
-            }
-            return $this->content;
-        }
-    };
-}
 
 
 //
