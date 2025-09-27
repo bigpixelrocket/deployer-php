@@ -1,4 +1,5 @@
-Analyze the changes in this Git working tree and create one or more commits with suitable titles.
+Meticulously catalog and analyze all the changes in this Git working tree, staged or unstaged
+and create one or more commits with suitable titles.
 
 Use Conventional Commits to group related changes into cohesive commits (commits should be independently meaningful).
 

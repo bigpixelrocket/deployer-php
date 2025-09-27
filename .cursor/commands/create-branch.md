@@ -1,4 +1,5 @@
-Analyze the changes in this Git working tree and create a new branch with a suitable name.
+Meticulously catalog and analyze all the changes in this Git working tree, staged or unstaged
+and create a new branch with a suitable name.
 
 Create the branch only (no commits yet). Use Conventional Commit types as branch prefixes:
 feat/, fix/, docs/, style/, refactor/, perf/, test/, build/, ci/, chore/, revert/.
