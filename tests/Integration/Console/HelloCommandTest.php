@@ -26,7 +26,9 @@ function createCommandTester(): CommandTester
 
 describe('HelloCommand', function () {
     beforeEach(function () {
+        $this->originals = [];
         foreach (['USER', 'USERNAME'] as $key) {
+            $this->originals[$key] = getenv($key) ?: null;
             setEnv($key, null);
         }
     });
@@ -44,15 +46,16 @@ describe('HelloCommand', function () {
         // ASSERT
         expect($exitCode)->toBe(Command::SUCCESS)
             ->and($tester->getDisplay())->toContain($expectedMessage);
-
-        // CLEANUP
-        foreach (array_keys($env) as $key) {
-            setEnv($key, null);
-        }
     })->with([
         'USER variable' => [['USER' => 'johndoe'], 'Hello johndoe!'],
         'USERNAME variable' => [['USERNAME' => 'janedoe'], 'Hello janedoe!'],
         'USER wins over USERNAME' => [['USER' => 'primary', 'USERNAME' => 'secondary'], 'Hello primary!'],
         'defaults when empty' => [[], 'Hello there!'],
     ]);
+
+    afterEach(function () {
+        foreach ($this->originals as $key => $value) {
+            setEnv($key, $value);
+        }
+    });
 });
