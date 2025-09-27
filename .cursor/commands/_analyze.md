@@ -1,1 +1,1 @@
-Meticulously catalog and analyze all the changes
+meticulously catalog and analyze all the changes
