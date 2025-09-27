@@ -11,8 +11,6 @@ use Symfony\Component\Yaml\Yaml;
  * Inventory file CRUD operations.
  *
  * @example
- * $inventory = App::build(InventoryService::class);
- *
  * // Store values using dot notation
  * $inventory->set('servers.production.host', 'example.com');
  * $inventory->set('servers.production.user', 'deployer');
@@ -39,11 +37,14 @@ class InventoryService
     private readonly string $inventoryPath;
     private readonly string $inventoryDir;
 
+    private string $inventoryFileStatus = '';
+
     public function __construct(
         private readonly Filesystem $filesystem,
     ) {
         $this->inventoryPath = rtrim((string) getcwd(), '/').'/.deployer/inventory.yml';
         $this->inventoryDir = dirname($this->inventoryPath);
+        $this->initializeInventoryFile();
     }
 
     //
@@ -106,9 +107,51 @@ class InventoryService
         $this->writeInventory($inventory);
     }
 
+    /**
+     * Get the status of the inventory file.
+     */
+    public function getInventoryFileStatus(): string
+    {
+        return $this->inventoryFileStatus;
+    }
+
     //
     // Private
     // -------------------------------------------------------------------------------
+
+    //
+    // Initialization
+
+    /**
+     * Initialize inventory file and set status.
+     */
+    private function initializeInventoryFile(): void
+    {
+        if (!$this->filesystem->exists($this->inventoryPath)) {
+            // Create empty inventory file
+            try {
+                if (!$this->filesystem->exists($this->inventoryDir)) {
+                    $this->filesystem->mkdir($this->inventoryDir, 0775);
+                }
+
+                $emptyYaml = Yaml::dump([], 2, 4, Yaml::DUMP_EMPTY_ARRAY_AS_SEQUENCE);
+                $this->filesystem->dumpFile($this->inventoryPath, $emptyYaml);
+                $this->inventoryFileStatus = "Creating inventory file at {$this->inventoryPath}";
+            } catch (\Throwable $e) {
+                $this->inventoryFileStatus = "Error creating inventory file at {$this->inventoryPath}: {$e->getMessage()}";
+            }
+
+            return;
+        }
+
+        // File exists - validate it
+        try {
+            $this->readInventory();
+            $this->inventoryFileStatus = "Reading inventory from {$this->inventoryPath}";
+        } catch (\Throwable $e) {
+            $this->inventoryFileStatus = "Error reading inventory file from {$this->inventoryPath}: {$e->getMessage()}";
+        }
+    }
 
     //
     // Dot Notation Helpers
