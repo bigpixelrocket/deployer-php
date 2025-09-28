@@ -2,6 +2,9 @@
 
 declare(strict_types=1);
 
+use Bigpixelrocket\DeployerPHP\Services\EnvService;
+use Bigpixelrocket\DeployerPHP\Services\InventoryService;
+use Symfony\Component\Dotenv\Dotenv;
 use Symfony\Component\Filesystem\Filesystem;
 
 if (!function_exists('setEnv')) {
@@ -79,9 +82,12 @@ if (!function_exists('mockFilesystem')) {
 
             public function mkdir($dirs, int $mode = 0777): void
             {
+                unset($dirs, $mode);
+
                 if ($this->throwOnMkdir) {
                     throw new \Exception('Permission denied');
                 }
+
                 $this->dirExists = true;
             }
 
@@ -100,10 +106,10 @@ if (!function_exists('mockEnvService')) {
     /**
      * Create a mock EnvService for testing.
      */
-    function mockEnvService(bool $hasFile = true): \Bigpixelrocket\DeployerPHP\Services\EnvService
+    function mockEnvService(bool $hasFile = true): EnvService
     {
         $content = $hasFile ? 'API_KEY=test_value' : '';
-        return new \Bigpixelrocket\DeployerPHP\Services\EnvService(mockFilesystem($hasFile, $content), new \Symfony\Component\Dotenv\Dotenv());
+        return new EnvService(mockFilesystem($hasFile, $content), new Dotenv());
     }
 }
 
@@ -111,9 +117,9 @@ if (!function_exists('mockInventoryService')) {
     /**
      * Create a mock InventoryService for testing.
      */
-    function mockInventoryService(bool $hasFile = true): \Bigpixelrocket\DeployerPHP\Services\InventoryService
+    function mockInventoryService(bool $hasFile = true): InventoryService
     {
         $content = $hasFile ? 'servers:' . PHP_EOL . '  web1:' . PHP_EOL . '    host: example.com' : '';
-        return new \Bigpixelrocket\DeployerPHP\Services\InventoryService(mockFilesystem($hasFile, $content));
+        return new InventoryService(mockFilesystem($hasFile, $content));
     }
 }

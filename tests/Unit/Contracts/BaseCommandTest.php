@@ -75,4 +75,21 @@ describe('BaseCommand', function () {
         'env only, colon separated' => [true, false, 'server:deploy', '/Environment:[\s\S]*variable[\s\S]*from/', '/Inventory:[\s\S]*Creating inventory file/'],
         'inventory only, default' => [false, true, 'test-command', '/Environment:[\s\S]*No \\.env file found/', '/Inventory:[\s\S]*Reading inventory from/'],
     ]);
+
+    it('suppresses status display and wrapper methods in quiet mode', function () {
+        // ARRANGE
+        $container = new Container();
+        $env = mockEnvService(true);
+        $inventory = mockInventoryService(true);
+
+        // ACT
+        $command = new TestableBaseCommand($container, $env, $inventory);
+        $tester = new CommandTester($command);
+        $exitCode = $tester->execute([], ['verbosity' => \Symfony\Component\Console\Output\OutputInterface::VERBOSITY_QUIET]);
+        $output = $tester->getDisplay();
+
+        // ASSERT
+        expect($exitCode)->toBe(Command::SUCCESS)
+            ->and($output)->toBe('');
+    });
 });

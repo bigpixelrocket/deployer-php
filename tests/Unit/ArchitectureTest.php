@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 use Bigpixelrocket\DeployerPHP\Contracts\BaseCommand;
+use Symfony\Component\Console\Attribute\AsCommand;
+use Symfony\Component\Console\Command\Command;
 
 //
 // Architecture tests
@@ -18,12 +20,12 @@ arch('commands extend BaseCommand', function () {
 arch('base command contract', function () {
     expect(BaseCommand::class)
         ->toBeAbstract()
-        ->toExtend(\Symfony\Component\Console\Command\Command::class)
+        ->toExtend(Command::class)
         ->toHaveConstructor();
 });
 
 arch('commands expose Symfony metadata', function () {
     expect('Bigpixelrocket\\DeployerPHP\\Console\\')
         ->classes()
-        ->toHaveAttribute(\Symfony\Component\Console\Attribute\AsCommand::class);
+        ->toHaveAttribute(AsCommand::class);
 });

@@ -53,6 +53,19 @@ describe('HelloCommand', function () {
         'defaults when empty' => [[], 'Hello there!'],
     ]);
 
+    it('suppresses all output in quiet mode', function () {
+        // ARRANGE
+        setEnv('USER', 'testuser');
+        $tester = createCommandTester();
+
+        // ACT
+        $exitCode = $tester->execute([], ['verbosity' => \Symfony\Component\Console\Output\OutputInterface::VERBOSITY_QUIET]);
+
+        // ASSERT
+        expect($exitCode)->toBe(Command::SUCCESS)
+            ->and($tester->getDisplay())->toBe('');
+    });
+
     afterEach(function () {
         foreach ($this->originals as $key => $value) {
             setEnv($key, $value);

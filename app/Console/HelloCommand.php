@@ -18,10 +18,9 @@ class HelloCommand extends BaseCommand
      */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        parent::execute($input, $output);
-
         $user = $this->env->get(['USER', 'USERNAME'], false) ?? 'there';
-        $this->io->text("Hello {$user}!");
+
+        $this->io->success('Hello ' . $user . '!');
 
         return Command::SUCCESS;
     }
