@@ -69,7 +69,6 @@ describe('SymfonyApp', function () {
             'The Server Provisioning & Deployment Tool for PHP',
             'Support this project on GitHub ♥',
             'https://github.com/bigpixelrocket/deployer-php',
-            'Environment:'
         ]]
     ]);
 
@@ -96,7 +95,7 @@ describe('SymfonyApp', function () {
             expect($outputContent)->toContain($content);
         }
     })->with([
-        'hello command' => ['hello', ['Hello', '┌┬┐┌─┐┌─┐']], // Banner + greeting
+        'hello command' => ['hello', ['Hello', '┌┬┐┌─┐┌─┐', 'Environment:', 'Inventory:']], // Banner + greeting + status
         'list command' => ['list', ['Available commands', '┌┬┐┌─┐┌─┐']], // Banner + command list
     ]);
 

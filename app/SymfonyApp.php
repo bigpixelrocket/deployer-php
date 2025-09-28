@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Bigpixelrocket\DeployerPHP;
 
 use Bigpixelrocket\DeployerPHP\Console\HelloCommand;
+use Bigpixelrocket\DeployerPHP\Services\VersionService;
 use Symfony\Component\Console\Application as SymfonyApplication;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -18,10 +19,12 @@ final class SymfonyApp extends SymfonyApplication
 {
     private SymfonyStyle $io;
 
-    public function __construct()
-    {
-        $name = App::getName();
-        $version = App::getVersion();
+    public function __construct(
+        private readonly Container $container,
+        private readonly VersionService $versionService,
+    ) {
+        $name = 'Deployer PHP';
+        $version = $this->versionService->getVersion();
         parent::__construct($name, $version);
 
         $this->registerCommands();
@@ -63,20 +66,17 @@ final class SymfonyApp extends SymfonyApplication
     private function displayBanner(): void
     {
         $version = $this->getVersion();
-        $envFileStatus = App::getEnvService()->getEnvFileStatus();
 
         // Simple, compact banner
         $banner = [
             '',
-            '  <fg=cyan>┌┬┐┌─┐┌─┐┬  ┌─┐┬ ┬┌─┐┬─┐</>',
-            '  <fg=cyan> ││├┤ ├─┘│  │ │└┬┘├┤ ├┬┘</>',
-            '  <fg=blue>─┴┘└─┘┴  ┴─┘└─┘ ┴ └─┘┴└─PHP</> <fg=bright-blue>'.$version.'</>',
+            ' <fg=cyan>┌┬┐┌─┐┌─┐┬  ┌─┐┬ ┬┌─┐┬─┐</>',
+            ' <fg=cyan> ││├┤ ├─┘│  │ │└┬┘├┤ ├┬┘</>',
+            ' <fg=blue>─┴┘└─┘┴  ┴─┘└─┘ ┴ └─┘┴└─PHP</> <fg=bright-blue>'.$version.'</>',
             '',
-            '  <fg=gray>The Server Provisioning & Deployment Tool for PHP</>',
+            ' <fg=gray>The Server Provisioning & Deployment Tool for PHP</>',
             '',
-            '  <fg=gray>Support this project on GitHub</> <fg=red>♥</>  <fg=magenta>https://github.com/bigpixelrocket/deployer-php</>',
-            '',
-            '  <fg=yellow>Environment:</> <fg=gray>'.$envFileStatus.'</>',
+            ' <fg=gray>Support this project on GitHub</> <fg=red>♥</>  <fg=magenta>https://github.com/bigpixelrocket/deployer-php</>',
             '',
         ];
 
@@ -84,7 +84,6 @@ final class SymfonyApp extends SymfonyApplication
         foreach ($banner as $line) {
             $this->io->writeln($line);
         }
-
     }
 
     /**
@@ -98,9 +97,8 @@ final class SymfonyApp extends SymfonyApplication
 
         foreach ($commands as $command) {
             /** @var Command $commandInstance */
-            $commandInstance = App::build($command);
+            $commandInstance = $this->container->build($command);
             $this->add($commandInstance);
         }
     }
-
 }

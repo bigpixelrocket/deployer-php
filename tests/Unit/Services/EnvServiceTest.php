@@ -5,13 +5,7 @@ declare(strict_types=1);
 use Bigpixelrocket\DeployerPHP\Services\EnvService;
 use Symfony\Component\Dotenv\Dotenv;
 
-//
-// Test helpers
-// -------------------------------------------------------------------------------
-
-require_once __DIR__ . '/../TestHelpers.php';
-
-
+require_once __DIR__ . '/../../TestHelpers.php';
 
 //
 // Unit tests
@@ -28,7 +22,7 @@ describe('EnvService', function () {
     it('reports correct status for different .env file scenarios', function ($fileExists, $fileContent, $fileError, $expectedStatusPattern) {
         // ARRANGE
         $service = new EnvService(
-            mockFilesystem($fileExists, $fileContent, $fileError),
+            mockFilesystem($fileExists, $fileContent, $fileError, false, false, '.env'),
             new Dotenv()
         );
 
@@ -42,13 +36,13 @@ describe('EnvService', function () {
         [false, '', false, '/^No \.env file found at .+$/'],
 
         // File exists and loads successfully with variables
-        [true, "API_KEY=test\nDB_HOST=localhost", false, '/^Loaded 2 variables from .+\.env$/'],
+        [true, "API_KEY=test\nDB_HOST=localhost", false, '/^Reading 2 variables from .+\.env$/'],
 
         // File exists with single variable
-        [true, 'SINGLE_KEY=value', false, '/^Loaded 1 variable from .+\.env$/'],
+        [true, 'SINGLE_KEY=value', false, '/^Reading 1 variable from .+\.env$/'],
 
         // File exists but is empty (no variables)
-        [true, '', false, '/^Loaded 0 variables from .+\.env$/'],
+        [true, '', false, '/^Reading 0 variables from .+\.env$/'],
 
         // File exists but has read error
         [true, 'API_KEY=test', true, '/^Error reading \.env file from .+\.env$/'],
@@ -63,7 +57,7 @@ describe('EnvService', function () {
             setEnv($key, $value);
         }
         $service = new EnvService(
-            mockFilesystem(!empty($fileContent), $fileContent, $fileError),
+            mockFilesystem(!empty($fileContent), $fileContent, $fileError, false, false, '.env'),
             new Dotenv()
         );
 
@@ -95,7 +89,7 @@ describe('EnvService', function () {
     it('handles required vs optional parameters', function ($keys, $required, $expectsException, $expectedMessage) {
         // ARRANGE
         $service = new EnvService(
-            mockFilesystem(false),
+            mockFilesystem(false, '', false, false, false, '.env'),
             new Dotenv()
         );
 

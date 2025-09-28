@@ -33,6 +33,7 @@ class ServiceWithDependency
     public function __construct(private readonly SimpleService $service)
     {
     }
+
     public function getDependency(): SimpleService
     {
         return $this->service;
@@ -44,10 +45,12 @@ class ServiceWithMultipleDeps
     public function __construct(private readonly SimpleService $s1, private readonly ServiceWithDependency $s2)
     {
     }
+
     public function getSimple(): SimpleService
     {
         return $this->s1;
     }
+
     public function getComplex(): ServiceWithDependency
     {
         return $this->s2;
@@ -63,6 +66,7 @@ class ServiceWithDefaults
     public function __construct(private readonly SimpleService $service, private readonly string $name = 'default')
     {
     }
+
     public function getName(): string
     {
         return $this->name;

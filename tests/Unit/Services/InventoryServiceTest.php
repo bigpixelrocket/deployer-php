@@ -3,15 +3,9 @@
 declare(strict_types=1);
 
 use Bigpixelrocket\DeployerPHP\Services\InventoryService;
-use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Yaml\Yaml;
 
-//
-// Test Helpers
-// -------------------------------------------------------------------------------
-
-require_once __DIR__ . '/../TestHelpers.php';
-
+require_once __DIR__ . '/../../TestHelpers.php';
 
 //
 // Unit tests
@@ -40,8 +34,9 @@ describe('InventoryService', function () {
         // ACT
         $this->service->set($path, $value);
 
-        // ASSERT - Verify filesystem interactions occurred
-        expect(true)->toBeTrue(); // Operation completed without exception
+        // ASSERT - Verify data was actually stored correctly
+        $result = $this->service->get($path);
+        expect($result)->toBe($value);
     })->with([
         // New file scenarios
         'simple nested path' => ['servers.web1', 'value', null, false],
@@ -57,8 +52,8 @@ describe('InventoryService', function () {
     ]);
 
     //
-    // GET Operations
-    // ----
+    // Get operations
+    // -------------------------------------------------------------------------------
 
     it('handles all get operation scenarios', function (string $path, mixed $expected, ?array $inventoryData, bool $fileExists) {
         // ARRANGE
@@ -119,8 +114,38 @@ describe('InventoryService', function () {
     ]);
 
     //
-    // HAS Operations
-    // ----
+    // Get all operations
+    // -------------------------------------------------------------------------------
+
+    it('handles getAll scenarios', function (array $expected, bool $fileExists) {
+        // ARRANGE
+        if ($fileExists) {
+            $yamlContent = Yaml::dump($expected, 2, 4, Yaml::DUMP_EMPTY_ARRAY_AS_SEQUENCE);
+            $this->filesystem = mockFilesystem(true, $yamlContent, false);
+        } else {
+            $this->filesystem = mockFilesystem(false);
+        }
+        $this->service = new InventoryService($this->filesystem);
+
+        // ACT
+        $result = $this->service->getAll();
+
+        // ASSERT
+        expect($result)->toBe($expected);
+    })->with([
+        'returns entire structure' => [
+            ['servers' => ['web1' => ['host' => 'example.com']], 'databases' => ['db1' => ['host' => 'db.com']]],
+            true
+        ],
+        'returns empty array when file missing' => [
+            [],
+            false
+        ],
+    ]);
+
+    //
+    // Has operations
+    // -------------------------------------------------------------------------------
 
     it('correctly identifies existing paths', function (string $path, bool $expected, bool $fileExists) {
         // ARRANGE
@@ -164,8 +189,8 @@ describe('InventoryService', function () {
     ]);
 
     //
-    // DELETE Operations
-    // ----
+    // Delete operations
+    // -------------------------------------------------------------------------------
 
     it('handles delete operations', function (string $path, array $inventoryData, string $scenario) {
         // ARRANGE
@@ -176,8 +201,15 @@ describe('InventoryService', function () {
         // ACT
         $this->service->delete($path);
 
-        // ASSERT - Operation completed without exception
-        expect(true)->toBeTrue();
+        // ASSERT - Verify data was actually removed
+        expect($this->service->has($path))->toBeFalse();
+
+        // Also verify other data remains intact (for precision testing)
+        if ($path === 'servers.web1.port') {
+            expect($this->service->get('servers.web1.host'))->toBe('example.com');
+        } elseif ($path === 'servers.web1') {
+            expect($this->service->has('servers.web2'))->toBeTrue();
+        }
     })->with([
         'removes specific property' => [
             'servers.web1.port',
@@ -197,38 +229,8 @@ describe('InventoryService', function () {
     ]);
 
     //
-    // GETALL Operations
-    // ----
-
-    it('handles getAll scenarios', function (array $expected, bool $fileExists) {
-        // ARRANGE
-        if ($fileExists) {
-            $yamlContent = Yaml::dump($expected, 2, 4, Yaml::DUMP_EMPTY_ARRAY_AS_SEQUENCE);
-            $this->filesystem = mockFilesystem(true, $yamlContent, false);
-        } else {
-            $this->filesystem = mockFilesystem(false);
-        }
-        $this->service = new InventoryService($this->filesystem);
-
-        // ACT
-        $result = $this->service->getAll();
-
-        // ASSERT
-        expect($result)->toBe($expected);
-    })->with([
-        'returns entire structure' => [
-            ['servers' => ['web1' => ['host' => 'example.com']], 'databases' => ['db1' => ['host' => 'db.com']]],
-            true
-        ],
-        'returns empty array when file missing' => [
-            [],
-            false
-        ],
-    ]);
-
-    //
-    // Edge Cases
-    // ----
+    // Edge cases
+    // -------------------------------------------------------------------------------
 
     it('handles invalid YAML parsing gracefully', function () {
         // ARRANGE
@@ -243,68 +245,76 @@ describe('InventoryService', function () {
     });
 
     //
-    // Integration Workflows
-    // ----
+    // Error handling
+    // -------------------------------------------------------------------------------
 
-    it('supports multi-step workflows', function (string $workflow) {
+    it('throws RuntimeException when directory creation fails', function () {
         // ARRANGE
-        $this->filesystem = mockFilesystem(false);
-        $this->service = new InventoryService($this->filesystem);
+        $filesystem = mockFilesystem(false, '', false, true, false);
+        $service = new InventoryService($filesystem);
 
-        // ACT - Execute workflow steps
-        match ($workflow) {
-            'server_management' => [
-                $this->service->set('servers.production.host', 'prod.example.com'),
-                $this->service->set('servers.production.user', 'deploy'),
-                $this->service->set('servers.staging', ['host' => 'staging.example.com', 'user' => 'deploy']),
-                $this->service->set('databases.primary.host', 'db.example.com'),
-            ],
-            'environment_config' => [
-                $this->service->set('environments.production.database.host', 'production-db.example.com'),
-                $this->service->set('environments.staging.database.host', 'staging-db.example.com'),
-                $this->service->set('environments.production.app.debug', false),
-                $this->service->set('environments.staging.app.debug', true),
-            ],
-        };
+        // ACT & ASSERT
+        expect(fn () => $service->set('servers.web1', 'value'))
+            ->toThrow(RuntimeException::class, 'Unable to create inventory directory');
+    });
 
-        // ASSERT - Operations completed without exception
-        expect(true)->toBeTrue();
-    })->with([
-        'server_management',
-        'environment_config',
-    ]);
+    it('throws RuntimeException when file write fails', function () {
+        // ARRANGE
+        $filesystem = mockFilesystem(true, Yaml::dump([], 2, 4), false, false, true);
+        $service = new InventoryService($filesystem);
+
+        // ACT & ASSERT
+        expect(fn () => $service->set('servers.web1', 'value'))
+            ->toThrow(RuntimeException::class, 'Failed to write inventory file');
+    });
+
+    it('throws ParseException when YAML is malformed', function () {
+        // ARRANGE
+        $filesystem = mockFilesystem(true, "invalid: [\n  - broken", false); // Malformed YAML
+        $service = new InventoryService($filesystem);
+
+        // ACT & ASSERT
+        expect(fn () => $service->get('servers'))
+            ->toThrow(\Symfony\Component\Yaml\Exception\ParseException::class);
+    });
 
     //
-    // Error Handling
-    // ----
+    // Inventory file status
+    // -------------------------------------------------------------------------------
 
-    it('handles error scenarios appropriately', function (string $scenario, string $expectedException) {
-        // ARRANGE & ACT & ASSERT
-        match ($scenario) {
-            'directory_creation_failure' => [
-                $filesystem = mockFilesystem(false, '', false, true, false),
-                $service = new InventoryService($filesystem),
-                expect(fn () => $service->set('servers.web1', 'value'))
-                    ->toThrow(RuntimeException::class, 'Unable to create inventory directory')
-            ],
+    it('reports correct inventory file status for different scenarios', function (bool $fileExists, string $fileContent, bool $fileError, bool $dirCreateError, bool $fileWriteError, string $expectedStatusPattern) {
+        // ARRANGE
+        $filesystem = mockFilesystem($fileExists, $fileContent, $fileError, $dirCreateError, $fileWriteError);
+        $service = new InventoryService($filesystem);
 
-            'file_write_failure' => [
-                $filesystem = mockFilesystem(true, Yaml::dump([], 2, 4), false, false, true),
-                $service = new InventoryService($filesystem),
-                expect(fn () => $service->set('servers.web1', 'value'))
-                    ->toThrow(RuntimeException::class, 'Failed to write inventory file')
-            ],
+        // ACT
+        $status = $service->getInventoryFileStatus();
 
-            'yaml_parsing_error' => [
-                $filesystem = mockFilesystem(true, "invalid: [\n  - broken", false), // Malformed YAML
-                $service = new InventoryService($filesystem),
-                expect(fn () => $service->get('servers'))
-                    ->toThrow(\Symfony\Component\Yaml\Exception\ParseException::class)
-            ],
-        };
+        // ASSERT
+        expect($status)->toMatch($expectedStatusPattern);
     })->with([
-        ['directory_creation_failure', RuntimeException::class],
-        ['file_write_failure', RuntimeException::class],
-        ['yaml_parsing_error', \Symfony\Component\Yaml\Exception\ParseException::class],
+        // File doesn't exist - should create empty file
+        [false, '', false, false, false, '/^Creating inventory file at .+\.yml$/'],
+
+        // File exists with content
+        [true, Yaml::dump(['servers' => ['web1' => ['host' => 'example.com', 'port' => 22]]], 2, 4), false, false, false, '/^Reading inventory from .+\.yml$/'],
+
+        // File exists with single item
+        [true, Yaml::dump(['single_key' => 'value'], 2, 4), false, false, false, '/^Reading inventory from .+\.yml$/'],
+
+        // File exists but is empty
+        [true, Yaml::dump([], 2, 4), false, false, false, '/^Reading inventory from .+\.yml$/'],
+
+        // File exists but has read error
+        [true, Yaml::dump(['key' => 'value'], 2, 4), true, false, false, '/^Error reading inventory file from .+\.yml: .+$/'],
+
+        // File doesn't exist and directory creation fails
+        [false, '', false, true, false, '/^Error creating inventory file at .+\.yml: .+$/'],
+
+        // File doesn't exist and file write fails
+        [false, '', false, false, true, '/^Error creating inventory file at .+\.yml: .+$/'],
+
+        // File exists with complex structure
+        [true, Yaml::dump(['environments' => ['prod' => ['db' => ['host' => 'prod-db']]]], 2, 4), false, false, false, '/^Reading inventory from .+\.yml$/'],
     ]);
 });

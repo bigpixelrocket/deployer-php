@@ -18,14 +18,14 @@ alwaysApply: false
 
 ## Dependency Injection System
 
-Use `App::build(ClassName::class)` for all object creation instead of `new ClassName()`.
+Use `$container->build(ClassName::class)` for all object creation instead of `new ClassName()`.
 
 **Core Flow:**
 
 ```php
-// ✅ CORRECT - Auto-wires dependencies
-$service = App::build(MyService::class);
-$command = App::build(HelloCommand::class);
+// ✅ CORRECT - Auto-wires dependencies via injected container
+$service = $this->container->build(MyService::class);
+$command = $container->build(HelloCommand::class);
 
 // ❌ WRONG - Manual instantiation breaks DI
 $service = new MyService(new Dependency());
@@ -33,16 +33,15 @@ $service = new MyService(new Dependency());
 
 **How It Works:**
 
-1. `App::build()` delegates to singleton [Container](mdc:app/Container.php)
-2. Container uses reflection to analyze constructor parameters
-3. Recursively builds all dependencies automatically
-4. Caches reflection data for performance
-5. Handles circular dependencies and error cases
+1. `Container->build()` uses reflection to analyze constructor parameters
+2. Recursively builds all dependencies automatically
+3. Caches reflection data for performance
+4. Handles circular dependencies and error cases
 
 **Integration Points:**
 
-- Entry point: [bin/deployer](mdc:bin/deployer) → `App::run()`
-- Command registration: [SymfonyApp.php](mdc:app/SymfonyApp.php) → `App::build(HelloCommand::class)`
+- Entry point: [bin/deployer](mdc:bin/deployer) → Direct container instantiation and `$app->run()`
+- Command registration: [SymfonyApp.php](mdc:app/SymfonyApp.php) → `$this->container->build(HelloCommand::class)`
 - Services: Auto-inject dependencies like `Filesystem`, `EnvService` via constructor
 
 **Key Benefits:**
@@ -53,17 +52,23 @@ $service = new MyService(new Dependency());
 - Easy testing with mockable dependencies
 - No manual dependency wiring required
 
-**Rule:** ALL object creation must use `App::build()` except for value objects, DTOs, and pure data structures.
+**Rule:** ALL object creation must use `$container->build()` except for value objects, DTOs, and pure data structures.
 
-**Testing Exception:** Direct instantiation is acceptable in tests to make mocking and isolation simpler. Production code must always use `App::build()`.
+**Container Access:** In production code, access the container through constructor injection.
 
 ```php
-// ✅ ACCEPTABLE IN TESTS - Isolated container for test isolation
+// ✅ PRODUCTION CODE - Container injected via DI
+class SymfonyApp {
+    public function __construct(private readonly Container $container) { ... }
+
+    private function registerCommands(): void {
+        $command = $this->container->build(HelloCommand::class);
+    }
+}
+
+// ✅ TESTS - Direct container instantiation for isolation
 $container = new Container();
 $service = $container->build(TestService::class);
-
-// ✅ PRODUCTION CODE - Use singleton container via App
-$service = App::build(TestService::class);
 ```
 
 ### Command Layer

@@ -3,6 +3,9 @@
 
 declare(strict_types=1);
 
+use Bigpixelrocket\DeployerPHP\Container;
+use Bigpixelrocket\DeployerPHP\SymfonyApp;
+
 //
 // Bootstrap the autoloader
 // -------------------------------------------------------------------------------
@@ -32,10 +35,12 @@ if (! $autoloadFound) {
 // Run the app
 // -------------------------------------------------------------------------------
 
-use Bigpixelrocket\DeployerPHP\App;
-
 try {
-    $exitCode = App::run();
+    $container = new Container();
+    $app = $container->build(SymfonyApp::class);
+    $exitCode = $app->run();
+
+
     exit($exitCode);
 } catch (Throwable $e) {
     fwrite(STDERR, "Error: {$e->getMessage()}\n");

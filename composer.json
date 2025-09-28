@@ -27,6 +27,7 @@
     "require-dev": {
         "laravel/pint": "^1.25",
         "pestphp/pest": "^2.0",
+        "pestphp/pest-plugin-arch": "^2.7",
         "phpstan/phpstan": "^2.1",
         "rector/rector": "^2.1"
     },
@@ -36,9 +37,9 @@
         }
     },
     "autoload-dev": {
-        "psr-4": {
-            "Bigpixelrocket\\DeployerPHP\\Tests\\": "tests/"
-        }
+        "classmap": [
+            "tests/"
+        ]
     },
     "bin": [
         "bin/deployer"

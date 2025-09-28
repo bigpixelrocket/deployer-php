@@ -1,0 +1,267 @@
+---
+globs: app/Console/*.php,app/Contracts/BaseCommand.php,app/SymfonyApp.php
+description: Symfony Console rules
+---
+
+## Symfony Console Rules
+
+**🚨 Console rules are MANDATORY and IMMUTABLE - fix violating code, not the console rules**
+
+### 🔇 Quiet Mode Philosophy
+
+**Philosophy:** All console output must respect global options `--quiet` (-q) and `--silent` to ensure minimal noise in automated/CI runs while keeping errors visible in quiet mode.
+
+**Core Principle:** Commands should be silent when requested, but never hide critical errors.
+
+### 📤 Output Method Hierarchy
+
+Use `SymfonyStyle` methods in this order of preference:
+
+**🟢 High-Level Methods (MANDATORY - Auto-Honor Quiet/Silent)**
+
+These automatically respect verbosity settings:
+
+```php
+// ✅ CORRECT - Auto-suppress in quiet mode
+$this->io->success('Task completed!');    // Green success block
+$this->io->info('Processing...');         // Blue info block
+$this->io->warning('Heads up');           // Yellow warning
+$this->io->error('Failed');               // Red error (shown in quiet)
+$this->io->note('Tip');                   // Note block
+$this->io->caution('Careful');            // Caution block
+$this->io->table($headers, $rows);        // Formatted table
+$this->io->progressStart();               // Progress indicators
+```
+
+**🟡 BaseCommand Wrapper Methods (REQUIRED for Low-Level)**
+
+For simple text output, use our custom wrappers that honor quiet mode:
+
+```php
+// ✅ CORRECT - Project wrappers respect quiet mode
+$this->writeln(['Multiple', 'lines']);     // Multi-line output
+$this->text('Single line message');       // Simple text
+$this->hr();                              // Section separator
+```
+
+**🔴 Raw Symfony Methods (FORBIDDEN)**
+
+Never use these directly - they bypass quiet mode:
+
+```php
+// ❌ FORBIDDEN - Ignores quiet mode
+$this->io->writeln('Direct output');      // Always shows
+$this->io->text('Bypasses quiet');        // Always shows
+```
+
+### 🎨 Custom Formatting Rules
+
+**When to Use Raw Methods:**
+
+Only use raw `$this->io->writeln()` for complex styling where high-level methods don't suffice:
+
+```php
+// ✅ CORRECT - Custom formatting with quiet check
+if (!$this->isQuiet) {
+    $this->io->writeln(' <fg=cyan>╭─ Custom Header ─╮</>');
+}
+```
+
+**Integration Points:**
+
+- Status display: [BaseCommand.php](mdc:app/Contracts/BaseCommand.php) → `initialize()` method
+- Wrapper methods: `writeln()`, `text()`, `hr()` → All check `$this->isQuiet` flag
+- Quiet detection: Set once in `initialize()` for performance
+
+### 📋 Command Layer Patterns
+
+**Console I/O Rules:**
+
+- Commands handle ALL user interaction (input/output)
+- Services return plain data - NO console operations
+- Use consistent styling patterns across all commands
+- Validation errors bubble up to Commands for display
+
+**Core Flow:**
+
+```php
+class MyCommand extends BaseCommand {
+    protected function execute(InputInterface $input, OutputInterface $output): int {
+        // ✅ CORRECT - Use high-level methods first
+        $this->io->info('Starting process...');
+
+        // ✅ CORRECT - Use wrappers for simple text
+        $this->text('Processing item: ' . $item);
+
+        // ✅ CORRECT - Services return data, not output
+        $result = $this->service->performWork();
+
+        // ✅ CORRECT - Commands format the output
+        $this->io->success('Completed: ' . $result);
+
+        return Command::SUCCESS;
+    }
+}
+```
+
+**Key Benefits:**
+
+- Zero console noise in automated environments
+- Consistent user experience across all commands
+- Easy testing with mockable I/O patterns
+- Clean separation between business logic and presentation
+
+**Rule:** Commands orchestrate Services and format output. Services never touch console I/O.
+
+### 🔊 Verbosity Level Management
+
+**Philosophy:** Provide progressively more detail as users request higher verbosity, from essential information to debug traces.
+
+**Symfony Verbosity Levels:**
+
+| Level        | Flag   | Constant                 | Usage                         |
+| ------------ | ------ | ------------------------ | ----------------------------- |
+| Normal       | (none) | `VERBOSITY_NORMAL`       | Essential output only         |
+| Verbose      | `-v`   | `VERBOSITY_VERBOSE`      | Additional context & progress |
+| Very Verbose | `-vv`  | `VERBOSITY_VERY_VERBOSE` | Detailed operation info       |
+| Debug        | `-vvv` | `VERBOSITY_DEBUG`        | Full debugging traces         |
+
+**🟢 High-Level Methods (Auto-Verbosity Support)**
+
+These methods automatically show at appropriate verbosity levels:
+
+```php
+// ✅ CORRECT - Auto-verbosity management
+$this->io->success('Task completed!');        // Normal+ (always shown)
+$this->io->info('Processing items...');       // Normal+ (always shown)
+$this->io->note('Using cached data');         // Verbose+ (-v and above)
+$this->io->section('Deployment Phase');       // Normal+ (section headers)
+
+// Progress indicators respect verbosity automatically
+$progress = $this->io->createProgressBar(100); // Normal+ (essential feedback)
+```
+
+**🎯 Content Guidelines by Verbosity**
+
+**Normal (Default) - Essential Only:**
+
+```php
+$this->io->success('Deployment completed successfully');
+$this->io->error('Failed to connect to server');
+$this->io->warning('Configuration file not found, using defaults');
+```
+
+**Verbose (-v) - Progress & Context:**
+
+```php
+$this->io->note('Found 25 files to process');
+$this->io->text('Connecting to server: example.com');
+$this->io->section('Installing Dependencies');
+```
+
+**Very Verbose (-vv) - Detailed Operations:**
+
+```php
+$this->io->text('Reading configuration from: /path/to/config.yml');
+$this->io->text('Executing: composer install --no-dev');
+$this->io->table(['File', 'Status'], $detailedResults);
+```
+
+**Debug (-vvv) - Full Traces:**
+
+```php
+// Use raw output with verbosity checks for debug traces
+if ($this->io->isVeryVerbose()) {
+    $this->text('DEBUG: Raw API response: ' . json_encode($response));
+}
+
+if ($this->io->isDebug()) {
+    $this->text('TRACE: Method call stack: ' . implode(' → ', $trace));
+}
+```
+
+**🔧 Custom Verbosity Checks**
+
+For fine-grained control, use verbosity methods:
+
+```php
+// ✅ CORRECT - Custom verbosity logic
+if ($this->io->isVerbose()) {
+    $this->text('Scanning directory: ' . $directory);
+}
+
+if ($this->io->isVeryVerbose()) {
+    $this->io->table(['Property', 'Value'], $configDetails);
+}
+
+if ($this->io->isDebug()) {
+    $this->text('Memory usage: ' . memory_get_peak_usage(true));
+}
+
+// Available verbosity checks:
+// $this->io->isQuiet()        // -q flag
+// $this->io->isVerbose()      // -v flag
+// $this->io->isVeryVerbose()  // -vv flag
+// $this->io->isDebug()        // -vvv flag
+```
+
+**⚡ Performance Considerations**
+
+Avoid expensive operations unless verbosity justifies them:
+
+```php
+// ✅ CORRECT - Only collect debug data when needed
+if ($this->io->isDebug()) {
+    $debugInfo = $this->service->getExpensiveDebugData();
+    $this->text('Debug info: ' . json_encode($debugInfo));
+}
+
+// ❌ WRONG - Always collecting expensive data
+$debugInfo = $this->service->getExpensiveDebugData();
+if ($this->io->isDebug()) {
+    $this->text('Debug info: ' . json_encode($debugInfo));
+}
+```
+
+**🎨 Output Patterns for Commands**
+
+Structure your command output progressively:
+
+```php
+protected function execute(InputInterface $input, OutputInterface $output): int {
+    // Always show: Critical start message
+    $this->io->info('Starting deployment process...');
+
+    // Verbose: Show configuration summary
+    if ($this->io->isVerbose()) {
+        $this->text('Target: ' . $this->config->getServer());
+        $this->text('Environment: ' . $this->config->getEnvironment());
+    }
+
+    // Process with automatic progress (normal verbosity)
+    $progress = $this->io->createProgressBar(count($tasks));
+    foreach ($tasks as $task) {
+        $this->processTask($task);
+
+        // Very verbose: Show each task detail
+        if ($this->io->isVeryVerbose()) {
+            $this->text('Completed: ' . $task->getName());
+        }
+
+        $progress->advance();
+    }
+    $progress->finish();
+
+    // Always show: Final status
+    $this->io->success('Deployment completed successfully');
+
+    return Command::SUCCESS;
+}
+```
+
+**Key Benefits:**
+
+- Users control information density with standard Symfony flags
+- Essential information always visible, details available on demand
+- Performance optimized - expensive debug data only when requested
+- Consistent verbosity behavior across all commands
