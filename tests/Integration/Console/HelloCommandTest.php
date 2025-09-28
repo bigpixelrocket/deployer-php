@@ -27,9 +27,15 @@ function createCommandTester(): CommandTester
 describe('HelloCommand', function () {
     beforeEach(function () {
         $this->originals = [];
+
         foreach (['USER', 'USERNAME'] as $key) {
-            $this->originals[$key] = getenv($key) ?: null;
+
+            $value = getenv($key);
+
+            $this->originals[$key] = $value === false ? null : $value;
+
             setEnv($key, null);
+
         }
     });
 

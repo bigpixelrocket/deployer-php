@@ -6,6 +6,7 @@ use Bigpixelrocket\DeployerPHP\Services\EnvService;
 use Bigpixelrocket\DeployerPHP\Services\InventoryService;
 use Symfony\Component\Dotenv\Dotenv;
 use Symfony\Component\Filesystem\Filesystem;
+use Symfony\Component\Filesystem\Exception\IOException;
 
 if (!function_exists('setEnv')) {
     /**
@@ -33,9 +34,10 @@ if (!function_exists('mockFilesystem')) {
         string $content = '',
         bool $throwOnRead = false,
         bool $throwOnMkdir = false,
-        bool $throwOnDump = false
+        bool $throwOnDump = false,
+        string $initialPath = '.deployer/inventory.yml'
     ): Filesystem {
-        return new class ($exists, $content, $throwOnRead, $throwOnMkdir, $throwOnDump) extends Filesystem {
+        return new class ($exists, $content, $throwOnRead, $throwOnMkdir, $throwOnDump, $initialPath) extends Filesystem {
             private array $fileSystem = [];
             private bool $dirExists = true;
 
@@ -44,12 +46,27 @@ if (!function_exists('mockFilesystem')) {
                 private readonly string $initialContent,
                 private readonly bool $throwOnRead,
                 private readonly bool $throwOnMkdir,
-                private readonly bool $throwOnDump
+                private readonly bool $throwOnDump,
+                private readonly string $initialPath
             ) {
                 if ($this->initialExists) {
-                    $this->fileSystem['.deployer/inventory.yml'] = $this->initialContent;
+                    $this->fileSystem[$this->initialPath] = $this->initialContent;
                 }
                 $this->dirExists = !$this->throwOnMkdir;
+            }
+
+            private function normalizePath(string $path): string
+            {
+                return str_replace('\\', '/', $path);
+            }
+
+            private function getTargetKey(string $path): string
+            {
+                $normalized = $this->normalizePath($path);
+                if ($normalized === $this->initialPath || str_ends_with($normalized, '/' . $this->initialPath)) {
+                    return $this->initialPath;
+                }
+                return $normalized;
             }
 
             public function exists(string|iterable $files): bool
@@ -64,29 +81,35 @@ if (!function_exists('mockFilesystem')) {
                 }
 
                 // Handle directory checks
-                if (str_ends_with($files, '.deployer')) {
+                $normalized = $this->normalizePath($files);
+                if (str_ends_with($normalized, '.deployer')) {
                     return $this->dirExists;
                 }
 
-                return isset($this->fileSystem[$files]) || isset($this->fileSystem['.deployer/inventory.yml']);
+                $targetKey = $this->getTargetKey($files);
+                return isset($this->fileSystem[$targetKey]);
             }
 
             public function readFile(string $filename): string
             {
                 if ($this->throwOnRead) {
-                    throw new \RuntimeException('Permission denied');
+                    throw new IOException('Permission denied', 0, null, $filename);
                 }
 
-                return $this->fileSystem['.deployer/inventory.yml'] ?? $this->initialContent;
+                $targetKey = $this->getTargetKey($filename);
+                if (!isset($this->fileSystem[$targetKey])) {
+                    throw new IOException("File does not exist: {$filename}", 0, null, $filename);
+                }
+
+                return $this->fileSystem[$targetKey];
             }
 
             public function mkdir($dirs, int $mode = 0777): void
             {
-                unset($dirs, $mode);
-
                 if ($this->throwOnMkdir) {
-                    throw new \Exception('Permission denied');
+                    throw new IOException('Permission denied', 0, null, (string) $dirs);
                 }
+                unset($dirs, $mode);
 
                 $this->dirExists = true;
             }
@@ -94,9 +117,10 @@ if (!function_exists('mockFilesystem')) {
             public function dumpFile(string $filename, $content): void
             {
                 if ($this->throwOnDump) {
-                    throw new \Exception('Write failed');
+                    throw new IOException('Write failed', 0, null, $filename);
                 }
-                $this->fileSystem['.deployer/inventory.yml'] = $content;
+                $targetKey = $this->getTargetKey($filename);
+                $this->fileSystem[$targetKey] = $content;
             }
         };
     }
@@ -109,7 +133,7 @@ if (!function_exists('mockEnvService')) {
     function mockEnvService(bool $hasFile = true): EnvService
     {
         $content = $hasFile ? 'API_KEY=test_value' : '';
-        return new EnvService(mockFilesystem($hasFile, $content), new Dotenv());
+        return new EnvService(mockFilesystem($hasFile, $content, false, false, false, '.env'), new Dotenv());
     }
 }
 
@@ -120,6 +144,6 @@ if (!function_exists('mockInventoryService')) {
     function mockInventoryService(bool $hasFile = true): InventoryService
     {
         $content = $hasFile ? 'servers:' . PHP_EOL . '  web1:' . PHP_EOL . '    host: example.com' : '';
-        return new InventoryService(mockFilesystem($hasFile, $content));
+        return new InventoryService(mockFilesystem($hasFile, $content, false, false, false, '.deployer/inventory.yml'));
     }
 }

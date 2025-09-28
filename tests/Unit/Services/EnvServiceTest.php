@@ -22,7 +22,7 @@ describe('EnvService', function () {
     it('reports correct status for different .env file scenarios', function ($fileExists, $fileContent, $fileError, $expectedStatusPattern) {
         // ARRANGE
         $service = new EnvService(
-            mockFilesystem($fileExists, $fileContent, $fileError),
+            mockFilesystem($fileExists, $fileContent, $fileError, false, false, '.env'),
             new Dotenv()
         );
 
@@ -57,7 +57,7 @@ describe('EnvService', function () {
             setEnv($key, $value);
         }
         $service = new EnvService(
-            mockFilesystem(!empty($fileContent), $fileContent, $fileError),
+            mockFilesystem(!empty($fileContent), $fileContent, $fileError, false, false, '.env'),
             new Dotenv()
         );
 
@@ -89,7 +89,7 @@ describe('EnvService', function () {
     it('handles required vs optional parameters', function ($keys, $required, $expectsException, $expectedMessage) {
         // ARRANGE
         $service = new EnvService(
-            mockFilesystem(false),
+            mockFilesystem(false, '', false, false, false, '.env'),
             new Dotenv()
         );
 
