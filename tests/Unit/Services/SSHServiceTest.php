@@ -50,7 +50,6 @@ describe('SSHService', function () {
         // ACT & ASSERT - Test through public API
         $reflection = new \ReflectionClass($service);
         $method = $reflection->getMethod('resolvePrivateKeyPath');
-        $method->setAccessible(true);
         $actualPath = $method->invoke($service, '~/.ssh/custom_key');
 
         expect($actualPath)->toBe('/home/testuser/.ssh/custom_key');
@@ -67,7 +66,6 @@ describe('SSHService', function () {
         // ACT
         $reflection = new \ReflectionClass($service);
         $method = $reflection->getMethod('resolvePrivateKeyPath');
-        $method->setAccessible(true);
         $actualPath = $method->invoke($service, '/home/testuser/custom/id_rsa');
 
         // ASSERT
@@ -84,7 +82,6 @@ describe('SSHService', function () {
         // ACT
         $reflection = new \ReflectionClass($service);
         $method = $reflection->getMethod('resolvePrivateKeyPath');
-        $method->setAccessible(true);
         $actualPath = $method->invoke($service, null);
 
         // ASSERT
@@ -99,7 +96,6 @@ describe('SSHService', function () {
         // ACT
         $reflection = new \ReflectionClass($service);
         $method = $reflection->getMethod('expandHomePath');
-        $method->setAccessible(true);
         $expanded = $method->invoke($service, '~/.ssh/key');
 
         // ASSERT
