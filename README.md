@@ -1,11 +1,11 @@
 ```
+ ╭──────────────────────────────────────────
   ┌┬┐┌─┐┌─┐┬  ┌─┐┬ ┬┌─┐┬─┐
    ││├┤ ├─┘│  │ │└┬┘├┤ ├┬┘
   ─┴┘└─┘┴  ┴─┘└─┘ ┴ └─┘┴└─PHP
 
-  The Server Provisioning & Deployment Tool for PHP
-
-  Support this project on GitHub ♥ https://github.com/bigpixelrocket/deployer-php
+  The Server & Site Deployment Tool for PHP
+ ╰──────────────────────────────────────────
 ```
 
 [![Tests](https://img.shields.io/badge/tests-passing-brightgreen.svg)](https://github.com/bigpixelrocket/deployer-php)

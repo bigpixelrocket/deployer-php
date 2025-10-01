@@ -1,6 +1,5 @@
 ---
-globs: app/**/*.php,tests/**/*.php
-alwaysApply: false
+alwaysApply: true
 ---
 
 ## Architecture Rules
@@ -83,9 +82,17 @@ $service = $container->build(TestService::class);
 
 - Services provide atomic, reusable functionality with no console I/O
 - Services accept plain PHP data types and return plain PHP data types
-- Services must be stateless and dependency-injected
+- Services must be dependency-injected via constructor
 - Services handle core business logic, external API calls, file operations
 - Complex orchestration shared by multiple Commands should be extracted to dedicated Services
+
+**Service State:**
+
+- **Stateless Services:** Pure operations with no internal state (e.g., validators, calculators, API clients)
+- **Stateful Services:** Services that manage configuration or cached data (e.g., config loaders, file managers, repositories)
+- Stateful services should use lazy loading when initialization is expensive or path-dependent
+- State must be initialized explicitly via public methods before use (e.g., `load()`, `initialize()`)
+- Services should document their stateful nature and initialization requirements
 
 ### Console I/O Rules
 
