@@ -32,6 +32,6 @@ The goal is for all the code in this repository to appear as if it were written 
 
 This can include everything from naming files, classes, variables, or array keys to the precedence and type of parameters passed to a function, to how logic flows and how the code is organized or commented.
 
-**✔️ Don't worry about tests:** Write or run tests ONLY if specifically instructed
+**✔️ Tests are off-limits:** Don't run or edit tests; run or edit tests ONLY if explicitly instructed to do so!
 
 **🧠 AI Agent Protocol:** ULTRATHINK → STEP BY STEP → ACT

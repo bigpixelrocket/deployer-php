@@ -37,7 +37,7 @@ describe('SymfonyApp', function () {
     //
     // Banner display
 
-    it('displays complete banner with branding elements', function (array $expectedBannerElements) {
+    it('displays banner with branding elements', function (array $expectedBannerElements) {
         // ARRANGE
         $container = new Container();
         $app = $container->build(SymfonyApp::class);
@@ -62,13 +62,11 @@ describe('SymfonyApp', function () {
             }
         }
     })->with([
-        'complete banner' => [[
+        'banner' => [[
             '┌┬┐┌─┐┌─┐┬  ┌─┐┬ ┬┌─┐┬─┐', // ASCII art line 1
             ' ││├┤ ├─┘│  │ │└┬┘├┤ ├┬┘', // ASCII art line 2
             'VERSION_LINE', // Dynamic version line
-            'The Server Provisioning & Deployment Tool for PHP',
-            'Support this project on GitHub ♥',
-            'https://github.com/bigpixelrocket/deployer-php',
+            'The Server & Site Deployment Tool for PHP',
         ]]
     ]);
 

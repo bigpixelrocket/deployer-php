@@ -34,17 +34,16 @@ use Symfony\Component\Yaml\Yaml;
  */
 class InventoryService
 {
-    private readonly string $inventoryPath;
-    private readonly string $inventoryDir;
+    /** @var array<string, mixed> */
+    private array $inventory = [];
 
-    private string $inventoryFileStatus = '';
+    private ?string $inventoryPath = null;
+
+    private ?string $inventoryFileStatus = null;
 
     public function __construct(
         private readonly Filesystem $filesystem,
     ) {
-        $this->inventoryPath = rtrim((string) getcwd(), '/').'/.deployer/inventory.yml';
-        $this->inventoryDir = dirname($this->inventoryPath);
-        $this->initializeInventoryFile();
     }
 
     //
@@ -56,43 +55,23 @@ class InventoryService
      */
     public function set(string $path, mixed $value): void
     {
-        $inventory = $this->readInventory();
         $segments = $this->parsePath($path);
 
-        $this->setByPath($inventory, $segments, $value);
-        $this->writeInventory($inventory);
+        $this->setByPath($this->inventory, $segments, $value);
+        $this->writeInventory();
     }
 
     /**
      * Get a value using dot notation path.
-     */
-    public function get(string $path): mixed
-    {
-        $inventory = $this->readInventory();
-        $segments = $this->parsePath($path);
-
-        return $this->getByPath($inventory, $segments);
-    }
-
-    /**
-     * Get the entire inventory structure.
      *
-     * @return array<string, mixed>
+     * @param mixed $default Default value to return if path doesn't exist
      */
-    public function getAll(): array
+    public function get(string $path, mixed $default = null): mixed
     {
-        return $this->readInventory();
-    }
-
-    /**
-     * Check if a path exists using dot notation.
-     */
-    public function has(string $path): bool
-    {
-        $inventory = $this->readInventory();
         $segments = $this->parsePath($path);
+        $value = $this->getByPath($this->inventory, $segments);
 
-        return $this->hasByPath($inventory, $segments);
+        return $value ?? $default;
     }
 
     /**
@@ -100,17 +79,43 @@ class InventoryService
      */
     public function delete(string $path): void
     {
-        $inventory = $this->readInventory();
         $segments = $this->parsePath($path);
 
-        $this->unsetByPath($inventory, $segments);
-        $this->writeInventory($inventory);
+        $this->unsetByPath($this->inventory, $segments);
+        $this->writeInventory();
+    }
+
+    /**
+     * Set a custom inventory path.
+     */
+    public function setCustomPath(?string $path): void
+    {
+        $this->inventoryPath = $path;
+    }
+
+    /**
+     * Load and parse inventory file if it exists.
+     */
+    public function loadInventoryFile(): void
+    {
+        $this->inventory = [];
+
+        $path = $this->getInventoryPath();
+
+        // Initialize empty inventory file if it doesn't exist
+        if (!$this->filesystem->exists($path)) {
+            $this->inventoryFileStatus = "Creating inventory file at {$path}";
+            $this->writeInventory();
+        }
+
+        $this->readInventory();
+        $this->inventoryFileStatus = "Reading inventory from {$path}";
     }
 
     /**
      * Get the status of the inventory file.
      */
-    public function getInventoryFileStatus(): string
+    public function getInventoryFileStatus(): ?string
     {
         return $this->inventoryFileStatus;
     }
@@ -118,40 +123,6 @@ class InventoryService
     //
     // Private
     // -------------------------------------------------------------------------------
-
-    //
-    // Initialization
-
-    /**
-     * Initialize inventory file and set status.
-     */
-    private function initializeInventoryFile(): void
-    {
-        if (!$this->filesystem->exists($this->inventoryPath)) {
-            // Create empty inventory file
-            try {
-                if (!$this->filesystem->exists($this->inventoryDir)) {
-                    $this->filesystem->mkdir($this->inventoryDir, 0775);
-                }
-
-                $emptyYaml = Yaml::dump([], 2, 4, Yaml::DUMP_EMPTY_ARRAY_AS_SEQUENCE);
-                $this->filesystem->dumpFile($this->inventoryPath, $emptyYaml);
-                $this->inventoryFileStatus = "Creating inventory file at {$this->inventoryPath}";
-            } catch (\Throwable $e) {
-                $this->inventoryFileStatus = "Error creating inventory file at {$this->inventoryPath}: {$e->getMessage()}";
-            }
-
-            return;
-        }
-
-        // File exists - validate it
-        try {
-            $this->readInventory();
-            $this->inventoryFileStatus = "Reading inventory from {$this->inventoryPath}";
-        } catch (\Throwable $e) {
-            $this->inventoryFileStatus = "Error reading inventory file from {$this->inventoryPath}: {$e->getMessage()}";
-        }
-    }
 
     //
     // Dot Notation Helpers
@@ -212,26 +183,6 @@ class InventoryService
     }
 
     /**
-     * Check if path exists in nested array using dot notation path segments.
-     *
-     * @param array<string, mixed> $data
-     * @param array<int, string> $segments
-     */
-    private function hasByPath(array $data, array $segments): bool
-    {
-        $current = $data;
-
-        foreach ($segments as $segment) {
-            if (!is_array($current) || !array_key_exists($segment, $current)) {
-                return false;
-            }
-            $current = $current[$segment];
-        }
-
-        return true;
-    }
-
-    /**
      * Remove path from nested array using dot notation path segments.
      *
      * @param array<string, mixed> $data
@@ -266,48 +217,50 @@ class InventoryService
     // File Operations
 
     /**
-     * Read inventory YAML into a structured array.
-     *
-     * @return array<string, mixed>
+     * Get the resolved inventory path (custom or default).
      */
-    private function readInventory(): array
+    private function getInventoryPath(): string
     {
-        $path = $this->inventoryPath;
-
-        if (!$this->filesystem->exists($path)) {
-            return [];
-        }
-
-        $raw = $this->filesystem->readFile($path);
-        $parsed = Yaml::parse($raw);
-
-        /** @var array<string, mixed> $result */
-        $result = is_array($parsed) ? $parsed : [];
-        return $result;
+        return $this->inventoryPath ?? rtrim((string) getcwd(), '/') . '/inventory.yml';
     }
 
     /**
-     * Persist inventory data to YAML file.
+     * Read inventory YAML into internal array.
      *
-     * @param array<string, mixed> $inventory
+     * @throws \RuntimeException If file cannot be read or parsed
      */
-    private function writeInventory(array $inventory): void
+    private function readInventory(): void
     {
-        $path = $this->inventoryPath;
+        $path = $this->getInventoryPath();
 
-        if (!$this->filesystem->exists($this->inventoryDir)) {
-            try {
-                $this->filesystem->mkdir($this->inventoryDir, 0775);
-            } catch (\Throwable $e) {
-                throw new \RuntimeException("Unable to create inventory directory: {$this->inventoryDir}", 0, $e);
-            }
+        try {
+            $raw = $this->filesystem->readFile($path);
+            $parsed = Yaml::parse($raw);
+
+            /** @var array<string, mixed> $inventory */
+            $inventory = is_array($parsed) ? $parsed : [];
+            $this->inventory = $inventory;
+        } catch (\Throwable $e) {
+            throw new \RuntimeException("Error reading inventory file from {$path}: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Persist internal inventory to YAML file.
+     */
+    private function writeInventory(): void
+    {
+        if (null === $this->inventoryFileStatus) {
+            throw new \RuntimeException('Inventory not loaded. Call loadInventoryFile() first.');
         }
 
-        $yaml = Yaml::dump($inventory, 2, 4, Yaml::DUMP_EMPTY_ARRAY_AS_SEQUENCE);
+        $path = $this->getInventoryPath();
+
         try {
+            $yaml = Yaml::dump($this->inventory, 2, 4, Yaml::DUMP_EMPTY_ARRAY_AS_SEQUENCE);
             $this->filesystem->dumpFile($path, $yaml);
         } catch (\Throwable $e) {
-            throw new \RuntimeException("Failed to write inventory file at {$path}", 0, $e);
+            throw new \RuntimeException("Error writing inventory file at {$path}: " . $e->getMessage());
         }
     }
 }

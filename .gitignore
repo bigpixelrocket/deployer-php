@@ -4,9 +4,10 @@
 .vscode/
 node_modules/
 vendor/
-*.cache
-*.log
 .DS_Store
 .env
 .env.*
+*.cache
+*.log
+inventory.yml
 Thumbs.db

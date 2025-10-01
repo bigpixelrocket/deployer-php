@@ -1,6 +1,5 @@
 ---
-globs: app/Console/*.php,app/Contracts/BaseCommand.php,app/SymfonyApp.php
-description: Symfony Console rules
+alwaysApply: true
 ---
 
 ## Symfony Console Rules
