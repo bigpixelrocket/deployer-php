@@ -147,4 +147,64 @@ describe('SymfonyApp', function () {
             ->and($output2)->toContain('┌┬┐┌─┐┌─┐');
     });
 
+    //
+    // Custom Input Definition
+
+    it('exposes only custom-defined input options', function () {
+        // ARRANGE
+        $container = new Container();
+        $app = $container->build(SymfonyApp::class);
+
+        // ACT
+        $definition = $app->getDefinition();
+        $availableOptions = array_keys($definition->getOptions());
+
+        // ASSERT
+        expect($availableOptions)->toContain('help')
+            ->and($availableOptions)->toContain('version')
+            ->and($availableOptions)->toContain('ansi')
+            ->and($availableOptions)->not->toContain('quiet')
+            ->and($availableOptions)->not->toContain('verbose')
+            ->and($availableOptions)->not->toContain('no-interaction');
+    });
+
+    it('exits early when --version flag is provided', function () {
+        // ARRANGE
+        $container = new Container();
+        $app = $container->build(SymfonyApp::class);
+
+        $input = new ArrayInput(['--version' => true]);
+
+        $output = new BufferedOutput();
+        $output->setDecorated(false);
+
+        // ACT
+        $exitCode = $app->doRun($input, $output);
+        $outputContent = $output->fetch();
+
+        // ASSERT
+        expect($exitCode)->toBe(Command::SUCCESS)
+            ->and($outputContent)->toContain('┌┬┐┌─┐┌─┐')
+            ->and($outputContent)->not->toContain('Available commands');
+    });
+
+    it('always displays banner regardless of output settings', function () {
+        // ARRANGE
+        $container = new Container();
+        $app = $container->build(SymfonyApp::class);
+
+        $input = new ArrayInput(['command' => 'list']);
+
+        $output = new BufferedOutput();
+        $output->setDecorated(false);
+
+        // ACT
+        $app->doRun($input, $output);
+        $outputContent = $output->fetch();
+
+        // ASSERT
+        expect($outputContent)->toContain('┌┬┐┌─┐┌─┐')
+            ->and($outputContent)->toContain('The Server & Site Deployment Tool for PHP');
+    });
+
 });
