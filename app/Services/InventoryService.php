@@ -86,7 +86,7 @@ class InventoryService
     }
 
     /**
-     * Set a custom inventory path and reload.
+     * Set a custom inventory path.
      */
     public function setCustomPath(?string $path): void
     {
