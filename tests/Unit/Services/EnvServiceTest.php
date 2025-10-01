@@ -103,6 +103,5 @@ describe('EnvService', function () {
         ['MISSING_KEY', true, true, 'Missing required environment variable: MISSING_KEY'],
         [['KEY1', 'KEY2'], true, true, 'Missing required environment variables: KEY1, KEY2'],
         ['MISSING_KEY', false, false, null],
-        ['MISSING_KEY', true, true, 'Missing required environment variable: MISSING_KEY'],  // Default required=true
     ]);
 });
