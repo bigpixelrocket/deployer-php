@@ -32,6 +32,7 @@ class TestableBaseCommand extends BaseCommand
 
     protected function configure(): void
     {
+        parent::configure();
         $this->setName($this->testName)->setDescription('Test command for BaseCommand testing');
     }
 
@@ -48,48 +49,162 @@ class TestableBaseCommand extends BaseCommand
 // -------------------------------------------------------------------------------
 
 describe('BaseCommand', function () {
-    it('constructs with dependencies and executes with proper output', function (bool $hasEnvFile, bool $hasInventoryFile, string $commandName, string $envPattern, string $inventoryPattern) {
-        // ARRANGE
-        $container = new Container();
-        $env = mockEnvService($hasEnvFile);
-        $inventory = mockInventoryService($hasInventoryFile);
-
-        // ACT
-        $command = new TestableBaseCommand($container, $env, $inventory, $commandName);
-        $tester = new CommandTester($command);
-        $exitCode = $tester->execute([]);
-        $output = $tester->getDisplay();
-
-        // ASSERT
-        expect($command->getName())->toBe($commandName)
-            ->and($exitCode)->toBe(Command::SUCCESS)
-            ->and($output)->toMatch($envPattern)
-            ->and($output)->toMatch($inventoryPattern)
-            ->and($output)->toContain('Environment:')
-            ->and($output)->toContain('Inventory:')
-            ->and($output)->toContain('╭───────')
-            ->and($output)->toContain('Test command executed successfully');
-    })->with([
-        'both files, simple name' => [true, true, 'test', '/Environment:[\s\S]*variable[\s\S]*from/', '/Inventory:[\s\S]*Reading inventory from/'],
-        'no files, kebab case' => [false, false, 'deploy-server', '/Environment:[\s\S]*No \\.env file found/', '/Inventory:[\s\S]*Creating inventory file/'],
-        'env only, colon separated' => [true, false, 'server:deploy', '/Environment:[\s\S]*variable[\s\S]*from/', '/Inventory:[\s\S]*Creating inventory file/'],
-        'inventory only, default' => [false, true, 'test-command', '/Environment:[\s\S]*No \\.env file found/', '/Inventory:[\s\S]*Reading inventory from/'],
-    ]);
-
-    it('suppresses status display and wrapper methods in quiet mode', function () {
+    it('constructs with dependencies and registers custom options', function () {
         // ARRANGE
         $container = new Container();
         $env = mockEnvService(true);
         $inventory = mockInventoryService(true);
 
         // ACT
+        $command = new TestableBaseCommand($container, $env, $inventory, 'test');
+
+        // ASSERT
+        expect($command->getName())->toBe('test')
+            ->and($command->getDefinition()->hasOption('env'))->toBeTrue()
+            ->and($command->getDefinition()->hasOption('inventory'))->toBeTrue()
+            ->and($command->getDefinition()->getOption('env')->getDescription())
+                ->toContain('Custom path to .env file')
+            ->and($command->getDefinition()->getOption('inventory')->getDescription())
+                ->toContain('Custom path to inventory.yml file');
+    });
+
+    it('executes with proper status output', function (bool $hasEnvFile, string $expectedEnvMessage) {
+        // ARRANGE
+        $container = new Container();
+        $env = mockEnvService($hasEnvFile);
+        $inventory = mockInventoryService(true);
         $command = new TestableBaseCommand($container, $env, $inventory);
         $tester = new CommandTester($command);
-        $exitCode = $tester->execute([], ['verbosity' => \Symfony\Component\Console\Output\OutputInterface::VERBOSITY_QUIET]);
+
+        // ACT
+        $exitCode = $tester->execute([]);
+        $output = $tester->getDisplay();
+
+        // ASSERT
+        expect($exitCode)->toBe(Command::SUCCESS)
+            ->and($output)->toContain('Environment:')
+            ->and($output)->toContain('Inventory:')
+            ->and($output)->toContain($expectedEnvMessage)
+            ->and($output)->toContain('Reading inventory from')
+            ->and($output)->toContain('Test command executed successfully');
+    })->with([
+        'env file exists' => [true, 'Reading variables from'],
+        'no env file' => [false, 'No .env file found'],
+    ]);
+
+    it('displays correct env status messages for different scenarios', function (bool $hasEnvFile, string $envPattern) {
+        // ARRANGE
+        $container = new Container();
+        $env = mockEnvService($hasEnvFile);
+        $inventory = mockInventoryService(true);
+        $command = new TestableBaseCommand($container, $env, $inventory);
+        $tester = new CommandTester($command);
+
+        // ACT
+        $exitCode = $tester->execute([]);
+        $output = $tester->getDisplay();
+
+        // ASSERT
+        expect($exitCode)->toBe(Command::SUCCESS)
+            ->and($output)->toMatch($envPattern)
+            ->and($output)->toContain('Reading inventory from');
+    })->with([
+        'env file exists' => [true, '/Reading variables from/'],
+        'no env file' => [false, '/No \\.env file found/'],
+    ]);
+
+    it('suppresses all output in quiet mode', function () {
+        // ARRANGE
+        $container = new Container();
+        $env = mockEnvService(true);
+        $inventory = mockInventoryService(true);
+        $command = new TestableBaseCommand($container, $env, $inventory);
+        $tester = new CommandTester($command);
+
+        // ACT
+        $exitCode = $tester->execute([], ['verbosity' => OutputInterface::VERBOSITY_QUIET]);
         $output = $tester->getDisplay();
 
         // ASSERT
         expect($exitCode)->toBe(Command::SUCCESS)
             ->and($output)->toBe('');
+    });
+
+    it('wrapper methods writeln, text, and hr respect quiet mode', function (string $method) {
+        // ARRANGE
+        $container = new Container();
+        $env = mockEnvService(true);
+        $inventory = mockInventoryService(true);
+
+        $command = new class ($container, $env, $inventory) extends BaseCommand {
+            protected function configure(): void
+            {
+                parent::configure();
+                $this->setName('test-wrapper');
+            }
+
+            protected function execute(InputInterface $input, OutputInterface $output): int
+            {
+                parent::execute($input, $output);
+
+                match ($input->getOption('test-method')) {
+                    'writeln' => $this->writeln('Test message'),
+                    'text' => $this->text('Test message'),
+                    'hr' => $this->hr(),
+                    default => null,
+                };
+
+                return Command::SUCCESS;
+            }
+        };
+
+        $command->getDefinition()->addOption(
+            new \Symfony\Component\Console\Input\InputOption('test-method', null, \Symfony\Component\Console\Input\InputOption::VALUE_REQUIRED)
+        );
+
+        $tester = new CommandTester($command);
+
+        // ACT - Normal mode
+        $tester->execute(['--test-method' => $method]);
+        $normalOutput = $tester->getDisplay();
+
+        // ACT - Quiet mode
+        $tester->execute(['--test-method' => $method], ['verbosity' => OutputInterface::VERBOSITY_QUIET]);
+        $quietOutput = $tester->getDisplay();
+
+        // ASSERT
+        expect($normalOutput)->not->toBe('')
+            ->and($quietOutput)->toBe('');
+    })->with(['writeln', 'text', 'hr']);
+
+    it('hr displays separator line', function () {
+        // ARRANGE
+        $container = new Container();
+        $env = mockEnvService(true);
+        $inventory = mockInventoryService(true);
+
+        $command = new class ($container, $env, $inventory) extends BaseCommand {
+            protected function configure(): void
+            {
+                parent::configure();
+                $this->setName('test-hr');
+            }
+
+            protected function execute(InputInterface $input, OutputInterface $output): int
+            {
+                $this->hr();
+                return Command::SUCCESS;
+            }
+        };
+
+        $tester = new CommandTester($command);
+
+        // ACT
+        $tester->execute([]);
+        $output = $tester->getDisplay();
+
+        // ASSERT
+        expect($output)->toContain('╭───────')
+            ->and(strlen($output))->toBeGreaterThan(40);
     });
 });

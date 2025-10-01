@@ -15,13 +15,14 @@ class EnvService
     /** @var array<string, string> */
     private array $dotenv = [];
 
+    private ?string $envPath = null;
+
     private string $envFileStatus = '';
 
     public function __construct(
         private readonly Filesystem $filesystem,
         private readonly Dotenv $dotenvParser,
     ) {
-        $this->loadDotenvFile();
     }
 
     //
@@ -53,10 +54,40 @@ class EnvService
         if ($required) {
             $list = implode(', ', $keysList);
             $label = count($keysList) > 1 ? 'variables' : 'variable';
-            throw new \RuntimeException("Missing environment {$label}: {$list}");
+            throw new \RuntimeException("Missing required environment {$label}: {$list}");
         }
 
         return null;
+    }
+
+    /**
+     * Set a custom .env path.
+     */
+    public function setCustomPath(?string $path): void
+    {
+        $this->envPath = $path;
+    }
+
+    /**
+     * Load and parse .env file if it exists.
+     */
+    public function loadEnvFile(): void
+    {
+        $this->dotenv = [];
+
+        $path = $this->getEnvPath();
+
+        if (!$this->filesystem->exists($path)) {
+            $this->envFileStatus = "No .env file found at {$path}";
+            return;
+        }
+
+        $this->readDotenv();
+
+        $this->envFileStatus = "Reading variables from {$path}";
+        if (!count($this->dotenv)) {
+            $this->envFileStatus = "No variables found in {$path}";
+        }
     }
 
     /**
@@ -72,34 +103,33 @@ class EnvService
     // -------------------------------------------------------------------------------
 
     /**
-     * Load and parse .env file if it exists.
+     * Get the resolved .env path (custom or default).
      */
-    private function loadDotenvFile(): void
+    private function getEnvPath(): string
     {
-        $envPath = rtrim((string) getcwd(), '/') . '/.env';
+        return $this->envPath ?? rtrim((string) getcwd(), '/') . '/.env';
+    }
 
-        if (!$this->filesystem->exists($envPath)) {
-            $envDir = dirname($envPath);
-            $this->envFileStatus = "No .env file found at {$envDir}";
-            return;
-        }
+    /**
+     * Read .env file into internal array.
+     *
+     * @throws \RuntimeException If file cannot be read or parsed
+     */
+    private function readDotenv(): void
+    {
+        $path = $this->getEnvPath();
 
         try {
-            $content = $this->filesystem->readFile($envPath);
-            $parsed = $this->dotenvParser->parse($content, $envPath);
+            $content = $this->filesystem->readFile($path);
+            $parsed = $this->dotenvParser->parse($content, $path);
 
             foreach ($parsed as $k => $v) {
                 if (is_string($k) && is_string($v)) {
                     $this->dotenv[$k] = $v;
                 }
             }
-
-            $varCount = count($this->dotenv);
-            $label = $varCount === 1 ? 'variable' : 'variables';
-            $this->envFileStatus = "Reading {$varCount} {$label} from {$envPath}";
-        } catch (\Throwable) {
-            $this->dotenv = [];
-            $this->envFileStatus = "Error reading .env file from {$envPath}";
+        } catch (\Throwable $e) {
+            throw new \RuntimeException("Error reading .env file from {$path}: " . $e->getMessage());
         }
     }
 }

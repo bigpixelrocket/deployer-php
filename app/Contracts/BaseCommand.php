@@ -11,6 +11,7 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
+use Symfony\Component\Console\Input\InputOption;
 
 abstract class BaseCommand extends Command
 {
@@ -26,35 +27,79 @@ abstract class BaseCommand extends Command
         parent::__construct();
     }
 
+    //
+    // Common config
+    // -------------------------------------------------------------------------------
+
     /**
-     * Initialize IO early so subclasses can use $this->io in initialize()/interact().
+     * Add custom env and inventory options.
+     */
+    protected function configure(): void
+    {
+        parent::configure();
+
+        $this->addOption(
+            'env',
+            null,
+            InputOption::VALUE_OPTIONAL,
+            'Custom path to .env file (defaults to .env in the current working directory)'
+        );
+
+        $this->addOption(
+            'inventory',
+            null,
+            InputOption::VALUE_OPTIONAL,
+            'Custom path to inventory.yml file (defaults to inventory.yml in the current working directory)'
+        );
+    }
+
+    /**
+     * Initialize IO and services early.
      */
     protected function initialize(InputInterface $input, OutputInterface $output): void
     {
         parent::initialize($input, $output);
+
         $this->io = new SymfonyStyle($input, $output);
         $this->isQuiet = $output->isQuiet();
 
-        $envStatus = $this->env->getEnvFileStatus();
-        $inventoryStatus = $this->inventory->getInventoryFileStatus();
+        //
+        // Initialize env service
 
-        $this->hr();
+        /** @var ?string $customEnvPath */
+        $customEnvPath = $input->getOption('env');
+        $this->env->setCustomPath($customEnvPath);
+        $this->env->loadEnvFile();
+
+        //
+        // Initialize inventory service
+
+        /** @var ?string $customInventoryPath */
+        $customInventoryPath = $input->getOption('inventory');
+        $this->inventory->setCustomPath($customInventoryPath);
+        $this->inventory->loadInventoryFile();
+    }
+
+    /**
+     * Display env and inventory statuses.
+     */
+    protected function execute(InputInterface $input, OutputInterface $output): int
+    {
+        $envStatus = $this->env->getEnvFileStatus();
+        $color = str_starts_with($envStatus, 'No .env') ? 'yellow' : 'gray';
         $this->writeln([
             ' <fg=cyan>Environment:</> ',
-            ' <fg=gray>'.$envStatus.'</>',
+            " <fg={$color}>{$envStatus}</>",
             '',
+        ]);
+
+        $inventoryStatus = $this->inventory->getInventoryFileStatus();
+        $this->writeln([
             ' <fg=cyan>Inventory:</> ',
             ' <fg=gray>'.$inventoryStatus.'</>',
             '',
         ]);
-    }
 
-
-    /**
-     * The main execution method in Symfony commands.
-     */
-    protected function execute(InputInterface $input, OutputInterface $output): int
-    {
         return Command::SUCCESS;
     }
 
