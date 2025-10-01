@@ -20,6 +20,12 @@ We're developing Deployer PHP, a Composer package and CLI tool that simplifies p
 - Always ask yourself if less code can achieve the same result
 - Refactor relentlessly for code clarity and necessity
 
+**Performance & Efficiency Patterns:**
+
+- **Eliminate single-use methods**: If a private method is called only once, inline it directly
+- **Cache computed values**: Initialize expensive calculations in constructor instead of repeating them
+- **Avoid method call overhead**: Direct property access over method calls when appropriate
+
 **🤓 Organize & Catalog Like A Librarian:**
 
 Organize and catalog code like a librarian. Group related functions into comment-separated sections for visual clarity and prefer alphabetical ordering when it doesn’t fight logical grouping. Code should be functional and visually appealing; there is beauty in order.
