@@ -22,12 +22,11 @@ use Symfony\Component\Yaml\Yaml;
  * $inventory->get('servers.production.host');  // 'example.com'
  * $inventory->get('servers.production');       // ['host' => 'example.com', 'user' => 'deployer']
  * $inventory->get('servers');                  // ['production' => ['host' => 'example.com', 'user' => 'deployer']]
- * $inventory->get('servers.staging');          // null
  *
- * // Check if path exists
- * if ($inventory->has('servers.production')) {
- *     // Path exists
- * }
+ * // Default values when path doesn't exist
+ * $inventory->get('servers.staging');                    // null
+ * $inventory->get('servers.staging', []);                // []
+ * $inventory->get('servers.staging.host', 'localhost');  // 'localhost'
  *
  * // Delete path
  * $inventory->delete('servers.production');
