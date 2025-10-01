@@ -51,7 +51,9 @@ final class SymfonyApp extends SymfonyApplication
     {
         $this->io = new SymfonyStyle($input, $output);
 
-        $this->displayBanner();
+        if (!$output->isQuiet()) {
+            $this->displayBanner();
+        }
 
         return parent::doRun($input, $output);
     }
@@ -70,14 +72,14 @@ final class SymfonyApp extends SymfonyApplication
         // Simple, compact banner
         $banner = [
             '',
+            '<fg=cyan>╭───────</><fg=blue>─────────</><fg=bright-blue>─────────</><fg=magenta>─────────</><fg=gray>────────</>',
             ' <fg=cyan>┌┬┐┌─┐┌─┐┬  ┌─┐┬ ┬┌─┐┬─┐</>',
             ' <fg=cyan> ││├┤ ├─┘│  │ │└┬┘├┤ ├┬┘</>',
             ' <fg=blue>─┴┘└─┘┴  ┴─┘└─┘ ┴ └─┘┴└─PHP</> <fg=bright-blue>'.$version.'</>',
             '',
-            ' <fg=gray>The Server Provisioning & Deployment Tool for PHP</>',
-            '',
-            ' <fg=gray>Support this project on GitHub</> <fg=red>♥</>  <fg=magenta>https://github.com/bigpixelrocket/deployer-php</>',
-            '',
+            ' <fg=gray>The Server & Site Deployment Tool for PHP</>',
+            '<fg=cyan>╰───────</><fg=blue>─────────</><fg=bright-blue>─────────</><fg=magenta>─────────</><fg=gray>────────</>',
+            ''
         ];
 
         // Display the banner
