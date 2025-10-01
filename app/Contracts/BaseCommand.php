@@ -17,8 +17,6 @@ abstract class BaseCommand extends Command
 {
     protected SymfonyStyle $io;
 
-    protected bool $isQuiet = false;
-
     public function __construct(
         protected readonly Container $container,
         protected readonly EnvService $env,
@@ -61,7 +59,6 @@ abstract class BaseCommand extends Command
         parent::initialize($input, $output);
 
         $this->io = new SymfonyStyle($input, $output);
-        $this->isQuiet = $output->isQuiet();
 
         //
         // Initialize env service
@@ -114,10 +111,6 @@ abstract class BaseCommand extends Command
      */
     protected function writeln(string|array $lines): void
     {
-        if ($this->isQuiet) {
-            return;
-        }
-
         $writeLines = is_array($lines) ? $lines : [$lines];
         foreach ($writeLines as $line) {
             $this->io->writeln(' ' . $line);
@@ -131,10 +124,6 @@ abstract class BaseCommand extends Command
      */
     protected function text(string|array $lines): void
     {
-        if ($this->isQuiet) {
-            return;
-        }
-
         $writeLines = is_array($lines) ? $lines : [$lines];
         foreach ($writeLines as $line) {
             $this->io->text(' ' . $line);
@@ -146,10 +135,6 @@ abstract class BaseCommand extends Command
      */
     protected function hr(): void
     {
-        if ($this->isQuiet) {
-            return;
-        }
-
         $this->writeln([
             '<fg=cyan>╭───────</><fg=blue>─────────</><fg=bright-blue>─────────</><fg=magenta>─────────</><fg=gray>────────</>',
             '',
