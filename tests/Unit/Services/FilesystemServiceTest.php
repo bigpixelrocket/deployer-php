@@ -16,9 +16,9 @@ describe('FilesystemService', function () {
         $fs = new class ($delegationVerified, $method, $args, $expected) extends Filesystem {
             public function __construct(
                 private bool &$verified,
-                private string $expectedMethod,
-                private array $expectedArgs,
-                private mixed $returnValue
+                private readonly string $expectedMethod,
+                private readonly array $expectedArgs,
+                private readonly mixed $returnValue
             ) {
             }
 

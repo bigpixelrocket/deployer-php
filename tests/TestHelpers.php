@@ -68,7 +68,7 @@ if (!function_exists('mockFilesystem')) {
 
                 // Check directories
                 foreach ($this->directories as $dir) {
-                    if (str_contains($files, $dir)) {
+                    if (str_contains($files, (string) $dir)) {
                         return true;
                     }
                 }
@@ -80,7 +80,7 @@ if (!function_exists('mockFilesystem')) {
 
                 // Check if path ends with any stored file key
                 foreach (array_keys($this->files) as $storedPath) {
-                    if (str_ends_with($files, $storedPath)) {
+                    if (str_ends_with($files, (string) $storedPath)) {
                         return true;
                     }
                 }
@@ -101,7 +101,7 @@ if (!function_exists('mockFilesystem')) {
 
                 // Try path ending match
                 foreach ($this->files as $storedPath => $content) {
-                    if (str_ends_with($filename, $storedPath)) {
+                    if (str_ends_with($filename, (string) $storedPath)) {
                         return $content;
                     }
                 }
