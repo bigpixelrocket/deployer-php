@@ -181,9 +181,8 @@ protected function execute(InputInterface $input, OutputInterface $output): int 
     // Track which options were provided vs prompted
     $provided = [];
 
-    // Use BaseCommand helper method
+    // Use BaseCommand helper method (uses $this->input internally)
     $name = $this->getOptionOrPrompt(
-        $input,
         'name',
         'Server name:',
         placeholder: 'production-web-01',
@@ -191,7 +190,6 @@ protected function execute(InputInterface $input, OutputInterface $output): int 
     );
 
     $host = $this->getOptionOrPrompt(
-        $input,
         'host',
         'Host/IP address:',
         placeholder: '192.168.1.100',

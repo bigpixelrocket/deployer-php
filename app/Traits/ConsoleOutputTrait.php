@@ -4,41 +4,56 @@ declare(strict_types=1);
 
 namespace Bigpixelrocket\DeployerPHP\Traits;
 
-use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Style\SymfonyStyle;
-
-use function Laravel\Prompts\text;
-
 /**
- * Console output formatting methods for beautiful TUI.
+ * Console output formatting methods.
  *
- * Provides consistent styling, status messages, and command hints.
- *
- * Requires the using class to have:
- * - protected SymfonyStyle $io
+ * Requires the using class to have a `protected SymfonyStyle $io` property.
  */
 trait ConsoleOutputTrait
 {
     //
-    // Status Messages
+    // Raw output
     // -------------------------------------------------------------------------------
 
     /**
-     * Display an error message with red X and optional tip.
+     * Write-out multiple lines.
+     *
+     * @param array<int, string> $lines
      */
-    protected function error(string $message, ?string $tip = null): void
+    protected function writeln(string|array $lines): void
     {
-        $output = [
-            "<fg=red>✗</> {$message}",
-            '',
-        ];
-
-        if ($tip !== null) {
-            $output[] = "<fg=gray>Tip:</> {$tip}";
-            $output[] = '';
+        $writeLines = is_array($lines) ? $lines : [$lines];
+        foreach ($writeLines as $line) {
+            $this->io->writeln(' '.$line);
         }
+    }
 
-        $this->writeln($output);
+    //
+    // Message helpers
+    // -------------------------------------------------------------------------------
+
+    /**
+     * Display a plain text message.
+     */
+    protected function text(string $message): void
+    {
+        $this->writeln($message);
+    }
+
+    /**
+     * Display an info message with cyan info symbol.
+     */
+    protected function info(string $message): void
+    {
+        $this->writeln("<fg=cyan>ℹ</> {$message}");
+    }
+
+    /**
+     * Display a note message with cyan info symbol.
+     */
+    protected function note(string $message): void
+    {
+        $this->info($message);
     }
 
     /**
@@ -46,10 +61,7 @@ trait ConsoleOutputTrait
      */
     protected function success(string $message): void
     {
-        $this->writeln([
-            "<fg=green>✓</> {$message}",
-            '',
-        ]);
+        $this->writeln("<fg=green>✓</> {$message}");
     }
 
     /**
@@ -57,14 +69,25 @@ trait ConsoleOutputTrait
      */
     protected function warning(string $message): void
     {
-        $this->writeln([
-            "<fg=yellow>⚠</> {$message}",
-            '',
-        ]);
+        $this->writeln("<fg=yellow>⚠</> {$message}");
+    }
+
+    /**
+     * Display an error message with red X and optional tip.
+     */
+    protected function error(string $message, ?string $tip = null): void
+    {
+        $output = ["<fg=red>✗</> {$message}"];
+
+        if ($tip !== null) {
+            $output[] = "<fg=gray>Tip:</> {$tip}";
+        }
+
+        $this->writeln($output);
     }
 
     //
-    // Output Formatting
+    // Heading and separator
     // -------------------------------------------------------------------------------
 
     /**
@@ -84,73 +107,6 @@ trait ConsoleOutputTrait
             '<fg=cyan>╭───────</><fg=blue>─────────</><fg=bright-blue>─────────</><fg=magenta>─────────</><fg=gray>────────</>',
             '',
         ]);
-    }
-
-    /**
-     * Write-out styled text lines.
-     *
-     * @param array<int, string> $lines
-     */
-    protected function text(string|array $lines): void
-    {
-        $writeLines = is_array($lines) ? $lines : [$lines];
-        foreach ($writeLines as $line) {
-            $this->io->text(' '.$line);
-        }
-    }
-
-    /**
-     * Write-out multiple lines.
-     *
-     * @param array<int, string> $lines
-     */
-    protected function writeln(string|array $lines): void
-    {
-        $writeLines = is_array($lines) ? $lines : [$lines];
-        foreach ($writeLines as $line) {
-            $this->io->writeln(' '.$line);
-        }
-    }
-
-    //
-    // User Input Helpers
-    // -------------------------------------------------------------------------------
-
-    /**
-     * Get option value or prompt user interactively.
-     *
-     * Checks if an option was provided via CLI. If yes, returns the value and sets
-     * wasProvided to true. If not, prompts user interactively and sets wasProvided to false.
-     *
-     * @param bool $wasProvided Set to true if option was provided, false if prompted
-     * @return string The option value (from CLI or prompt)
-     */
-    protected function getOptionOrPrompt(
-        InputInterface $input,
-        string $optionName,
-        string $label,
-        string $placeholder = '',
-        bool $required = true,
-        ?string $default = null,
-        bool &$wasProvided = false
-    ): string {
-        /** @var ?string $value */
-        $value = $input->getOption($optionName);
-
-        if ($value !== null && $value !== '') {
-            $wasProvided = true;
-
-            return $value;
-        }
-
-        $wasProvided = false;
-
-        return text(
-            label: $label,
-            placeholder: $placeholder,
-            default: $default ?? '',
-            required: $required
-        );
     }
 
     //
