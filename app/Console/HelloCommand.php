@@ -22,7 +22,7 @@ class HelloCommand extends BaseCommand
 
         $user = $this->env->get(['USER', 'USERNAME'], false) ?? 'there';
 
-        $this->io->success('Hello ' . $user . '!');
+        $this->success('Hello ' . $user . '!');
 
         return Command::SUCCESS;
     }

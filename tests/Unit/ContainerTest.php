@@ -5,20 +5,20 @@ declare(strict_types=1);
 namespace Bigpixelrocket\DeployerPHP\Tests\Unit;
 
 use Bigpixelrocket\DeployerPHP\Container;
-use Bigpixelrocket\DeployerPHP\Tests\Fixtures\SimpleService;
-use Bigpixelrocket\DeployerPHP\Tests\Fixtures\NoConstructorService;
-use Bigpixelrocket\DeployerPHP\Tests\Fixtures\ServiceWithMultipleDeps;
-use Bigpixelrocket\DeployerPHP\Tests\Fixtures\ServiceWithDefaults;
-use Bigpixelrocket\DeployerPHP\Tests\Fixtures\ServiceWithOptionalClassDep;
-use Bigpixelrocket\DeployerPHP\Tests\Fixtures\CircularA;
-use Bigpixelrocket\DeployerPHP\Tests\Fixtures\ServiceWithScalarParam;
-use Bigpixelrocket\DeployerPHP\Tests\Fixtures\TestInterface;
 use Bigpixelrocket\DeployerPHP\Tests\Fixtures\AbstractClass;
+use Bigpixelrocket\DeployerPHP\Tests\Fixtures\CircularA;
+use Bigpixelrocket\DeployerPHP\Tests\Fixtures\NoConstructorService;
 use Bigpixelrocket\DeployerPHP\Tests\Fixtures\PrivateConstructor;
-use Bigpixelrocket\DeployerPHP\Tests\Fixtures\ServiceWithUnionType;
+use Bigpixelrocket\DeployerPHP\Tests\Fixtures\ServiceWithDefaults;
 use Bigpixelrocket\DeployerPHP\Tests\Fixtures\ServiceWithIntersectionType;
+use Bigpixelrocket\DeployerPHP\Tests\Fixtures\ServiceWithMultipleDeps;
+use Bigpixelrocket\DeployerPHP\Tests\Fixtures\ServiceWithOptionalClassDep;
+use Bigpixelrocket\DeployerPHP\Tests\Fixtures\ServiceWithScalarParam;
 use Bigpixelrocket\DeployerPHP\Tests\Fixtures\ServiceWithUnionAndCircular;
+use Bigpixelrocket\DeployerPHP\Tests\Fixtures\ServiceWithUnionType;
 use Bigpixelrocket\DeployerPHP\Tests\Fixtures\ServiceWithUnresolvableDependency;
+use Bigpixelrocket\DeployerPHP\Tests\Fixtures\SimpleService;
+use Bigpixelrocket\DeployerPHP\Tests\Fixtures\TestInterface;
 
 //
 // Load test fixtures

@@ -21,8 +21,14 @@ alwaysApply: true
 ```php
 // ✅ CORRECT - BaseCommand custom methods
 $this->writeln(['Multiple', 'lines']);     // Multi-line output
-$this->text('Single line message');       // Simple text output
-$this->hr();                              // Beautiful section separator
+$this->text('Single line message');        // Simple text output
+$this->hr();                               // Beautiful section separator
+$this->h1('Section Heading');              // Heading with icon
+
+// Status messages
+$this->success('Server added successfully');
+$this->error('Failed to connect', 'Check your SSH key permissions');
+$this->warning('Skipping connection check');
 ```
 
 **❌ FORBIDDEN - Direct Symfony IO Usage:**
@@ -53,7 +59,58 @@ protected function success(string $message): void {
 **Integration Points:**
 
 - Base implementation: [BaseCommand.php](mdc:app/Contracts/BaseCommand.php)
-- Current methods: `writeln()`, `text()`, `hr()`
+- Output trait: [ConsoleOutputTrait.php](mdc:app/Traits/ConsoleOutputTrait.php)
+- Input trait: [ConsoleInputTrait.php](mdc:app/Traits/ConsoleInputTrait.php)
+- Output methods: `writeln()`, `text()`, `info()`, `note()`, `hr()`, `h1()`
+- Status methods: `success()`, `error()`, `warning()`
+- Input methods: `getOptionOrPrompt()`
+- Helper methods: `showCommandHint()`
+
+**When to Add New Methods:**
+
+Console functionality is organized using traits for reusability:
+
+- **ConsoleOutputTrait:** Add output/formatting methods that format and display text
+    - Examples: status messages, headings, separators, formatting helpers
+    - All methods should work with `$this->io` (SymfonyStyle)
+
+- **ConsoleInputTrait:** Add input gathering methods that collect user data
+    - Examples: prompt helpers, option validators, input transformers
+    - All methods should work with `$this->input` (InputInterface)
+
+- **BaseCommand:** Add only shared initialization, configuration, or orchestration logic
+    - Examples: service initialization, common options, execution flow
+    - NOT for individual I/O operations
+
+This separation ensures console I/O methods remain reusable across different command contexts.
+
+### 📣 Status Message Helpers
+
+**Use status helpers for consistent success/error/warning messages:**
+
+```php
+// ✅ Success messages (green checkmark)
+$this->success('Server added successfully');
+$this->success('Connection successful');
+
+// ✅ Error messages (red X) with optional tip
+$this->error('Failed to connect to server');
+$this->error(
+    'Failed to add server: ' . $e->getMessage(),
+    'Use <fg=cyan>server:list</> to view existing servers.'
+);
+
+// ✅ Warning messages (yellow warning symbol)
+$this->warning('Skipping SSH connection check');
+$this->warning('Server add cancelled');
+```
+
+**Benefits:**
+
+- Consistent formatting across all commands
+- Automatic spacing (blank line after message)
+- Clear visual indicators (✓, ✗, ⚠)
+- Optional tips for error messages
 
 ### 🎯 User Input with Laravel Prompts
 
@@ -69,16 +126,14 @@ use function Laravel\Prompts\suggest;
 use function Laravel\Prompts\search;
 use function Laravel\Prompts\spin;
 
-// ✅ CORRECT - Modern prompts with interaction check
-if ($this->io->isInteractive()) {
-    $name = text('What is your name?', required: true);
-    $password = password('Enter password:', required: true);
-    $confirmed = confirm('Deploy to production?', default: false);
-    $environment = select('Select environment:', ['dev', 'staging', 'prod']);
-    $features = multiselect('Enable features:', ['cache', 'queue', 'logs']);
-}
+// ✅ CORRECT - Modern prompts
+$name = text('What is your name?', required: true);
+$password = password('Enter password:', required: true);
+$confirmed = confirm('Deploy to production?', default: false);
+$environment = select('Select environment:', ['dev', 'staging', 'prod']);
+$features = multiselect('Enable features:', ['cache', 'queue', 'logs']);
 
-// Spinners work in all modes
+// Spinners for long operations
 $result = spin(fn() => $this->service->heavyOperation(), 'Processing...');
 ```
 
@@ -128,3 +183,70 @@ class MyCommand extends BaseCommand {
 - Clean separation between business logic and presentation
 
 **Rule:** Commands orchestrate Services and format output. Services never touch console I/O.
+
+### 🔀 Interactive + Options Pattern
+
+**Support both interactive prompts AND command-line options for maximum flexibility:**
+
+```php
+protected function configure(): void {
+    parent::configure();
+
+    $this->addOption('name', null, InputOption::VALUE_REQUIRED, 'Server name');
+    $this->addOption('host', null, InputOption::VALUE_REQUIRED, 'Host/IP address');
+    $this->addOption('yes', 'y', InputOption::VALUE_NONE, 'Skip confirmation');
+}
+
+protected function execute(InputInterface $input, OutputInterface $output): int {
+    // Track which options were provided vs prompted
+    $provided = [];
+
+    // Use BaseCommand helper method (uses $this->input internally)
+    $name = $this->getOptionOrPrompt(
+        'name',
+        'Server name:',
+        placeholder: 'production-web-01',
+        wasProvided: $provided['name']
+    );
+
+    $host = $this->getOptionOrPrompt(
+        'host',
+        'Host/IP address:',
+        placeholder: '192.168.1.100',
+        wasProvided: $provided['host']
+    );
+
+    // ... process command ...
+
+    // Show command hint with highlighted missing options
+    $this->showCommandHint('my:command', [
+        'name' => $name,
+        'host' => $host,
+        'yes' => true,
+    ], $provided);
+
+    return Command::SUCCESS;
+}
+```
+
+**`getOptionOrPrompt()` Helper:**
+
+The `getOptionOrPrompt()` method is available in BaseCommand for all commands:
+
+- Checks if option was provided via CLI
+- If yes, returns the value and sets `wasProvided` to `true`
+- If not, prompts user interactively and sets `wasProvided` to `false`
+- Supports all Laravel Prompts parameters (label, default, required, placeholder)
+
+**Command Hint Output:**
+
+- Gray = option was provided
+- Bright yellow = option was prompted (user should include next time)
+- Shows complete non-interactive command for copy/paste
+
+**Benefits:**
+
+- Script-friendly with full option support
+- User-friendly with interactive fallbacks
+- Educational - teaches users the non-interactive syntax
+- DRY - single command serves both use cases

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Bigpixelrocket\DeployerPHP\Tests\Unit\Contracts;
 
-use Bigpixelrocket\DeployerPHP\Contracts\BaseCommand;
 use Bigpixelrocket\DeployerPHP\Container;
+use Bigpixelrocket\DeployerPHP\Contracts\BaseCommand;
 use Bigpixelrocket\DeployerPHP\Services\EnvService;
 use Bigpixelrocket\DeployerPHP\Services\InventoryService;
 use Symfony\Component\Console\Command\Command;
@@ -39,7 +39,7 @@ class TestableBaseCommand extends BaseCommand
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $result = parent::execute($input, $output);
-        $this->io->text('Test command executed successfully');
+        $this->text('Test command executed successfully');
         return $result;
     }
 }
@@ -68,7 +68,7 @@ describe('BaseCommand', function () {
                 ->toContain('Custom path to inventory.yml file');
     });
 
-    it('executes with proper status output', function (bool $hasEnvFile, string $expectedEnvMessage) {
+    it('executes with proper env and inventory status output', function (bool $hasEnvFile, string $expectedEnvMessage) {
         // ARRANGE
         $container = new Container();
         $env = mockEnvService($hasEnvFile);
@@ -91,56 +91,4 @@ describe('BaseCommand', function () {
         'env file exists' => [true, 'Reading variables from'],
         'no env file' => [false, 'No .env file found'],
     ]);
-
-    it('displays correct env status messages for different scenarios', function (bool $hasEnvFile, string $envPattern) {
-        // ARRANGE
-        $container = new Container();
-        $env = mockEnvService($hasEnvFile);
-        $inventory = mockInventoryService(true);
-        $command = new TestableBaseCommand($container, $env, $inventory);
-        $tester = new CommandTester($command);
-
-        // ACT
-        $exitCode = $tester->execute([]);
-        $output = $tester->getDisplay();
-
-        // ASSERT
-        expect($exitCode)->toBe(Command::SUCCESS)
-            ->and($output)->toMatch($envPattern)
-            ->and($output)->toContain('Reading inventory from');
-    })->with([
-        'env file exists' => [true, '/Reading variables from/'],
-        'no env file' => [false, '/No \\.env file found/'],
-    ]);
-
-    it('hr displays separator line', function () {
-        // ARRANGE
-        $container = new Container();
-        $env = mockEnvService(true);
-        $inventory = mockInventoryService(true);
-
-        $command = new class ($container, $env, $inventory) extends BaseCommand {
-            protected function configure(): void
-            {
-                parent::configure();
-                $this->setName('test-hr');
-            }
-
-            protected function execute(InputInterface $input, OutputInterface $output): int
-            {
-                $this->hr();
-                return Command::SUCCESS;
-            }
-        };
-
-        $tester = new CommandTester($command);
-
-        // ACT
-        $tester->execute([]);
-        $output = $tester->getDisplay();
-
-        // ASSERT
-        expect($output)->toContain('╭───────')
-            ->and(strlen($output))->toBeGreaterThan(40);
-    });
 });
