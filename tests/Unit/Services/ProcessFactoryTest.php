@@ -2,11 +2,12 @@
 
 declare(strict_types=1);
 
-use Bigpixelrocket\DeployerPHP\Services\ProcessFactory;
+
+require_once __DIR__ . '/../../TestHelpers.php';
 
 describe('ProcessFactory', function () {
     beforeEach(function () {
-        $this->factory = new ProcessFactory();
+        $this->factory = mockProcessFactory();
         $this->validCwd = __DIR__;
     });
 

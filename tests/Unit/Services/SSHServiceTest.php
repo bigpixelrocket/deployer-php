@@ -25,9 +25,9 @@ describe('SSHService', function () {
 
     it('throws helpful message when no SSH key is found', function () {
         // ARRANGE
-        $filesystem = mockFilesystem(false, '', false, false, false, 'none');
+        $filesystemService = mockFilesystemService(false, '', false, false, false, 'none');
         $envService = mockEnvService(false);
-        $service = new SSHService($envService, $filesystem);
+        $service = new SSHService($envService, $filesystemService);
 
         // ACT & ASSERT
         try {
@@ -43,9 +43,9 @@ describe('SSHService', function () {
 
     it('resolves user-provided key path with tilde expansion', function () {
         // ARRANGE
-        $filesystem = mockFilesystem(true, '', false, false, false, '/home/testuser/.ssh/custom_key');
+        $filesystemService = mockFilesystemService(true, '', false, false, false, '/home/testuser/.ssh/custom_key');
         $envService = mockEnvService(false);
-        $service = new SSHService($envService, $filesystem);
+        $service = new SSHService($envService, $filesystemService);
 
         // ACT & ASSERT - Test through public API
         $reflection = new \ReflectionClass($service);
@@ -57,11 +57,12 @@ describe('SSHService', function () {
 
     it('prioritizes provided path over defaults and returns first existing', function () {
         // ARRANGE
-        $filesystem = mockFilesystem();
-        $filesystem->dumpFile('/home/testuser/custom/id_rsa', 'valid_key');
-        $filesystem->dumpFile('/home/testuser/.ssh/id_ed25519', 'ed_key');
+        $mockFs = mockFilesystem();
+        $mockFs->dumpFile('/home/testuser/custom/id_rsa', 'valid_key');
+        $mockFs->dumpFile('/home/testuser/.ssh/id_ed25519', 'ed_key');
+        $filesystemService = new \Bigpixelrocket\DeployerPHP\Services\FilesystemService($mockFs);
         $envService = mockEnvService(false);
-        $service = new SSHService($envService, $filesystem);
+        $service = new SSHService($envService, $filesystemService);
 
         // ACT
         $reflection = new \ReflectionClass($service);
@@ -74,10 +75,11 @@ describe('SSHService', function () {
 
     it('falls back to default locations when no provided path', function () {
         // ARRANGE
-        $filesystem = mockFilesystem();
-        $filesystem->dumpFile('/home/testuser/.ssh/id_rsa', 'valid_key');
+        $mockFs = mockFilesystem();
+        $mockFs->dumpFile('/home/testuser/.ssh/id_rsa', 'valid_key');
+        $filesystemService = new \Bigpixelrocket\DeployerPHP\Services\FilesystemService($mockFs);
         $envService = mockEnvService(false);
-        $service = new SSHService($envService, $filesystem);
+        $service = new SSHService($envService, $filesystemService);
 
         // ACT
         $reflection = new \ReflectionClass($service);
@@ -90,8 +92,10 @@ describe('SSHService', function () {
 
     it('expands tilde in paths correctly', function () {
         // ARRANGE
+        $mockFs = mockFilesystem();
+        $filesystemService = new \Bigpixelrocket\DeployerPHP\Services\FilesystemService($mockFs);
         $envService = mockEnvService(false);
-        $service = new SSHService($envService, mockFilesystem());
+        $service = new SSHService($envService, $filesystemService);
 
         // ACT
         $reflection = new \ReflectionClass($service);
@@ -109,9 +113,10 @@ describe('SSHService', function () {
     it('throws when key content cannot be parsed as private key', function () {
         // ARRANGE
         $invalidContent = 'invalid_key_content_not_ssh';
-        $filesystem = mockFilesystem(true, $invalidContent, false, false, false, '/home/testuser/.ssh/id_rsa');
+        $mockFs = mockFilesystem(true, $invalidContent, false, false, false, '/home/testuser/.ssh/id_rsa');
+        $filesystemService = new \Bigpixelrocket\DeployerPHP\Services\FilesystemService($mockFs);
         $envService = mockEnvService(false);
-        $service = new SSHService($envService, $filesystem);
+        $service = new SSHService($envService, $filesystemService);
 
         // ACT & ASSERT
         expect(fn () => $service->assertCanConnect('example.com', 22, 'deployer', '/home/testuser/.ssh/id_rsa'))
@@ -124,9 +129,10 @@ describe('SSHService', function () {
 
     it('validates script file exists before execution', function () {
         // ARRANGE
-        $filesystem = mockFilesystem(false, '', false, false, false, './missing.sh');
+        $mockFs = mockFilesystem(false, '', false, false, false, './missing.sh');
+        $filesystemService = new \Bigpixelrocket\DeployerPHP\Services\FilesystemService($mockFs);
         $envService = mockEnvService(false);
-        $service = new SSHService($envService, $filesystem);
+        $service = new SSHService($envService, $filesystemService);
 
         // ACT & ASSERT
         expect(fn () => $service->executeScript('host', 22, 'user', './missing.sh'))
@@ -135,9 +141,10 @@ describe('SSHService', function () {
 
     it('validates local file exists before upload', function () {
         // ARRANGE
-        $filesystem = mockFilesystem(false, '', false, false, false, './missing.txt');
+        $mockFs = mockFilesystem(false, '', false, false, false, './missing.txt');
+        $filesystemService = new \Bigpixelrocket\DeployerPHP\Services\FilesystemService($mockFs);
         $envService = mockEnvService(false);
-        $service = new SSHService($envService, $filesystem);
+        $service = new SSHService($envService, $filesystemService);
 
         // ACT & ASSERT
         expect(fn () => $service->uploadFile('host', 22, 'user', './missing.txt', '/remote/file.txt'))
@@ -146,9 +153,10 @@ describe('SSHService', function () {
 
     it('includes file path in error messages', function (string $method, array $args, string $expectedPath) {
         // ARRANGE
-        $filesystem = mockFilesystem(false, '', false, false, false, $expectedPath);
+        $mockFs = mockFilesystem(false, '', false, false, false, $expectedPath);
+        $filesystemService = new \Bigpixelrocket\DeployerPHP\Services\FilesystemService($mockFs);
         $envService = mockEnvService(false);
-        $service = new SSHService($envService, $filesystem);
+        $service = new SSHService($envService, $filesystemService);
 
         // ACT & ASSERT
         try {

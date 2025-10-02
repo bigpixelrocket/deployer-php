@@ -5,11 +5,14 @@ declare(strict_types=1);
 use Bigpixelrocket\DeployerPHP\Services\ProcessFactory;
 use Bigpixelrocket\DeployerPHP\Services\VersionService;
 
+require_once __DIR__ . '/../../TestHelpers.php';
+
 describe('VersionService', function () {
     it('returns version with correct fallback priority', function (string $packageName, string $fallback) {
         // ARRANGE
-        $processFactory = new ProcessFactory();
-        $service = new VersionService($processFactory, $packageName, $fallback);
+        $processFactory = mockProcessFactory();
+        $filesystemService = new \Bigpixelrocket\DeployerPHP\Services\FilesystemService(new \Symfony\Component\Filesystem\Filesystem());
+        $service = new VersionService($processFactory, $filesystemService, $packageName, $fallback);
 
         // ACT
         $version = $service->getVersion();
@@ -39,8 +42,9 @@ describe('VersionService', function () {
             mkdir($tempDir . '/.git');
         }
 
-        $processFactory = new ProcessFactory();
-        $service = new VersionService($processFactory);
+        $processFactory = mockProcessFactory();
+        $filesystemService = new \Bigpixelrocket\DeployerPHP\Services\FilesystemService(new \Symfony\Component\Filesystem\Filesystem());
+        $service = new VersionService($processFactory, $filesystemService);
 
         // ACT
         $result = $service->isGitRepository($tempDir);
@@ -60,8 +64,9 @@ describe('VersionService', function () {
 
     it('handles git command failures gracefully for all git methods', function (string $method) {
         // ARRANGE
-        $processFactory = new ProcessFactory();
-        $service = new VersionService($processFactory);
+        $processFactory = mockProcessFactory();
+        $filesystemService = new \Bigpixelrocket\DeployerPHP\Services\FilesystemService(new \Symfony\Component\Filesystem\Filesystem());
+        $service = new VersionService($processFactory, $filesystemService);
         $invalidPath = '/absolutely/non/existent/path';
 
         // ACT
@@ -77,8 +82,9 @@ describe('VersionService', function () {
 
     it('returns null for non-existent composer packages', function () {
         // ARRANGE
-        $processFactory = new ProcessFactory();
-        $service = new VersionService($processFactory, 'absolutely/non/existent/package');
+        $filesystemService = new \Bigpixelrocket\DeployerPHP\Services\FilesystemService(new \Symfony\Component\Filesystem\Filesystem());
+        $processFactory = new ProcessFactory($filesystemService);
+        $service = new VersionService($processFactory, $filesystemService, 'absolutely/non/existent/package');
 
         // ACT
         $result = $service->getVersionFromComposer();
