@@ -3,10 +3,14 @@
 declare(strict_types=1);
 
 use Bigpixelrocket\DeployerPHP\Services\EnvService;
+use Bigpixelrocket\DeployerPHP\Services\FilesystemService;
 use Bigpixelrocket\DeployerPHP\Services\InventoryService;
+use Bigpixelrocket\DeployerPHP\Services\ProcessFactory;
+use Bigpixelrocket\DeployerPHP\Services\VersionService;
 use Symfony\Component\Dotenv\Dotenv;
-use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Filesystem\Exception\IOException;
+use Symfony\Component\Filesystem\Filesystem;
+use Symfony\Component\Yaml\Yaml;
 
 if (!function_exists('setEnv')) {
     /**
@@ -139,7 +143,7 @@ if (!function_exists('mockEnvService')) {
         bool $throwOnRead = false
     ): EnvService {
         $mockFs = mockFilesystem($fileExists, $fileContent, $throwOnRead, false, false, '.env');
-        $filesystemService = new \Bigpixelrocket\DeployerPHP\Services\FilesystemService($mockFs);
+        $filesystemService = new FilesystemService($mockFs);
         return new EnvService($filesystemService, new Dotenv());
     }
 }
@@ -157,14 +161,14 @@ if (!function_exists('mockInventoryService')) {
     ): InventoryService {
         // Convert array data to YAML
         if (is_array($data)) {
-            $fileContent = empty($data) ? '' : \Symfony\Component\Yaml\Yaml::dump($data, 2, 4, \Symfony\Component\Yaml\Yaml::DUMP_EMPTY_ARRAY_AS_SEQUENCE);
+            $fileContent = empty($data) ? '' : Yaml::dump($data, 2, 4, Yaml::DUMP_EMPTY_ARRAY_AS_SEQUENCE);
         } else {
             $defaultContent = 'servers:' . PHP_EOL . '  web1:' . PHP_EOL . '    host: example.com';
             $fileContent = $data ?: ($fileExists ? $defaultContent : '');
         }
 
         $mockFs = mockFilesystem($fileExists, $fileContent, $throwOnRead, false, $throwOnWrite, 'inventory.yml');
-        $filesystemService = new \Bigpixelrocket\DeployerPHP\Services\FilesystemService($mockFs);
+        $filesystemService = new FilesystemService($mockFs);
         return new InventoryService($filesystemService);
     }
 }
@@ -180,9 +184,9 @@ if (!function_exists('mockFilesystemService')) {
         bool $throwOnMkdir = false,
         bool $throwOnWrite = false,
         string $filePath = 'test.txt'
-    ): \Bigpixelrocket\DeployerPHP\Services\FilesystemService {
+    ): FilesystemService {
         $mockFs = mockFilesystem($fileExists, $fileContent, $throwOnRead, $throwOnMkdir, $throwOnWrite, $filePath);
-        return new \Bigpixelrocket\DeployerPHP\Services\FilesystemService($mockFs);
+        return new FilesystemService($mockFs);
     }
 }
 
@@ -193,10 +197,10 @@ if (!function_exists('mockProcessFactory')) {
      * Uses real Filesystem since directory validation requires is_dir() checks.
      * Tests should use real directories (e.g., __DIR__, sys_get_temp_dir()).
      */
-    function mockProcessFactory(): \Bigpixelrocket\DeployerPHP\Services\ProcessFactory
+    function mockProcessFactory(): ProcessFactory
     {
-        $filesystemService = new \Bigpixelrocket\DeployerPHP\Services\FilesystemService(new Filesystem());
-        return new \Bigpixelrocket\DeployerPHP\Services\ProcessFactory($filesystemService);
+        $filesystemService = new FilesystemService(new Filesystem());
+        return new ProcessFactory($filesystemService);
     }
 }
 
@@ -209,19 +213,19 @@ if (!function_exists('mockVersionService')) {
     function mockVersionService(
         ?string $packageName = null,
         ?string $fallback = null
-    ): \Bigpixelrocket\DeployerPHP\Services\VersionService {
-        $filesystemService = new \Bigpixelrocket\DeployerPHP\Services\FilesystemService(new Filesystem());
-        $processFactory = new \Bigpixelrocket\DeployerPHP\Services\ProcessFactory($filesystemService);
+    ): VersionService {
+        $filesystemService = new FilesystemService(new Filesystem());
+        $processFactory = new ProcessFactory($filesystemService);
 
         // Conditionally pass parameters to use VersionService defaults
         if ($packageName !== null && $fallback !== null) {
-            return new \Bigpixelrocket\DeployerPHP\Services\VersionService($processFactory, $filesystemService, $packageName, $fallback);
+            return new VersionService($processFactory, $filesystemService, $packageName, $fallback);
         }
 
         if ($packageName !== null) {
-            return new \Bigpixelrocket\DeployerPHP\Services\VersionService($processFactory, $filesystemService, $packageName);
+            return new VersionService($processFactory, $filesystemService, $packageName);
         }
 
-        return new \Bigpixelrocket\DeployerPHP\Services\VersionService($processFactory, $filesystemService);
+        return new VersionService($processFactory, $filesystemService);
     }
 }
