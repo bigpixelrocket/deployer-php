@@ -11,36 +11,24 @@ describe('mockFilesystem', function () {
     // File Existence Checks
     // -------------------------------------------------------------------------------
 
-    it('correctly distinguishes between files and directories', function () {
-        // ARRANGE - Mock with a file in a directory
-        $mockFs = mockFilesystem(exists: true, content: 'content', initialPath: '.deployer/inventory.yml');
-
-        // ACT & ASSERT - Directory exists but file in subdirectory doesn't
-        expect($mockFs->exists('.deployer'))->toBeTrue('directory should exist');
-        expect($mockFs->exists('.deployer/'))->toBeTrue('directory with trailing slash should exist');
-        expect($mockFs->exists('.deployer/inventory.yml'))->toBeTrue('existing file should exist');
-        expect($mockFs->exists('.deployer/missing.yml'))->toBeFalse('non-existent file should not exist');
-    });
-
-    it('does not report files as existing due to directory substring match', function () {
-        // ARRANGE - File doesn't exist, only directory
-        $mockFs = mockFilesystem(exists: false, content: '', initialPath: '.deployer/inventory.yml');
-
-        // ACT & ASSERT - Directory exists but file doesn't (regression test for substring bug)
-        expect($mockFs->exists('.deployer'))->toBeTrue('directory should exist');
-        expect($mockFs->exists('.deployer/inventory.yml'))->toBeFalse('non-existent file should not exist even if directory matches');
-        expect($mockFs->exists('/path/to/.deployer/config.yml'))->toBeFalse('non-existent file with directory substring should not exist');
-    });
-
-    it('matches files by direct path or path ending', function () {
+    it('validates file and directory existence logic', function ($fileExists, $content, $initialPath, $checkPath, $expected, $description) {
         // ARRANGE
-        $mockFs = mockFilesystem(exists: true, content: 'test', initialPath: 'inventory.yml');
+        $mockFs = mockFilesystem(exists: $fileExists, content: $content, initialPath: $initialPath);
 
         // ACT & ASSERT
-        expect($mockFs->exists('inventory.yml'))->toBeTrue('direct match should work');
-        expect($mockFs->exists('/path/to/inventory.yml'))->toBeTrue('path ending match should work');
-        expect($mockFs->exists('/different/inventory.yml'))->toBeTrue('different path ending should work');
-    });
+        expect($mockFs->exists($checkPath))->toBe($expected, $description);
+    })->with([
+        'directory exists' => [true, 'content', '.deployer/inventory.yml', '.deployer', true, 'directory should exist'],
+        'directory with trailing slash' => [true, 'content', '.deployer/inventory.yml', '.deployer/', true, 'directory with trailing slash should exist'],
+        'existing file' => [true, 'content', '.deployer/inventory.yml', '.deployer/inventory.yml', true, 'existing file should exist'],
+        'non-existent file in existing dir' => [true, 'content', '.deployer/inventory.yml', '.deployer/missing.yml', false, 'non-existent file should not exist'],
+        'directory exists when file does not' => [false, '', '.deployer/inventory.yml', '.deployer', true, 'directory should exist'],
+        'non-existent file (no substring match)' => [false, '', '.deployer/inventory.yml', '.deployer/inventory.yml', false, 'non-existent file should not exist even if directory matches'],
+        'different path no substring match' => [false, '', '.deployer/inventory.yml', '/path/to/.deployer/config.yml', false, 'non-existent file with directory substring should not exist'],
+        'direct path match' => [true, 'test', 'inventory.yml', 'inventory.yml', true, 'direct match should work'],
+        'path ending match' => [true, 'test', 'inventory.yml', '/path/to/inventory.yml', true, 'path ending match should work'],
+        'different path ending' => [true, 'test', 'inventory.yml', '/different/inventory.yml', true, 'different path ending should work'],
+    ]);
 
     it('handles iterable file checks correctly', function () {
         // ARRANGE
@@ -48,8 +36,8 @@ describe('mockFilesystem', function () {
         $mockFs->dumpFile('.env.example', 'example');
 
         // ACT & ASSERT
-        expect($mockFs->exists(['.env', '.env.example']))->toBeTrue('all files exist');
-        expect($mockFs->exists(['.env', '.missing']))->toBeFalse('one file missing');
+        expect($mockFs->exists(['.env', '.env.example']))->toBeTrue('all files exist')
+            ->and($mockFs->exists(['.env', '.missing']))->toBeFalse('one file missing');
     });
 
     //
@@ -121,8 +109,8 @@ describe('mockFilesystem', function () {
         $mockFs->dumpFile('new.txt', 'new content');
 
         // ASSERT
-        expect($mockFs->exists('new.txt'))->toBeTrue();
-        expect($mockFs->readFile('new.txt'))->toBe('new content');
+        expect($mockFs->exists('new.txt'))->toBeTrue()
+            ->and($mockFs->readFile('new.txt'))->toBe('new content');
     });
 
     it('throws IOException when configured to throw on dump', function () {
@@ -137,72 +125,75 @@ describe('mockFilesystem', function () {
 
 describe('mockEnvService', function () {
     it('creates EnvService with mock filesystem', function () {
-        // ARRANGE & ACT
-        $service = mockEnvService(fileExists: true, fileContent: 'TEST_KEY=value');
+        // ARRANGE
+        $service = mockEnvService(fileExists: true, fileContent: 'TEST_KEY=test_value');
+        $service->loadEnvFile();
+
+        // ACT
+        $result = $service->get('TEST_KEY');
 
         // ASSERT
-        expect($service)->toBeInstanceOf(\Bigpixelrocket\DeployerPHP\Services\EnvService::class);
+        expect($result)->toBe('test_value');
     });
 });
 
 describe('mockInventoryService', function () {
-    it('creates InventoryService with array data', function () {
+    it('creates InventoryService with various data formats', function ($data) {
         // ARRANGE
-        $data = ['servers' => ['web1' => ['host' => 'example.com']]];
-
-        // ACT
         $service = mockInventoryService(fileExists: true, data: $data);
-
-        // ASSERT
-        expect($service)->toBeInstanceOf(\Bigpixelrocket\DeployerPHP\Services\InventoryService::class);
-    });
-
-    it('creates InventoryService with string data', function () {
-        // ARRANGE
-        $yamlContent = 'servers:' . PHP_EOL . '  web1:' . PHP_EOL . '    host: example.com';
+        $service->loadInventoryFile();
 
         // ACT
-        $service = mockInventoryService(fileExists: true, data: $yamlContent);
+        $result = $service->get('servers.web1.host');
 
         // ASSERT
-        expect($service)->toBeInstanceOf(\Bigpixelrocket\DeployerPHP\Services\InventoryService::class);
-    });
+        expect($result)->toBe('example.com');
+    })->with([
+        'array data' => [['servers' => ['web1' => ['host' => 'example.com']]]],
+        'string data' => ['servers:' . PHP_EOL . '  web1:' . PHP_EOL . '    host: example.com'],
+    ]);
 });
 
 describe('mockFilesystemService', function () {
     it('creates FilesystemService with mock filesystem', function () {
-        // ARRANGE & ACT
-        $service = mockFilesystemService(fileExists: true, fileContent: 'test content');
+        // ARRANGE
+        $service = mockFilesystemService(fileExists: true, fileContent: 'test content', filePath: 'test.txt');
+
+        // ACT
+        $exists = $service->exists('test.txt');
+        $content = $service->readFile('test.txt');
 
         // ASSERT
-        expect($service)->toBeInstanceOf(\Bigpixelrocket\DeployerPHP\Services\FilesystemService::class);
+        expect($exists)->toBeTrue()
+            ->and($content)->toBe('test content');
     });
 });
 
 describe('setEnv', function () {
-    it('sets environment variable', function () {
+    it('manages environment variables', function ($initialValue, $newValue, $expectSet) {
+        // ARRANGE
+        if ($initialValue !== null) {
+            setEnv('TEST_VAR', $initialValue);
+        }
+
         // ACT
-        setEnv('TEST_VAR', 'test_value');
+        setEnv('TEST_VAR', $newValue);
 
         // ASSERT
-        expect($_ENV['TEST_VAR'])->toBe('test_value');
-        expect($_SERVER['TEST_VAR'])->toBe('test_value');
-        expect(getenv('TEST_VAR'))->toBe('test_value');
+        if ($expectSet) {
+            expect($_ENV['TEST_VAR'])->toBe($newValue)
+                ->and($_SERVER['TEST_VAR'])->toBe($newValue)
+                ->and(getenv('TEST_VAR'))->toBe($newValue);
+        } else {
+            expect(isset($_ENV['TEST_VAR']))->toBeFalse()
+                ->and(isset($_SERVER['TEST_VAR']))->toBeFalse()
+                ->and(getenv('TEST_VAR'))->toBeFalse();
+        }
 
         // CLEANUP
         setEnv('TEST_VAR', null);
-    });
-
-    it('unsets environment variable when value is null', function () {
-        // ARRANGE
-        setEnv('TEST_VAR', 'initial_value');
-
-        // ACT
-        setEnv('TEST_VAR', null);
-
-        // ASSERT
-        expect(isset($_ENV['TEST_VAR']))->toBeFalse();
-        expect(isset($_SERVER['TEST_VAR']))->toBeFalse();
-        expect(getenv('TEST_VAR'))->toBeFalse();
-    });
+    })->with([
+        'sets variable' => [null, 'test_value', true],
+        'unsets when null' => ['initial_value', null, false],
+    ]);
 });
