@@ -19,6 +19,7 @@ class VersionService
 {
     public function __construct(
         private readonly ProcessFactory $processFactory,
+        private readonly FilesystemService $fs,
         private readonly string $packageName = 'bigpixelrocket/deployer-php',
         private readonly string $fallbackVersion = 'dev-main'
     ) {
@@ -72,7 +73,7 @@ class VersionService
      */
     public function getVersionFromGit(?string $projectRoot = null): ?string
     {
-        $projectRoot ??= dirname(__DIR__, 2);
+        $projectRoot ??= $this->fs->getParentDirectory(__DIR__, 2);
 
         // Check if we're in a git repository
         if (!$this->isGitRepository($projectRoot)) {
@@ -104,7 +105,7 @@ class VersionService
      */
     public function isGitRepository(string $projectRoot): bool
     {
-        return is_dir($projectRoot . '/.git');
+        return $this->fs->isDirectory($projectRoot . '/.git');
     }
 
     /**

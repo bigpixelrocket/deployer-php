@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Bigpixelrocket\DeployerPHP\Services;
 
 use Symfony\Component\Dotenv\Dotenv;
-use Symfony\Component\Filesystem\Filesystem;
 
 /**
  * Environment variable reader (first checks .env file then system environment variables)
@@ -20,7 +19,7 @@ class EnvService
     private string $envFileStatus = '';
 
     public function __construct(
-        private readonly Filesystem $filesystem,
+        private readonly FilesystemService $fs,
         private readonly Dotenv $dotenvParser,
     ) {
     }
@@ -77,7 +76,7 @@ class EnvService
 
         $path = $this->getEnvPath();
 
-        if (!$this->filesystem->exists($path)) {
+        if (!$this->fs->exists($path)) {
             $this->envFileStatus = "No .env file found at {$path}";
             return;
         }
@@ -107,7 +106,7 @@ class EnvService
      */
     private function getEnvPath(): string
     {
-        return $this->envPath ?? rtrim((string) getcwd(), '/') . '/.env';
+        return $this->envPath ?? rtrim($this->fs->getCwd(), '/') . '/.env';
     }
 
     /**
@@ -120,7 +119,7 @@ class EnvService
         $path = $this->getEnvPath();
 
         try {
-            $content = $this->filesystem->readFile($path);
+            $content = $this->fs->readFile($path);
             $parsed = $this->dotenvParser->parse($content, $path);
 
             foreach ($parsed as $k => $v) {
