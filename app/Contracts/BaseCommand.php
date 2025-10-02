@@ -7,14 +7,20 @@ namespace Bigpixelrocket\DeployerPHP\Contracts;
 use Bigpixelrocket\DeployerPHP\Container;
 use Bigpixelrocket\DeployerPHP\Services\EnvService;
 use Bigpixelrocket\DeployerPHP\Services\InventoryService;
+use Bigpixelrocket\DeployerPHP\Traits\ConsoleOutputTrait;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
-use Symfony\Component\Console\Input\InputOption;
 
+/**
+ * Base command with shared functionality for all commands.
+ */
 abstract class BaseCommand extends Command
 {
+    use ConsoleOutputTrait;
+
     protected SymfonyStyle $io;
 
     public function __construct(
@@ -98,46 +104,5 @@ abstract class BaseCommand extends Command
         ]);
 
         return Command::SUCCESS;
-    }
-
-    //
-    // Output helpers
-    // -------------------------------------------------------------------------------
-
-    /**
-     * Write-out multiple lines.
-     *
-     * @param array<int, string> $lines
-     */
-    protected function writeln(string|array $lines): void
-    {
-        $writeLines = is_array($lines) ? $lines : [$lines];
-        foreach ($writeLines as $line) {
-            $this->io->writeln(' ' . $line);
-        }
-    }
-
-    /**
-     * Write-out styled text lines.
-     *
-     * @param array<int, string> $lines
-     */
-    protected function text(string|array $lines): void
-    {
-        $writeLines = is_array($lines) ? $lines : [$lines];
-        foreach ($writeLines as $line) {
-            $this->io->text(' ' . $line);
-        }
-    }
-
-    /**
-     * Write-out a separator line.
-     */
-    protected function hr(): void
-    {
-        $this->writeln([
-            '<fg=cyan>╭───────</><fg=blue>─────────</><fg=bright-blue>─────────</><fg=magenta>─────────</><fg=gray>────────</>',
-            '',
-        ]);
     }
 }
