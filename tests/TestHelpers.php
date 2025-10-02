@@ -66,21 +66,20 @@ if (!function_exists('mockFilesystem')) {
                     return true;
                 }
 
-                // Check directories
-                foreach ($this->directories as $dir) {
-                    if (str_contains($files, (string) $dir)) {
-                        return true;
-                    }
-                }
-
                 // Check files (direct match or path ends with stored key)
                 if (isset($this->files[$files])) {
                     return true;
                 }
 
-                // Check if path ends with any stored file key
                 foreach (array_keys($this->files) as $storedPath) {
                     if (str_ends_with($files, (string) $storedPath)) {
+                        return true;
+                    }
+                }
+
+                // Check directories (match exact path only)
+                foreach ($this->directories as $dir) {
+                    if (rtrim($files, '/\\') === rtrim((string) $dir, '/\\')) {
                         return true;
                     }
                 }
@@ -109,7 +108,7 @@ if (!function_exists('mockFilesystem')) {
                 throw new IOException("File does not exist: {$filename}", 0, null, $filename);
             }
 
-            public function mkdir($dirs, int $mode = 0777): void
+            public function mkdir(string|iterable $dirs, int $mode = 0777): void
             {
                 if ($this->throwOnMkdir) {
                     throw new IOException('Permission denied', 0, null, (string) $dirs);
