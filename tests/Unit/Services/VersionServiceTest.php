@@ -10,7 +10,8 @@ require_once __DIR__ . '/../../TestHelpers.php';
 describe('VersionService', function () {
     it('returns version with correct fallback priority', function (string $packageName, string $fallback) {
         // ARRANGE
-        $processFactory = mockProcessFactory();
+        $cwd = getcwd();
+        $processFactory = mockProcessFactory([$cwd, $cwd . '/.git']);
         $filesystemService = new \Bigpixelrocket\DeployerPHP\Services\FilesystemService(new \Symfony\Component\Filesystem\Filesystem());
         $service = new VersionService($processFactory, $filesystemService, $packageName, $fallback);
 
@@ -42,7 +43,7 @@ describe('VersionService', function () {
             mkdir($tempDir . '/.git');
         }
 
-        $processFactory = mockProcessFactory();
+        $processFactory = mockProcessFactory([$tempDir, $tempDir . '/.git']);
         $filesystemService = new \Bigpixelrocket\DeployerPHP\Services\FilesystemService(new \Symfony\Component\Filesystem\Filesystem());
         $service = new VersionService($processFactory, $filesystemService);
 
@@ -64,10 +65,10 @@ describe('VersionService', function () {
 
     it('handles git command failures gracefully for all git methods', function (string $method) {
         // ARRANGE
-        $processFactory = mockProcessFactory();
+        $invalidPath = '/absolutely/non/existent/path';
+        $processFactory = mockProcessFactory([$invalidPath]);
         $filesystemService = new \Bigpixelrocket\DeployerPHP\Services\FilesystemService(new \Symfony\Component\Filesystem\Filesystem());
         $service = new VersionService($processFactory, $filesystemService);
-        $invalidPath = '/absolutely/non/existent/path';
 
         // ACT
         $result = $service->$method($invalidPath);
