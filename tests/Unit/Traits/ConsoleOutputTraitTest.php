@@ -81,19 +81,22 @@ class TestConsoleOutputCommand extends BaseCommand
 // -------------------------------------------------------------------------------
 
 describe('ConsoleOutputTrait', function () {
+    beforeEach(function () {
+        $container = new Container();
+        $this->command = new TestConsoleOutputCommand($container, mockEnvService(true), mockInventoryService(true));
+        $this->tester = new CommandTester($this->command);
+    });
+
     //
     // Status Messages
 
     it('displays error message with red X symbol', function () {
         // ARRANGE
-        $container = new Container();
-        $command = new TestConsoleOutputCommand($container, mockEnvService(true), mockInventoryService(true));
-        $command->setTestMethod('error', ['Connection failed']);
-        $tester = new CommandTester($command);
+        $this->command->setTestMethod('error', ['Connection failed']);
 
         // ACT
-        $tester->execute([]);
-        $output = $tester->getDisplay();
+        $this->tester->execute([]);
+        $output = $this->tester->getDisplay();
 
         // ASSERT
         expect($output)->toContain('✗')
@@ -102,14 +105,11 @@ describe('ConsoleOutputTrait', function () {
 
     it('displays error message with optional tip', function () {
         // ARRANGE
-        $container = new Container();
-        $command = new TestConsoleOutputCommand($container, mockEnvService(true), mockInventoryService(true));
-        $command->setTestMethod('error', ['Connection failed', 'Check your SSH key']);
-        $tester = new CommandTester($command);
+        $this->command->setTestMethod('error', ['Connection failed', 'Check your SSH key']);
 
         // ACT
-        $tester->execute([]);
-        $output = $tester->getDisplay();
+        $this->tester->execute([]);
+        $output = $this->tester->getDisplay();
 
         // ASSERT
         expect($output)->toContain('✗')
@@ -120,14 +120,11 @@ describe('ConsoleOutputTrait', function () {
 
     it('displays success message with green checkmark', function () {
         // ARRANGE
-        $container = new Container();
-        $command = new TestConsoleOutputCommand($container, mockEnvService(true), mockInventoryService(true));
-        $command->setTestMethod('success', ['Server added successfully']);
-        $tester = new CommandTester($command);
+        $this->command->setTestMethod('success', ['Server added successfully']);
 
         // ACT
-        $tester->execute([]);
-        $output = $tester->getDisplay();
+        $this->tester->execute([]);
+        $output = $this->tester->getDisplay();
 
         // ASSERT
         expect($output)->toContain('✓')
@@ -136,14 +133,11 @@ describe('ConsoleOutputTrait', function () {
 
     it('displays warning message with yellow warning symbol', function () {
         // ARRANGE
-        $container = new Container();
-        $command = new TestConsoleOutputCommand($container, mockEnvService(true), mockInventoryService(true));
-        $command->setTestMethod('warning', ['Skipping connection check']);
-        $tester = new CommandTester($command);
+        $this->command->setTestMethod('warning', ['Skipping connection check']);
 
         // ACT
-        $tester->execute([]);
-        $output = $tester->getDisplay();
+        $this->tester->execute([]);
+        $output = $this->tester->getDisplay();
 
         // ASSERT
         expect($output)->toContain('⚠')
@@ -155,14 +149,11 @@ describe('ConsoleOutputTrait', function () {
 
     it('displays heading with icon', function () {
         // ARRANGE
-        $container = new Container();
-        $command = new TestConsoleOutputCommand($container, mockEnvService(true), mockInventoryService(true));
-        $command->setTestMethod('h1', ['Server Configuration']);
-        $tester = new CommandTester($command);
+        $this->command->setTestMethod('h1', ['Server Configuration']);
 
         // ACT
-        $tester->execute([]);
-        $output = $tester->getDisplay();
+        $this->tester->execute([]);
+        $output = $this->tester->getDisplay();
 
         // ASSERT
         expect($output)->toContain('▸')
@@ -171,14 +162,11 @@ describe('ConsoleOutputTrait', function () {
 
     it('displays separator line with box-drawing characters', function () {
         // ARRANGE
-        $container = new Container();
-        $command = new TestConsoleOutputCommand($container, mockEnvService(true), mockInventoryService(true));
-        $command->setTestMethod('hr');
-        $tester = new CommandTester($command);
+        $this->command->setTestMethod('hr');
 
         // ACT
-        $tester->execute([]);
-        $output = $tester->getDisplay();
+        $this->tester->execute([]);
+        $output = $this->tester->getDisplay();
 
         // ASSERT
         expect($output)->toContain('╭───────')
@@ -187,14 +175,11 @@ describe('ConsoleOutputTrait', function () {
 
     it('writes text with proper indentation', function () {
         // ARRANGE
-        $container = new Container();
-        $command = new TestConsoleOutputCommand($container, mockEnvService(true), mockInventoryService(true));
-        $command->setTestMethod('text', ['Simple text output']);
-        $tester = new CommandTester($command);
+        $this->command->setTestMethod('text', ['Simple text output']);
 
         // ACT
-        $tester->execute([]);
-        $output = $tester->getDisplay();
+        $this->tester->execute([]);
+        $output = $this->tester->getDisplay();
 
         // ASSERT
         expect($output)->toContain('Simple text output');
@@ -202,14 +187,11 @@ describe('ConsoleOutputTrait', function () {
 
     it('writes multiple lines of text', function () {
         // ARRANGE
-        $container = new Container();
-        $command = new TestConsoleOutputCommand($container, mockEnvService(true), mockInventoryService(true));
-        $command->setTestMethod('text', [['Line 1', 'Line 2', 'Line 3']]);
-        $tester = new CommandTester($command);
+        $this->command->setTestMethod('text', [['Line 1', 'Line 2', 'Line 3']]);
 
         // ACT
-        $tester->execute([]);
-        $output = $tester->getDisplay();
+        $this->tester->execute([]);
+        $output = $this->tester->getDisplay();
 
         // ASSERT
         expect($output)->toContain('Line 1')
@@ -219,14 +201,11 @@ describe('ConsoleOutputTrait', function () {
 
     it('writes single line', function () {
         // ARRANGE
-        $container = new Container();
-        $command = new TestConsoleOutputCommand($container, mockEnvService(true), mockInventoryService(true));
-        $command->setTestMethod('writeln', ['Output line']);
-        $tester = new CommandTester($command);
+        $this->command->setTestMethod('writeln', ['Output line']);
 
         // ACT
-        $tester->execute([]);
-        $output = $tester->getDisplay();
+        $this->tester->execute([]);
+        $output = $this->tester->getDisplay();
 
         // ASSERT
         expect($output)->toContain('Output line');
@@ -234,14 +213,11 @@ describe('ConsoleOutputTrait', function () {
 
     it('writes multiple lines', function () {
         // ARRANGE
-        $container = new Container();
-        $command = new TestConsoleOutputCommand($container, mockEnvService(true), mockInventoryService(true));
-        $command->setTestMethod('writeln', [['First line', 'Second line']]);
-        $tester = new CommandTester($command);
+        $this->command->setTestMethod('writeln', [['First line', 'Second line']]);
 
         // ACT
-        $tester->execute([]);
-        $output = $tester->getDisplay();
+        $this->tester->execute([]);
+        $output = $this->tester->getDisplay();
 
         // ASSERT
         expect($output)->toContain('First line')
@@ -253,14 +229,11 @@ describe('ConsoleOutputTrait', function () {
 
     it('gets option value when provided via CLI', function () {
         // ARRANGE
-        $container = new Container();
-        $command = new TestConsoleOutputCommand($container, mockEnvService(true), mockInventoryService(true));
-        $command->setTestMethod('getOptionOrPrompt');
-        $tester = new CommandTester($command);
+        $this->command->setTestMethod('getOptionOrPrompt');
 
         // ACT
-        $tester->execute(['--name' => 'production']);
-        $output = $tester->getDisplay();
+        $this->tester->execute(['--name' => 'production']);
+        $output = $this->tester->getDisplay();
 
         // ASSERT
         expect($output)->toContain('Result: production')
@@ -272,18 +245,15 @@ describe('ConsoleOutputTrait', function () {
 
     it('displays command hint for non-interactive execution', function () {
         // ARRANGE
-        $container = new Container();
-        $command = new TestConsoleOutputCommand($container, mockEnvService(true), mockInventoryService(true));
-        $command->setTestMethod('showCommandHint', [
+        $this->command->setTestMethod('showCommandHint', [
             'server:add',
             ['name' => 'prod-server', 'host' => '192.168.1.100', 'yes' => true],
             ['name' => false, 'host' => false, 'yes' => true],
         ]);
-        $tester = new CommandTester($command);
 
         // ACT
-        $tester->execute([]);
-        $output = $tester->getDisplay();
+        $this->tester->execute([]);
+        $output = $this->tester->getDisplay();
 
         // ASSERT
         expect($output)->toContain('Next time, run non-interactively:')
@@ -295,18 +265,15 @@ describe('ConsoleOutputTrait', function () {
 
     it('highlights prompted options differently in command hint', function () {
         // ARRANGE
-        $container = new Container();
-        $command = new TestConsoleOutputCommand($container, mockEnvService(true), mockInventoryService(true));
-        $command->setTestMethod('showCommandHint', [
+        $this->command->setTestMethod('showCommandHint', [
             'server:add',
             ['name' => 'prod-server', 'host' => '192.168.1.100'],
             ['name' => true, 'host' => false],
         ]);
-        $tester = new CommandTester($command);
 
         // ACT
-        $tester->execute([]);
-        $output = $tester->getDisplay();
+        $this->tester->execute([]);
+        $output = $this->tester->getDisplay();
 
         // ASSERT
         expect($output)->toContain('--name')
@@ -317,18 +284,15 @@ describe('ConsoleOutputTrait', function () {
 
     it('skips null and empty values in command hint', function () {
         // ARRANGE
-        $container = new Container();
-        $command = new TestConsoleOutputCommand($container, mockEnvService(true), mockInventoryService(true));
-        $command->setTestMethod('showCommandHint', [
+        $this->command->setTestMethod('showCommandHint', [
             'server:add',
             ['name' => 'prod-server', 'host' => null, 'port' => ''],
             ['name' => true, 'host' => false, 'port' => false],
         ]);
-        $tester = new CommandTester($command);
 
         // ACT
-        $tester->execute([]);
-        $output = $tester->getDisplay();
+        $this->tester->execute([]);
+        $output = $this->tester->getDisplay();
 
         // ASSERT
         expect($output)->toContain('--name')
