@@ -2,18 +2,12 @@
 
 declare(strict_types=1);
 
-use Bigpixelrocket\DeployerPHP\Services\ProcessFactory;
-use Bigpixelrocket\DeployerPHP\Services\VersionService;
-
 require_once __DIR__ . '/../../TestHelpers.php';
 
 describe('VersionService', function () {
     it('returns version with correct fallback priority', function (string $packageName, string $fallback) {
         // ARRANGE
-        $cwd = getcwd();
-        $processFactory = mockProcessFactory([$cwd, $cwd . '/.git']);
-        $filesystemService = new \Bigpixelrocket\DeployerPHP\Services\FilesystemService(new \Symfony\Component\Filesystem\Filesystem());
-        $service = new VersionService($processFactory, $filesystemService, $packageName, $fallback);
+        $service = mockVersionService($packageName, $fallback);
 
         // ACT
         $version = $service->getVersion();
@@ -43,9 +37,7 @@ describe('VersionService', function () {
             mkdir($tempDir . '/.git');
         }
 
-        $processFactory = mockProcessFactory([$tempDir, $tempDir . '/.git']);
-        $filesystemService = new \Bigpixelrocket\DeployerPHP\Services\FilesystemService(new \Symfony\Component\Filesystem\Filesystem());
-        $service = new VersionService($processFactory, $filesystemService);
+        $service = mockVersionService();
 
         // ACT
         $result = $service->isGitRepository($tempDir);
@@ -66,9 +58,7 @@ describe('VersionService', function () {
     it('handles git command failures gracefully for all git methods', function (string $method) {
         // ARRANGE
         $invalidPath = '/absolutely/non/existent/path';
-        $processFactory = mockProcessFactory([$invalidPath]);
-        $filesystemService = new \Bigpixelrocket\DeployerPHP\Services\FilesystemService(new \Symfony\Component\Filesystem\Filesystem());
-        $service = new VersionService($processFactory, $filesystemService);
+        $service = mockVersionService();
 
         // ACT
         $result = $service->$method($invalidPath);
@@ -83,9 +73,7 @@ describe('VersionService', function () {
 
     it('returns null for non-existent composer packages', function () {
         // ARRANGE
-        $filesystemService = new \Bigpixelrocket\DeployerPHP\Services\FilesystemService(new \Symfony\Component\Filesystem\Filesystem());
-        $processFactory = new ProcessFactory($filesystemService);
-        $service = new VersionService($processFactory, $filesystemService, 'absolutely/non/existent/package');
+        $service = mockVersionService('absolutely/non/existent/package');
 
         // ACT
         $result = $service->getVersionFromComposer();

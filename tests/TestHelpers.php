@@ -199,3 +199,29 @@ if (!function_exists('mockProcessFactory')) {
         return new \Bigpixelrocket\DeployerPHP\Services\ProcessFactory($filesystemService);
     }
 }
+
+if (!function_exists('mockVersionService')) {
+    /**
+     * Create a VersionService for testing with configurable package name and fallback.
+     *
+     * Uses real Filesystem and ProcessFactory since git operations require real directory checks.
+     */
+    function mockVersionService(
+        ?string $packageName = null,
+        ?string $fallback = null
+    ): \Bigpixelrocket\DeployerPHP\Services\VersionService {
+        $filesystemService = new \Bigpixelrocket\DeployerPHP\Services\FilesystemService(new Filesystem());
+        $processFactory = new \Bigpixelrocket\DeployerPHP\Services\ProcessFactory($filesystemService);
+
+        // Conditionally pass parameters to use VersionService defaults
+        if ($packageName !== null && $fallback !== null) {
+            return new \Bigpixelrocket\DeployerPHP\Services\VersionService($processFactory, $filesystemService, $packageName, $fallback);
+        }
+
+        if ($packageName !== null) {
+            return new \Bigpixelrocket\DeployerPHP\Services\VersionService($processFactory, $filesystemService, $packageName);
+        }
+
+        return new \Bigpixelrocket\DeployerPHP\Services\VersionService($processFactory, $filesystemService);
+    }
+}
