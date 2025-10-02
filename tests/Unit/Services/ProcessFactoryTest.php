@@ -2,12 +2,13 @@
 
 declare(strict_types=1);
 
-use Bigpixelrocket\DeployerPHP\Services\ProcessFactory;
+
+require_once __DIR__ . '/../../TestHelpers.php';
 
 describe('ProcessFactory', function () {
     beforeEach(function () {
-        $this->factory = new ProcessFactory();
         $this->validCwd = __DIR__;
+        $this->factory = mockProcessFactory();
     });
 
     it('configures process timeout correctly', function (?float $inputTimeout, ?float $expectedTimeout) {

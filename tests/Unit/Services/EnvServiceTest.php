@@ -2,9 +2,6 @@
 
 declare(strict_types=1);
 
-use Bigpixelrocket\DeployerPHP\Services\EnvService;
-use Symfony\Component\Dotenv\Dotenv;
-
 require_once __DIR__ . '/../../TestHelpers.php';
 
 //
@@ -21,10 +18,7 @@ describe('EnvService', function () {
 
     it('reports correct status for different .env file scenarios', function ($fileExists, $fileContent, $expectsException, $expectedStatusPattern) {
         // ARRANGE
-        $service = new EnvService(
-            mockFilesystem($fileExists, $fileContent, $expectsException, false, false, '.env'),
-            new Dotenv()
-        );
+        $service = mockEnvService($fileExists, $fileContent, $expectsException);
 
         // ACT & ASSERT
         if ($expectsException) {
@@ -54,10 +48,7 @@ describe('EnvService', function () {
         foreach ($env as $key => $value) {
             setEnv($key, $value);
         }
-        $service = new EnvService(
-            mockFilesystem(!empty($fileContent), $fileContent, $fileError, false, false, '.env'),
-            new Dotenv()
-        );
+        $service = mockEnvService(!empty($fileContent), $fileContent, $fileError);
         $service->loadEnvFile();
 
         // ACT
@@ -86,10 +77,7 @@ describe('EnvService', function () {
 
     it('handles required vs optional parameters', function ($keys, $required, $expectsException, $expectedMessage) {
         // ARRANGE
-        $service = new EnvService(
-            mockFilesystem(false, '', false, false, false, '.env'),
-            new Dotenv()
-        );
+        $service = mockEnvService(false, '');
         $service->loadEnvFile();
 
         // ACT & ASSERT

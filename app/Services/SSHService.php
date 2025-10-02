@@ -8,7 +8,6 @@ use phpseclib3\Crypt\Common\PrivateKey;
 use phpseclib3\Crypt\PublicKeyLoader;
 use phpseclib3\Net\SFTP;
 use phpseclib3\Net\SSH2;
-use Symfony\Component\Filesystem\Filesystem;
 
 /**
  * SSH and SFTP operations for remote server management.
@@ -42,7 +41,7 @@ class SSHService
 {
     public function __construct(
         private readonly EnvService $envService,
-        private readonly Filesystem $filesystem,
+        private readonly FilesystemService $fs,
     ) {
     }
 
@@ -96,11 +95,11 @@ class SSHService
      */
     public function executeScript(string $host, int $port, string $username, string $scriptPath, ?string $privateKeyPath = null): array
     {
-        if (!$this->filesystem->exists($scriptPath)) {
+        if (!$this->fs->exists($scriptPath)) {
             throw new \RuntimeException("Script file does not exist: {$scriptPath}");
         }
 
-        $scriptContents = $this->filesystem->readFile($scriptPath);
+        $scriptContents = $this->fs->readFile($scriptPath);
 
         $ssh = $this->createConnection($host, $port, $username, $privateKeyPath);
 
@@ -128,14 +127,14 @@ class SSHService
      */
     public function uploadFile(string $host, int $port, string $username, string $localPath, string $remotePath, ?string $privateKeyPath = null): void
     {
-        if (!$this->filesystem->exists($localPath)) {
+        if (!$this->fs->exists($localPath)) {
             throw new \RuntimeException("Local file does not exist: {$localPath}");
         }
 
         $sftp = $this->createSFTPConnection($host, $port, $username, $privateKeyPath);
 
         try {
-            $contents = $this->filesystem->readFile($localPath);
+            $contents = $this->fs->readFile($localPath);
 
             $uploaded = $sftp->put($remotePath, $contents);
             if (!$uploaded) {
@@ -163,7 +162,7 @@ class SSHService
                 throw new \RuntimeException("Error downloading file from {$remotePath} on {$host}");
             }
 
-            $this->filesystem->dumpFile($localPath, is_string($contents) ? $contents : '');
+            $this->fs->dumpFile($localPath, is_string($contents) ? $contents : '');
         } catch (\Throwable $e) {
             throw new \RuntimeException("Error downloading file from {$remotePath} on {$host}: " . $e->getMessage());
         } finally {
@@ -260,11 +259,11 @@ class SSHService
             throw new \RuntimeException('No SSH private key found. Provide a key path or place a key at ~/.ssh/id_ed25519 or ~/.ssh/id_rsa');
         }
 
-        if (!$this->filesystem->exists($resolvedKeyPath)) {
+        if (!$this->fs->exists($resolvedKeyPath)) {
             throw new \RuntimeException("SSH key does not exist: {$resolvedKeyPath}");
         }
 
-        $keyContents = $this->filesystem->readFile($resolvedKeyPath);
+        $keyContents = $this->fs->readFile($resolvedKeyPath);
 
         try {
             $key = PublicKeyLoader::load($keyContents);
@@ -306,7 +305,7 @@ class SSHService
 
         // Return first existing candidate
         foreach ($candidates as $candidate) {
-            if ($this->filesystem->exists($candidate)) {
+            if ($this->fs->exists($candidate)) {
                 return $candidate;
             }
         }

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Bigpixelrocket\DeployerPHP\Services;
 
-use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Yaml\Yaml;
 
 /**
@@ -41,7 +40,7 @@ class InventoryService
     private ?string $inventoryFileStatus = null;
 
     public function __construct(
-        private readonly Filesystem $filesystem,
+        private readonly FilesystemService $fs,
     ) {
     }
 
@@ -102,7 +101,7 @@ class InventoryService
         $path = $this->getInventoryPath();
 
         // Initialize empty inventory file if it doesn't exist
-        if (!$this->filesystem->exists($path)) {
+        if (!$this->fs->exists($path)) {
             $this->inventoryFileStatus = "Creating inventory file at {$path}";
             $this->writeInventory();
         }
@@ -220,7 +219,7 @@ class InventoryService
      */
     private function getInventoryPath(): string
     {
-        return $this->inventoryPath ?? rtrim((string) getcwd(), '/') . '/inventory.yml';
+        return $this->inventoryPath ?? rtrim($this->fs->getCwd(), '/') . '/inventory.yml';
     }
 
     /**
@@ -233,7 +232,7 @@ class InventoryService
         $path = $this->getInventoryPath();
 
         try {
-            $raw = $this->filesystem->readFile($path);
+            $raw = $this->fs->readFile($path);
             $parsed = Yaml::parse($raw);
 
             /** @var array<string, mixed> $inventory */
@@ -257,7 +256,7 @@ class InventoryService
 
         try {
             $yaml = Yaml::dump($this->inventory, 2, 4, Yaml::DUMP_EMPTY_ARRAY_AS_SEQUENCE);
-            $this->filesystem->dumpFile($path, $yaml);
+            $this->fs->dumpFile($path, $yaml);
         } catch (\Throwable $e) {
             throw new \RuntimeException("Error writing inventory file at {$path}: " . $e->getMessage());
         }

@@ -2,14 +2,12 @@
 
 declare(strict_types=1);
 
-use Bigpixelrocket\DeployerPHP\Services\ProcessFactory;
-use Bigpixelrocket\DeployerPHP\Services\VersionService;
+require_once __DIR__ . '/../../TestHelpers.php';
 
 describe('VersionService', function () {
     it('returns version with correct fallback priority', function (string $packageName, string $fallback) {
         // ARRANGE
-        $processFactory = new ProcessFactory();
-        $service = new VersionService($processFactory, $packageName, $fallback);
+        $service = mockVersionService($packageName, $fallback);
 
         // ACT
         $version = $service->getVersion();
@@ -39,8 +37,7 @@ describe('VersionService', function () {
             mkdir($tempDir . '/.git');
         }
 
-        $processFactory = new ProcessFactory();
-        $service = new VersionService($processFactory);
+        $service = mockVersionService();
 
         // ACT
         $result = $service->isGitRepository($tempDir);
@@ -60,9 +57,8 @@ describe('VersionService', function () {
 
     it('handles git command failures gracefully for all git methods', function (string $method) {
         // ARRANGE
-        $processFactory = new ProcessFactory();
-        $service = new VersionService($processFactory);
         $invalidPath = '/absolutely/non/existent/path';
+        $service = mockVersionService();
 
         // ACT
         $result = $service->$method($invalidPath);
@@ -77,8 +73,7 @@ describe('VersionService', function () {
 
     it('returns null for non-existent composer packages', function () {
         // ARRANGE
-        $processFactory = new ProcessFactory();
-        $service = new VersionService($processFactory, 'absolutely/non/existent/package');
+        $service = mockVersionService('absolutely/non/existent/package');
 
         // ACT
         $result = $service->getVersionFromComposer();

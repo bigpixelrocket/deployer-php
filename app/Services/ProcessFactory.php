@@ -9,8 +9,13 @@ use Symfony\Component\Process\Process;
 /**
  * Factory for creating Process instances with consistent timeout configuration.
  */
-final class ProcessFactory
+final readonly class ProcessFactory
 {
+    public function __construct(
+        private FilesystemService $fs,
+    ) {
+    }
+
     /**
      * Create a new Process with timeout.
      *
@@ -22,7 +27,7 @@ final class ProcessFactory
             throw new \InvalidArgumentException('Process command cannot be empty');
         }
 
-        if (!is_dir($cwd)) {
+        if (!$this->fs->isDirectory($cwd)) {
             throw new \InvalidArgumentException("Invalid working directory: {$cwd}");
         }
 

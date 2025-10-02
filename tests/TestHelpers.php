@@ -3,10 +3,14 @@
 declare(strict_types=1);
 
 use Bigpixelrocket\DeployerPHP\Services\EnvService;
+use Bigpixelrocket\DeployerPHP\Services\FilesystemService;
 use Bigpixelrocket\DeployerPHP\Services\InventoryService;
+use Bigpixelrocket\DeployerPHP\Services\ProcessFactory;
+use Bigpixelrocket\DeployerPHP\Services\VersionService;
 use Symfony\Component\Dotenv\Dotenv;
-use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Filesystem\Exception\IOException;
+use Symfony\Component\Filesystem\Filesystem;
+use Symfony\Component\Yaml\Yaml;
 
 if (!function_exists('setEnv')) {
     /**
@@ -27,7 +31,7 @@ if (!function_exists('setEnv')) {
 
 if (!function_exists('mockFilesystem')) {
     /**
-     * Create a mock filesystem for testing with comprehensive error simulation and in-memory storage.
+     * Create a mock filesystem for testing with error simulation and in-memory storage.
      */
     function mockFilesystem(
         bool $exists = true,
@@ -38,8 +42,8 @@ if (!function_exists('mockFilesystem')) {
         string $initialPath = '.deployer/inventory.yml'
     ): Filesystem {
         return new class ($exists, $content, $throwOnRead, $throwOnMkdir, $throwOnDump, $initialPath) extends Filesystem {
-            private array $fileSystem = [];
-            private bool $dirExists = true;
+            private array $files = [];
+            private array $directories = [];
 
             public function __construct(
                 private readonly bool $initialExists,
@@ -50,23 +54,9 @@ if (!function_exists('mockFilesystem')) {
                 private readonly string $initialPath
             ) {
                 if ($this->initialExists) {
-                    $this->fileSystem[$this->initialPath] = $this->initialContent;
+                    $this->files[$this->initialPath] = $this->initialContent;
                 }
-                $this->dirExists = !$this->throwOnMkdir;
-            }
-
-            private function normalizePath(string $path): string
-            {
-                return str_replace('\\', '/', $path);
-            }
-
-            private function getTargetKey(string $path): string
-            {
-                $normalized = $this->normalizePath($path);
-                if ($normalized === $this->initialPath || str_ends_with($normalized, '/' . $this->initialPath)) {
-                    return $this->initialPath;
-                }
-                return $normalized;
+                $this->directories = $this->throwOnMkdir ? [] : ['.deployer'];
             }
 
             public function exists(string|iterable $files): bool
@@ -80,14 +70,25 @@ if (!function_exists('mockFilesystem')) {
                     return true;
                 }
 
-                // Handle directory checks
-                $normalized = $this->normalizePath($files);
-                if (str_ends_with($normalized, '.deployer')) {
-                    return $this->dirExists;
+                // Check files (direct match or path ends with stored key)
+                if (isset($this->files[$files])) {
+                    return true;
                 }
 
-                $targetKey = $this->getTargetKey($files);
-                return isset($this->fileSystem[$targetKey]);
+                foreach (array_keys($this->files) as $storedPath) {
+                    if (str_ends_with($files, (string) $storedPath)) {
+                        return true;
+                    }
+                }
+
+                // Check directories (match exact path only)
+                foreach ($this->directories as $dir) {
+                    if (rtrim($files, '/\\') === rtrim((string) $dir, '/\\')) {
+                        return true;
+                    }
+                }
+
+                return false;
             }
 
             public function readFile(string $filename): string
@@ -96,22 +97,28 @@ if (!function_exists('mockFilesystem')) {
                     throw new IOException('Permission denied', 0, null, $filename);
                 }
 
-                $targetKey = $this->getTargetKey($filename);
-                if (!isset($this->fileSystem[$targetKey])) {
-                    throw new IOException("File does not exist: {$filename}", 0, null, $filename);
+                // Try direct match first
+                if (isset($this->files[$filename])) {
+                    return $this->files[$filename];
                 }
 
-                return $this->fileSystem[$targetKey];
+                // Try path ending match
+                foreach ($this->files as $storedPath => $content) {
+                    if (str_ends_with($filename, (string) $storedPath)) {
+                        return $content;
+                    }
+                }
+
+                throw new IOException("File does not exist: {$filename}", 0, null, $filename);
             }
 
-            public function mkdir($dirs, int $mode = 0777): void
+            public function mkdir(string|iterable $dirs, int $mode = 0777): void
             {
                 if ($this->throwOnMkdir) {
                     throw new IOException('Permission denied', 0, null, (string) $dirs);
                 }
-                unset($dirs, $mode);
 
-                $this->dirExists = true;
+                $this->directories[] = (string) $dirs;
             }
 
             public function dumpFile(string $filename, $content): void
@@ -119,8 +126,8 @@ if (!function_exists('mockFilesystem')) {
                 if ($this->throwOnDump) {
                     throw new IOException('Write failed', 0, null, $filename);
                 }
-                $targetKey = $this->getTargetKey($filename);
-                $this->fileSystem[$targetKey] = $content;
+
+                $this->files[$filename] = $content;
             }
         };
     }
@@ -128,22 +135,97 @@ if (!function_exists('mockFilesystem')) {
 
 if (!function_exists('mockEnvService')) {
     /**
-     * Create a mock EnvService for testing.
+     * Create a mock EnvService for testing with configurable filesystem behavior.
      */
-    function mockEnvService(bool $hasFile = true): EnvService
-    {
-        $content = $hasFile ? 'API_KEY=test_value' : '';
-        return new EnvService(mockFilesystem($hasFile, $content, false, false, false, '.env'), new Dotenv());
+    function mockEnvService(
+        bool $fileExists = true,
+        string $fileContent = 'API_KEY=test_value',
+        bool $throwOnRead = false
+    ): EnvService {
+        $mockFs = mockFilesystem($fileExists, $fileContent, $throwOnRead, false, false, '.env');
+        $filesystemService = new FilesystemService($mockFs);
+        return new EnvService($filesystemService, new Dotenv());
     }
 }
 
 if (!function_exists('mockInventoryService')) {
     /**
-     * Create a mock InventoryService for testing.
+     * Create a mock InventoryService for testing with configurable filesystem behavior.
+     * Accepts either array data (auto-converts to YAML) or raw string content.
      */
-    function mockInventoryService(bool $hasFile = true): InventoryService
+    function mockInventoryService(
+        bool $fileExists = true,
+        array|string $data = '',
+        bool $throwOnRead = false,
+        bool $throwOnWrite = false
+    ): InventoryService {
+        // Convert array data to YAML
+        if (is_array($data)) {
+            $fileContent = empty($data) ? '' : Yaml::dump($data, 2, 4, Yaml::DUMP_EMPTY_ARRAY_AS_SEQUENCE);
+        } else {
+            $defaultContent = 'servers:' . PHP_EOL . '  web1:' . PHP_EOL . '    host: example.com';
+            $fileContent = $data ?: ($fileExists ? $defaultContent : '');
+        }
+
+        $mockFs = mockFilesystem($fileExists, $fileContent, $throwOnRead, false, $throwOnWrite, 'inventory.yml');
+        $filesystemService = new FilesystemService($mockFs);
+        return new InventoryService($filesystemService);
+    }
+}
+
+if (!function_exists('mockFilesystemService')) {
+    /**
+     * Create a FilesystemService with a mock Filesystem for testing.
+     */
+    function mockFilesystemService(
+        bool $fileExists = true,
+        string $fileContent = '',
+        bool $throwOnRead = false,
+        bool $throwOnMkdir = false,
+        bool $throwOnWrite = false,
+        string $filePath = 'test.txt'
+    ): FilesystemService {
+        $mockFs = mockFilesystem($fileExists, $fileContent, $throwOnRead, $throwOnMkdir, $throwOnWrite, $filePath);
+        return new FilesystemService($mockFs);
+    }
+}
+
+if (!function_exists('mockProcessFactory')) {
+    /**
+     * Create a ProcessFactory for testing.
+     *
+     * Uses real Filesystem since directory validation requires is_dir() checks.
+     * Tests should use real directories (e.g., __DIR__, sys_get_temp_dir()).
+     */
+    function mockProcessFactory(): ProcessFactory
     {
-        $content = $hasFile ? 'servers:' . PHP_EOL . '  web1:' . PHP_EOL . '    host: example.com' : '';
-        return new InventoryService(mockFilesystem($hasFile, $content, false, false, false, '.deployer/inventory.yml'));
+        $filesystemService = new FilesystemService(new Filesystem());
+        return new ProcessFactory($filesystemService);
+    }
+}
+
+if (!function_exists('mockVersionService')) {
+    /**
+     * Create a VersionService for testing with configurable package name and fallback.
+     *
+     * Uses real Filesystem and ProcessFactory since git operations require real directory checks.
+     */
+    function mockVersionService(
+        ?string $packageName = null,
+        ?string $fallback = null
+    ): VersionService {
+        $filesystemService = new FilesystemService(new Filesystem());
+        $processFactory = new ProcessFactory($filesystemService);
+
+        // Conditionally pass parameters to use VersionService defaults
+        if ($packageName !== null && $fallback !== null) {
+            return new VersionService($processFactory, $filesystemService, $packageName, $fallback);
+        }
+
+        if ($packageName !== null) {
+            return new VersionService($processFactory, $filesystemService, $packageName);
+        }
+
+        return new VersionService($processFactory, $filesystemService);
     }
 }
