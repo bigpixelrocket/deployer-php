@@ -59,10 +59,30 @@ protected function success(string $message): void {
 **Integration Points:**
 
 - Base implementation: [BaseCommand.php](mdc:app/Contracts/BaseCommand.php)
-- Output methods: `writeln()`, `text()`, `hr()`, `h1()`
+- Output trait: [ConsoleOutputTrait.php](mdc:app/Traits/ConsoleOutputTrait.php)
+- Input trait: [ConsoleInputTrait.php](mdc:app/Traits/ConsoleInputTrait.php)
+- Output methods: `writeln()`, `text()`, `info()`, `note()`, `hr()`, `h1()`
 - Status methods: `success()`, `error()`, `warning()`
 - Input methods: `getOptionOrPrompt()`
 - Helper methods: `showCommandHint()`
+
+**When to Add New Methods:**
+
+Console functionality is organized using traits for reusability:
+
+- **ConsoleOutputTrait:** Add output/formatting methods that format and display text
+    - Examples: status messages, headings, separators, formatting helpers
+    - All methods should work with `$this->io` (SymfonyStyle)
+
+- **ConsoleInputTrait:** Add input gathering methods that collect user data
+    - Examples: prompt helpers, option validators, input transformers
+    - All methods should work with `$this->input` (InputInterface)
+
+- **BaseCommand:** Add only shared initialization, configuration, or orchestration logic
+    - Examples: service initialization, common options, execution flow
+    - NOT for individual I/O operations
+
+This separation ensures console I/O methods remain reusable across different command contexts.
 
 ### 📣 Status Message Helpers
 

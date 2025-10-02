@@ -17,6 +17,9 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 
 /**
  * Base command with shared functionality for all commands.
+ *
+ * Uses ConsoleInputTrait for input gathering and ConsoleOutputTrait
+ * for formatted output. All console commands should extend this class.
  */
 abstract class BaseCommand extends Command
 {

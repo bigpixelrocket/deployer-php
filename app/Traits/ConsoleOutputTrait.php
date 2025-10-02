@@ -49,7 +49,7 @@ trait ConsoleOutputTrait
     }
 
     /**
-     * Display a note message with cyan info symbol.
+     * Display a note message with cyan info symbol (alias for info).
      */
     protected function note(string $message): void
     {
