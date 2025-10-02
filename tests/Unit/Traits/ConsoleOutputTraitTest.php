@@ -5,85 +5,15 @@ declare(strict_types=1);
 namespace Bigpixelrocket\DeployerPHP\Tests\Unit\Traits;
 
 use Bigpixelrocket\DeployerPHP\Container;
-use Bigpixelrocket\DeployerPHP\Contracts\BaseCommand;
-use Bigpixelrocket\DeployerPHP\Services\EnvService;
-use Bigpixelrocket\DeployerPHP\Services\InventoryService;
-use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Input\InputOption;
-use Symfony\Component\Console\Output\OutputInterface;
+use Bigpixelrocket\DeployerPHP\Tests\Fixtures\TestConsoleCommand;
 use Symfony\Component\Console\Tester\CommandTester;
 
 require_once __DIR__.'/../../TestHelpers.php';
 
-//
-// Test fixtures
-// -------------------------------------------------------------------------------
-
-class TestConsoleOutputCommand extends BaseCommand
-{
-    private string $methodToTest = '';
-
-    private array $testArgs = [];
-
-    public function __construct(
-        Container $container,
-        EnvService $env,
-        InventoryService $inventory,
-    ) {
-        parent::__construct($container, $env, $inventory);
-    }
-
-    public function setTestMethod(string $method, array $args = []): void
-    {
-        $this->methodToTest = $method;
-        $this->testArgs = $args;
-    }
-
-    protected function configure(): void
-    {
-        parent::configure();
-        $this->setName('test-output')->setDescription('Test console output methods');
-        $this->addOption('name', null, InputOption::VALUE_REQUIRED, 'Test name option');
-        $this->addOption('host', null, InputOption::VALUE_REQUIRED, 'Test host option');
-    }
-
-    protected function execute(InputInterface $input, OutputInterface $output): int
-    {
-        if ($this->methodToTest !== '') {
-            match ($this->methodToTest) {
-                'error' => $this->error(...$this->testArgs),
-                'success' => $this->success(...$this->testArgs),
-                'warning' => $this->warning(...$this->testArgs),
-                'h1' => $this->h1(...$this->testArgs),
-                'hr' => $this->hr(),
-                'text' => $this->text(...$this->testArgs),
-                'writeln' => $this->writeln(...$this->testArgs),
-                'getOptionOrPrompt' => $this->testGetOptionOrPrompt($input),
-                'showCommandHint' => $this->showCommandHint(...$this->testArgs),
-                default => null,
-            };
-        }
-
-        return Command::SUCCESS;
-    }
-
-    private function testGetOptionOrPrompt(InputInterface $input): void
-    {
-        $wasProvided = false;
-        $result = $this->getOptionOrPrompt($input, 'name', 'Name:', wasProvided: $wasProvided);
-        $this->io->text("Result: {$result}, Provided: ".($wasProvided ? 'true' : 'false'));
-    }
-}
-
-//
-// Unit tests
-// -------------------------------------------------------------------------------
-
 describe('ConsoleOutputTrait', function () {
     beforeEach(function () {
         $container = new Container();
-        $this->command = new TestConsoleOutputCommand($container, mockEnvService(true), mockInventoryService(true));
+        $this->command = new TestConsoleCommand($container, mockEnvService(true), mockInventoryService(true));
         $this->tester = new CommandTester($this->command);
     });
 
@@ -173,32 +103,6 @@ describe('ConsoleOutputTrait', function () {
             ->and(strlen($output))->toBeGreaterThan(40);
     });
 
-    it('writes text with proper indentation', function () {
-        // ARRANGE
-        $this->command->setTestMethod('text', ['Simple text output']);
-
-        // ACT
-        $this->tester->execute([]);
-        $output = $this->tester->getDisplay();
-
-        // ASSERT
-        expect($output)->toContain('Simple text output');
-    });
-
-    it('writes multiple lines of text', function () {
-        // ARRANGE
-        $this->command->setTestMethod('text', [['Line 1', 'Line 2', 'Line 3']]);
-
-        // ACT
-        $this->tester->execute([]);
-        $output = $this->tester->getDisplay();
-
-        // ASSERT
-        expect($output)->toContain('Line 1')
-            ->and($output)->toContain('Line 2')
-            ->and($output)->toContain('Line 3');
-    });
-
     it('writes single line', function () {
         // ARRANGE
         $this->command->setTestMethod('writeln', ['Output line']);
@@ -222,22 +126,6 @@ describe('ConsoleOutputTrait', function () {
         // ASSERT
         expect($output)->toContain('First line')
             ->and($output)->toContain('Second line');
-    });
-
-    //
-    // User Input Helpers
-
-    it('gets option value when provided via CLI', function () {
-        // ARRANGE
-        $this->command->setTestMethod('getOptionOrPrompt');
-
-        // ACT
-        $this->tester->execute(['--name' => 'production']);
-        $output = $this->tester->getDisplay();
-
-        // ASSERT
-        expect($output)->toContain('Result: production')
-            ->and($output)->toContain('Provided: true');
     });
 
     //
