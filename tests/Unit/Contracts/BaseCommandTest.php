@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Bigpixelrocket\DeployerPHP\Tests\Unit\Contracts;
 
-use Bigpixelrocket\DeployerPHP\Contracts\BaseCommand;
 use Bigpixelrocket\DeployerPHP\Container;
+use Bigpixelrocket\DeployerPHP\Contracts\BaseCommand;
 use Bigpixelrocket\DeployerPHP\Services\EnvService;
 use Bigpixelrocket\DeployerPHP\Services\InventoryService;
 use Symfony\Component\Console\Command\Command;
