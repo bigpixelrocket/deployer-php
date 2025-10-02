@@ -39,7 +39,7 @@ class TestableBaseCommand extends BaseCommand
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $result = parent::execute($input, $output);
-        $this->io->text('Test command executed successfully');
+        $this->text('Test command executed successfully');
         return $result;
     }
 }
