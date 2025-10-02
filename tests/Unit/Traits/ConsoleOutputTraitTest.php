@@ -18,7 +18,48 @@ describe('ConsoleOutputTrait', function () {
     });
 
     //
+    // Basic Output
+
+    it('displays plain text message', function () {
+        // ARRANGE
+        $this->command->setTestMethod('text', ['Plain text message']);
+
+        // ACT
+        $this->tester->execute([]);
+        $output = $this->tester->getDisplay();
+
+        // ASSERT
+        expect($output)->toContain('Plain text message');
+    });
+
+    //
     // Status Messages
+
+    it('displays info message with cyan info symbol', function () {
+        // ARRANGE
+        $this->command->setTestMethod('info', ['Information message']);
+
+        // ACT
+        $this->tester->execute([]);
+        $output = $this->tester->getDisplay();
+
+        // ASSERT
+        expect($output)->toContain('ℹ')
+            ->and($output)->toContain('Information message');
+    });
+
+    it('displays note message with cyan info symbol', function () {
+        // ARRANGE
+        $this->command->setTestMethod('note', ['Note message']);
+
+        // ACT
+        $this->tester->execute([]);
+        $output = $this->tester->getDisplay();
+
+        // ASSERT
+        expect($output)->toContain('ℹ')
+            ->and($output)->toContain('Note message');
+    });
 
     it('displays error message with red X symbol', function () {
         // ARRANGE

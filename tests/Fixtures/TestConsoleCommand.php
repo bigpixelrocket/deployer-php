@@ -53,6 +53,9 @@ class TestConsoleCommand extends BaseCommand
     {
         if ($this->methodToTest !== '') {
             match ($this->methodToTest) {
+                'text' => $this->text(...$this->testArgs),
+                'info' => $this->info(...$this->testArgs),
+                'note' => $this->note(...$this->testArgs),
                 'error' => $this->error(...$this->testArgs),
                 'success' => $this->success(...$this->testArgs),
                 'warning' => $this->warning(...$this->testArgs),
