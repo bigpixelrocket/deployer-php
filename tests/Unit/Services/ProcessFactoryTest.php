@@ -8,7 +8,7 @@ require_once __DIR__ . '/../../TestHelpers.php';
 describe('ProcessFactory', function () {
     beforeEach(function () {
         $this->validCwd = __DIR__;
-        $this->factory = mockProcessFactory([$this->validCwd]);
+        $this->factory = mockProcessFactory();
     });
 
     it('configures process timeout correctly', function (?float $inputTimeout, ?float $expectedTimeout) {

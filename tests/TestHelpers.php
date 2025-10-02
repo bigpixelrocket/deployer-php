@@ -188,35 +188,14 @@ if (!function_exists('mockFilesystemService')) {
 
 if (!function_exists('mockProcessFactory')) {
     /**
-     * Create a ProcessFactory with a mocked Filesystem for testing.
+     * Create a ProcessFactory for testing.
      *
-     * @param array<string> $validDirectories List of directory paths that should be considered valid
+     * Uses real Filesystem since directory validation requires is_dir() checks.
+     * Tests should use real directories (e.g., __DIR__, sys_get_temp_dir()).
      */
-    function mockProcessFactory(array $validDirectories = []): \Bigpixelrocket\DeployerPHP\Services\ProcessFactory
+    function mockProcessFactory(): \Bigpixelrocket\DeployerPHP\Services\ProcessFactory
     {
-        // Create a mock Filesystem that validates directories in-memory without touching the real filesystem
-        $mockFs = new class ($validDirectories) extends Filesystem {
-            public function __construct(private readonly array $validDirectories)
-            {
-            }
-
-            public function exists(string|iterable $files): bool
-            {
-                if (is_iterable($files)) {
-                    foreach ($files as $file) {
-                        if (!$this->exists($file)) {
-                            return false;
-                        }
-                    }
-                    return true;
-                }
-
-                // Check if path is in valid directories
-                return in_array($files, $this->validDirectories, true);
-            }
-        };
-
-        $filesystemService = new \Bigpixelrocket\DeployerPHP\Services\FilesystemService($mockFs);
+        $filesystemService = new \Bigpixelrocket\DeployerPHP\Services\FilesystemService(new Filesystem());
         return new \Bigpixelrocket\DeployerPHP\Services\ProcessFactory($filesystemService);
     }
 }
