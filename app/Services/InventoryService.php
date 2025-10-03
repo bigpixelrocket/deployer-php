@@ -11,24 +11,24 @@ use Symfony\Component\Yaml\Yaml;
  *
  * @example
  * // Store values using dot notation
- * $inventory->set('servers.production.host', 'example.com');
- * $inventory->set('servers.production.user', 'deployer');
+ * $inventory->set('widgets.alpha.color', 'blue');
+ * $inventory->set('widgets.alpha.size', 'large');
  *
  * // Or set entire object at once
- * $inventory->set('servers.production', ['host' => 'example.com', 'user' => 'deployer']);
+ * $inventory->set('widgets.alpha', ['color' => 'blue', 'size' => 'large']);
  *
  * // Retrieve values at any depth
- * $inventory->get('servers.production.host');  // 'example.com'
- * $inventory->get('servers.production');       // ['host' => 'example.com', 'user' => 'deployer']
- * $inventory->get('servers');                  // ['production' => ['host' => 'example.com', 'user' => 'deployer']]
+ * $inventory->get('widgets.alpha.color');  // 'blue'
+ * $inventory->get('widgets.alpha');        // ['color' => 'blue', 'size' => 'large']
+ * $inventory->get('widgets');              // ['alpha' => ['color' => 'blue', 'size' => 'large']]
  *
  * // Default values when path doesn't exist
- * $inventory->get('servers.staging');                    // null
- * $inventory->get('servers.staging', []);                // []
- * $inventory->get('servers.staging.host', 'localhost');  // 'localhost'
+ * $inventory->get('widgets.beta');                 // null
+ * $inventory->get('widgets.beta', []);             // []
+ * $inventory->get('widgets.beta.color', 'red');    // 'red'
  *
  * // Delete path
- * $inventory->delete('servers.production');
+ * $inventory->delete('widgets.alpha');
  */
 class InventoryService
 {

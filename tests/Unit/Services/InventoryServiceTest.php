@@ -30,16 +30,16 @@ describe('InventoryService', function () {
         expect($result)->toBe($value);
     })->with([
         // New file scenarios
-        'simple nested path' => ['servers.web1', 'value', null, false],
-        'deep nested path' => ['app.db.host', 'localhost', null, false],
-        'array value' => ['servers.web1', ['host' => 'example.com', 'port' => 22], null, false],
-        'complex nested structure' => ['deployments.prod.servers.web.config', ['cpu' => '2'], null, false],
-        'single segment path' => ['servers', ['web1' => ['host' => 'example.com']], null, false],
+        'simple nested path' => ['widgets.alpha', 'value', null, false],
+        'deep nested path' => ['toys.robot.color', 'blue', null, false],
+        'array value' => ['widgets.alpha', ['color' => 'red', 'size' => 10], null, false],
+        'complex nested structure' => ['categories.shapes.widgets.circle.radius', ['value' => '5'], null, false],
+        'single segment path' => ['widgets', ['alpha' => ['color' => 'red']], null, false],
 
         // Existing file scenarios
-        'overwrite existing value' => ['servers.web1.host', 'new.com', ['servers' => ['web1' => ['host' => 'old.com']]], true],
-        'create intermediate paths' => ['servers.web2.database.host', 'db.example.com', ['servers' => ['web1' => ['host' => 'example.com']]], true],
-        'type conflict resolution' => ['servers.web1', 'new-string-value', ['servers' => ['web1' => ['host' => 'example.com']]], true],
+        'overwrite existing value' => ['widgets.alpha.color', 'blue', ['widgets' => ['alpha' => ['color' => 'red']]], true],
+        'create intermediate paths' => ['widgets.beta.nested.color', 'green', ['widgets' => ['alpha' => ['color' => 'red']]], true],
+        'type conflict resolution' => ['widgets.alpha', 'new-string-value', ['widgets' => ['alpha' => ['color' => 'red']]], true],
     ]);
 
     //
@@ -59,44 +59,44 @@ describe('InventoryService', function () {
     })->with([
         // File exists - positive cases
         'deep nested value' => [
-            'servers.production.host',
-            'prod.example.com',
-            ['servers' => ['production' => ['host' => 'prod.example.com', 'user' => 'deploy'], 'staging' => ['host' => 'staging.example.com']], 'databases' => ['primary' => ['host' => 'db1.example.com', 'port' => 5432]]],
+            'widgets.alpha.color',
+            'red',
+            ['widgets' => ['alpha' => ['color' => 'red', 'size' => 'large'], 'beta' => ['color' => 'blue', 'size' => 'small']], 'animals' => ['cat' => ['sound' => 'meow', 'legs' => 4]]],
             true
         ],
         'nested object' => [
-            'servers.production',
-            ['host' => 'prod.example.com', 'user' => 'deploy'],
-            ['servers' => ['production' => ['host' => 'prod.example.com', 'user' => 'deploy'], 'staging' => ['host' => 'staging.example.com']], 'databases' => ['primary' => ['host' => 'db1.example.com', 'port' => 5432]]],
+            'widgets.alpha',
+            ['color' => 'red', 'size' => 'large'],
+            ['widgets' => ['alpha' => ['color' => 'red', 'size' => 'large'], 'beta' => ['color' => 'blue', 'size' => 'small']], 'animals' => ['cat' => ['sound' => 'meow', 'legs' => 4]]],
             true
         ],
         'top level collection' => [
-            'servers',
-            ['production' => ['host' => 'prod.example.com', 'user' => 'deploy'], 'staging' => ['host' => 'staging.example.com']],
-            ['servers' => ['production' => ['host' => 'prod.example.com', 'user' => 'deploy'], 'staging' => ['host' => 'staging.example.com']], 'databases' => ['primary' => ['host' => 'db1.example.com', 'port' => 5432]]],
+            'widgets',
+            ['alpha' => ['color' => 'red', 'size' => 'large'], 'beta' => ['color' => 'blue', 'size' => 'small']],
+            ['widgets' => ['alpha' => ['color' => 'red', 'size' => 'large'], 'beta' => ['color' => 'blue', 'size' => 'small']], 'animals' => ['cat' => ['sound' => 'meow', 'legs' => 4]]],
             true
         ],
-        'different collection port' => [
-            'databases.primary.port',
-            5432,
-            ['servers' => ['production' => ['host' => 'prod.example.com', 'user' => 'deploy'], 'staging' => ['host' => 'staging.example.com']], 'databases' => ['primary' => ['host' => 'db1.example.com', 'port' => 5432]]],
+        'different collection value' => [
+            'animals.cat.legs',
+            4,
+            ['widgets' => ['alpha' => ['color' => 'red', 'size' => 'large'], 'beta' => ['color' => 'blue', 'size' => 'small']], 'animals' => ['cat' => ['sound' => 'meow', 'legs' => 4]]],
             true
         ],
         'single segment' => [
-            'databases',
-            ['primary' => ['host' => 'db1.example.com', 'port' => 5432]],
-            ['servers' => ['production' => ['host' => 'prod.example.com', 'user' => 'deploy'], 'staging' => ['host' => 'staging.example.com']], 'databases' => ['primary' => ['host' => 'db1.example.com', 'port' => 5432]]],
+            'animals',
+            ['cat' => ['sound' => 'meow', 'legs' => 4]],
+            ['widgets' => ['alpha' => ['color' => 'red', 'size' => 'large'], 'beta' => ['color' => 'blue', 'size' => 'small']], 'animals' => ['cat' => ['sound' => 'meow', 'legs' => 4]]],
             true
         ],
 
         // File exists - negative cases (non-existent paths)
-        'non-existent deep path' => ['servers.web2.host', null, ['servers' => ['web1' => ['host' => 'example.com']]], true],
-        'non-existent collection' => ['databases.primary', null, ['servers' => ['web1' => ['host' => 'example.com']]], true],
-        'non-existent root' => ['missing', null, ['servers' => ['web1' => ['host' => 'example.com']]], true],
-        'partial path match' => ['servers.web1.port', null, ['servers' => ['web1' => ['host' => 'example.com']]], true],
+        'non-existent deep path' => ['widgets.gamma.color', null, ['widgets' => ['alpha' => ['color' => 'red']]], true],
+        'non-existent collection' => ['animals.dog', null, ['widgets' => ['alpha' => ['color' => 'red']]], true],
+        'non-existent root' => ['missing', null, ['widgets' => ['alpha' => ['color' => 'red']]], true],
+        'partial path match' => ['widgets.alpha.weight', null, ['widgets' => ['alpha' => ['color' => 'red']]], true],
 
         // File doesn't exist
-        'file not found' => ['servers', null, null, false],
+        'file not found' => ['widgets', null, null, false],
     ]);
 
     //
@@ -105,7 +105,7 @@ describe('InventoryService', function () {
 
     it('returns default value when path does not exist', function (string $path, mixed $default, mixed $expected) {
         // ARRANGE
-        $inventoryData = ['servers' => ['web1' => ['host' => 'example.com']]];
+        $inventoryData = ['widgets' => ['alpha' => ['color' => 'red']]];
         $this->service = mockInventoryService(true, $inventoryData);
         $this->service->loadInventoryFile();
 
@@ -115,12 +115,12 @@ describe('InventoryService', function () {
         // ASSERT
         expect($result)->toBe($expected);
     })->with([
-        'non-existent path with default' => ['servers.web2', 'default-server', 'default-server'],
-        'non-existent path with array default' => ['servers.web2', ['host' => 'default.com'], ['host' => 'default.com']],
-        'non-existent path with null default' => ['servers.web2', null, null],
-        'non-existent path with numeric default' => ['servers.web1.port', 22, 22],
-        'non-existent path with boolean default' => ['servers.web1.enabled', true, true],
-        'existing path ignores default' => ['servers.web1.host', 'ignored', 'example.com'],
+        'non-existent path with default' => ['widgets.beta', 'default-value', 'default-value'],
+        'non-existent path with array default' => ['widgets.beta', ['color' => 'blue'], ['color' => 'blue']],
+        'non-existent path with null default' => ['widgets.beta', null, null],
+        'non-existent path with numeric default' => ['widgets.alpha.size', 10, 10],
+        'non-existent path with boolean default' => ['widgets.alpha.visible', true, true],
+        'existing path ignores default' => ['widgets.alpha.color', 'ignored', 'red'],
     ]);
 
     //
@@ -139,25 +139,25 @@ describe('InventoryService', function () {
         expect($this->service->get($path))->toBeNull();
 
         // Also verify other data remains intact (for precision testing)
-        if ($path === 'servers.web1.port') {
-            expect($this->service->get('servers.web1.host'))->toBe('example.com');
-        } elseif ($path === 'servers.web1') {
-            expect($this->service->get('servers.web2'))->not->toBeNull();
+        if ($path === 'widgets.alpha.size') {
+            expect($this->service->get('widgets.alpha.color'))->toBe('red');
+        } elseif ($path === 'widgets.alpha') {
+            expect($this->service->get('widgets.beta'))->not->toBeNull();
         }
     })->with([
         'removes specific property' => [
-            'servers.web1.port',
-            ['servers' => ['web1' => ['host' => 'example.com', 'port' => 22], 'web2' => ['host' => 'test.com']]],
+            'widgets.alpha.size',
+            ['widgets' => ['alpha' => ['color' => 'red', 'size' => 10], 'beta' => ['color' => 'blue']]],
             'property removal'
         ],
         'removes entire nested structure' => [
-            'servers.web1',
-            ['servers' => ['web1' => ['host' => 'example.com'], 'web2' => ['host' => 'test.com']]],
+            'widgets.alpha',
+            ['widgets' => ['alpha' => ['color' => 'red'], 'beta' => ['color' => 'blue']]],
             'structure removal'
         ],
         'handles non-existent path gracefully' => [
-            'servers.web2',
-            ['servers' => ['web1' => ['host' => 'example.com']]],
+            'widgets.gamma',
+            ['widgets' => ['alpha' => ['color' => 'red']]],
             'graceful handling'
         ],
     ]);
@@ -181,7 +181,7 @@ describe('InventoryService', function () {
         $service->loadInventoryFile();
 
         // ACT & ASSERT
-        expect(fn () => $service->set('servers.web1', 'value'))
+        expect(fn () => $service->set('widgets.alpha', 'value'))
             ->toThrow(RuntimeException::class, 'Error writing inventory file');
     });
 
@@ -199,7 +199,7 @@ describe('InventoryService', function () {
         $service = mockInventoryService(false, '');
 
         // ACT & ASSERT
-        expect(fn () => $service->set('servers.web1', 'value'))
+        expect(fn () => $service->set('widgets.alpha', 'value'))
             ->toThrow(RuntimeException::class, 'Inventory not loaded. Call loadInventoryFile() first.');
     });
 
@@ -222,7 +222,7 @@ describe('InventoryService', function () {
         }
     })->with([
         // File exists with content
-        [true, ['servers' => ['web1' => ['host' => 'example.com', 'port' => 22]]], false, false, false, '/^Reading inventory from .+\.yml$/'],
+        [true, ['widgets' => ['alpha' => ['color' => 'red', 'size' => 10]]], false, false, false, '/^Reading inventory from .+\.yml$/'],
 
         // File exists with single item
         [true, ['single_key' => 'value'], false, false, false, '/^Reading inventory from .+\.yml$/'],
@@ -231,7 +231,7 @@ describe('InventoryService', function () {
         [true, [], false, false, false, '/^Reading inventory from .+\.yml$/'],
 
         // File exists with complex structure
-        [true, ['environments' => ['prod' => ['db' => ['host' => 'prod-db']]]], false, false, false, '/^Reading inventory from .+\.yml$/'],
+        [true, ['categories' => ['shapes' => ['circle' => ['radius' => 5]]]], false, false, false, '/^Reading inventory from .+\.yml$/'],
 
         // File exists but has read error (throws exception)
         [true, ['key' => 'value'], true, false, true, null],

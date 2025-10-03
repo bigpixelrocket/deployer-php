@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Bigpixelrocket\DeployerPHP\Repositories\ServerRepository;
 use Bigpixelrocket\DeployerPHP\Services\EnvService;
 use Bigpixelrocket\DeployerPHP\Services\FilesystemService;
 use Bigpixelrocket\DeployerPHP\Services\InventoryService;
@@ -163,7 +164,7 @@ if (!function_exists('mockInventoryService')) {
         if (is_array($data)) {
             $fileContent = empty($data) ? '' : Yaml::dump($data, 2, 4, Yaml::DUMP_EMPTY_ARRAY_AS_SEQUENCE);
         } else {
-            $defaultContent = 'servers:' . PHP_EOL . '  web1:' . PHP_EOL . '    host: example.com';
+            $defaultContent = 'widgets:' . PHP_EOL . '  alpha:' . PHP_EOL . '    color: red';
             $fileContent = $data ?: ($fileExists ? $defaultContent : '');
         }
 
@@ -227,5 +228,25 @@ if (!function_exists('mockVersionService')) {
         }
 
         return new VersionService($processFactory, $filesystemService);
+    }
+}
+
+if (!function_exists('mockServerRepository')) {
+    /**
+     * Create a ServerRepository for testing with a loaded inventory service.
+     */
+    function mockServerRepository(
+        bool $fileExists = true,
+        array|string $data = '',
+        bool $throwOnRead = false,
+        bool $throwOnWrite = false
+    ): ServerRepository {
+        $inventory = mockInventoryService($fileExists, $data, $throwOnRead, $throwOnWrite);
+        $inventory->loadInventoryFile();
+
+        $repository = new ServerRepository();
+        $repository->loadInventory($inventory);
+
+        return $repository;
     }
 }
