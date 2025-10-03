@@ -6,6 +6,7 @@ namespace Bigpixelrocket\DeployerPHP\Tests\Fixtures;
 
 use Bigpixelrocket\DeployerPHP\Container;
 use Bigpixelrocket\DeployerPHP\Contracts\BaseCommand;
+use Bigpixelrocket\DeployerPHP\Repositories\ServerRepository;
 use Bigpixelrocket\DeployerPHP\Services\EnvService;
 use Bigpixelrocket\DeployerPHP\Services\InventoryService;
 use Symfony\Component\Console\Command\Command;
@@ -28,8 +29,9 @@ class TestConsoleCommand extends BaseCommand
         Container $container,
         EnvService $env,
         InventoryService $inventory,
+        ServerRepository $servers,
     ) {
-        parent::__construct($container, $env, $inventory);
+        parent::__construct($container, $env, $inventory, $servers);
     }
 
     /**

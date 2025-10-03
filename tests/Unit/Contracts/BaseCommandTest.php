@@ -6,6 +6,7 @@ namespace Bigpixelrocket\DeployerPHP\Tests\Unit\Contracts;
 
 use Bigpixelrocket\DeployerPHP\Container;
 use Bigpixelrocket\DeployerPHP\Contracts\BaseCommand;
+use Bigpixelrocket\DeployerPHP\Repositories\ServerRepository;
 use Bigpixelrocket\DeployerPHP\Services\EnvService;
 use Bigpixelrocket\DeployerPHP\Services\InventoryService;
 use Symfony\Component\Console\Command\Command;
@@ -25,9 +26,10 @@ class TestableBaseCommand extends BaseCommand
         Container $container,
         EnvService $env,
         InventoryService $inventory,
+        ServerRepository $servers,
         private readonly string $testName = 'test-command',
     ) {
-        parent::__construct($container, $env, $inventory);
+        parent::__construct($container, $env, $inventory, $servers);
     }
 
     protected function configure(): void
@@ -54,9 +56,10 @@ describe('BaseCommand', function () {
         $container = new Container();
         $env = mockEnvService(true);
         $inventory = mockInventoryService(true);
+        $servers = mockServerRepository();
 
         // ACT
-        $command = new TestableBaseCommand($container, $env, $inventory, 'test');
+        $command = new TestableBaseCommand($container, $env, $inventory, $servers, 'test');
 
         // ASSERT
         expect($command->getName())->toBe('test')
@@ -73,7 +76,8 @@ describe('BaseCommand', function () {
         $container = new Container();
         $env = mockEnvService($hasEnvFile);
         $inventory = mockInventoryService(true);
-        $command = new TestableBaseCommand($container, $env, $inventory);
+        $servers = mockServerRepository();
+        $command = new TestableBaseCommand($container, $env, $inventory, $servers);
         $tester = new CommandTester($command);
 
         // ACT

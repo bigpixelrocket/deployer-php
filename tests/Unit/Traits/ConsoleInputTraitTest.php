@@ -13,7 +13,7 @@ require_once __DIR__.'/../../TestHelpers.php';
 describe('ConsoleInputTrait', function () {
     beforeEach(function () {
         $container = new Container();
-        $this->command = new TestConsoleCommand($container, mockEnvService(true), mockInventoryService(true));
+        $this->command = new TestConsoleCommand($container, mockEnvService(true), mockInventoryService(true), mockServerRepository());
         $this->tester = new CommandTester($this->command);
     });
 

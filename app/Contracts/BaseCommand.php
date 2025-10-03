@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Bigpixelrocket\DeployerPHP\Contracts;
 
 use Bigpixelrocket\DeployerPHP\Container;
+use Bigpixelrocket\DeployerPHP\Repositories\ServerRepository;
 use Bigpixelrocket\DeployerPHP\Services\EnvService;
 use Bigpixelrocket\DeployerPHP\Services\InventoryService;
 use Bigpixelrocket\DeployerPHP\Traits\ConsoleInputTrait;
@@ -34,6 +35,7 @@ abstract class BaseCommand extends Command
         protected readonly Container $container,
         protected readonly EnvService $env,
         protected readonly InventoryService $inventory,
+        protected readonly ServerRepository $servers,
     ) {
         parent::__construct();
     }
@@ -90,6 +92,11 @@ abstract class BaseCommand extends Command
         $customInventoryPath = $input->getOption('inventory');
         $this->inventory->setCustomPath($customInventoryPath);
         $this->inventory->loadInventoryFile();
+
+        //
+        // Initialize repositories
+
+        $this->servers->loadInventory($this->inventory);
     }
 
     //
