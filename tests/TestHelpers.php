@@ -164,7 +164,7 @@ if (!function_exists('mockInventoryService')) {
         if (is_array($data)) {
             $fileContent = empty($data) ? '' : Yaml::dump($data, 2, 4, Yaml::DUMP_EMPTY_ARRAY_AS_SEQUENCE);
         } else {
-            $defaultContent = 'servers:' . PHP_EOL . '  web1:' . PHP_EOL . '    host: example.com';
+            $defaultContent = 'widgets:' . PHP_EOL . '  alpha:' . PHP_EOL . '    color: red';
             $fileContent = $data ?: ($fileExists ? $defaultContent : '');
         }
 

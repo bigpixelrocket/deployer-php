@@ -144,13 +144,13 @@ describe('mockInventoryService', function () {
         $service->loadInventoryFile();
 
         // ACT
-        $result = $service->get('servers.web1.host');
+        $result = $service->get('widgets.alpha.color');
 
         // ASSERT
-        expect($result)->toBe('example.com');
+        expect($result)->toBe('red');
     })->with([
-        'array data' => [['servers' => ['web1' => ['host' => 'example.com']]]],
-        'string data' => ['servers:' . PHP_EOL . '  web1:' . PHP_EOL . '    host: example.com'],
+        'array data' => [['widgets' => ['alpha' => ['color' => 'red']]]],
+        'string data' => ['widgets:' . PHP_EOL . '  alpha:' . PHP_EOL . '    color: red'],
     ]);
 });
 
