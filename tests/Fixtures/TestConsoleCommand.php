@@ -69,6 +69,14 @@ class TestConsoleCommand extends BaseCommand
                 'getOptionOrPromptBoolean' => $this->testGetOptionOrPromptBoolean(),
                 'getOptionOrPromptTypes' => $this->testGetOptionOrPromptTypes(),
                 'testPromptSpin' => $this->testPromptSpinWrapper(),
+                'promptText' => $this->testPromptTextWrapper(),
+                'promptPassword' => $this->testPromptPasswordWrapper(),
+                'promptConfirm' => $this->testPromptConfirmWrapper(),
+                'promptPause' => $this->testPromptPauseWrapper(),
+                'promptSelect' => $this->testPromptSelectWrapper(),
+                'promptMultiselect' => $this->testPromptMultiselectWrapper(),
+                'promptSuggest' => $this->testPromptSuggestWrapper(),
+                'promptSearch' => $this->testPromptSearchWrapper(),
                 default => null,
             };
         }
@@ -153,5 +161,69 @@ class TestConsoleCommand extends BaseCommand
         );
 
         $this->io->text("Spin result: {$result}");
+    }
+
+    /**
+     * Test promptText wrapper.
+     */
+    private function testPromptTextWrapper(): void
+    {
+        $this->promptText('Test:', required: false);
+    }
+
+    /**
+     * Test promptPassword wrapper.
+     */
+    private function testPromptPasswordWrapper(): void
+    {
+        $this->promptPassword('Test:', required: false);
+    }
+
+    /**
+     * Test promptConfirm wrapper.
+     */
+    private function testPromptConfirmWrapper(): void
+    {
+        $this->promptConfirm('Test:');
+    }
+
+    /**
+     * Test promptPause wrapper.
+     */
+    private function testPromptPauseWrapper(): void
+    {
+        $this->promptPause('Test');
+    }
+
+    /**
+     * Test promptSelect wrapper.
+     */
+    private function testPromptSelectWrapper(): void
+    {
+        $this->promptSelect('Test:', ['a', 'b'], default: 'a');
+    }
+
+    /**
+     * Test promptMultiselect wrapper.
+     */
+    private function testPromptMultiselectWrapper(): void
+    {
+        $this->promptMultiselect('Test:', ['a', 'b']);
+    }
+
+    /**
+     * Test promptSuggest wrapper.
+     */
+    private function testPromptSuggestWrapper(): void
+    {
+        $this->promptSuggest('Test:', ['a', 'b'], required: false);
+    }
+
+    /**
+     * Test promptSearch wrapper.
+     */
+    private function testPromptSearchWrapper(): void
+    {
+        $this->promptSearch('Test:', fn ($q) => ['a', 'b']);
     }
 }
