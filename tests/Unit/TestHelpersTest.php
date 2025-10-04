@@ -169,6 +169,16 @@ describe('mockFilesystemService', function () {
     });
 });
 
+describe('mockTestConsoleCommand', function () {
+    it('creates TestConsoleCommand with mocked dependencies', function () {
+        // ACT
+        $command = mockTestConsoleCommand();
+
+        // ASSERT
+        expect($command)->toBeInstanceOf(\Bigpixelrocket\DeployerPHP\Tests\Fixtures\TestConsoleCommand::class);
+    });
+});
+
 describe('setEnv', function () {
     it('manages environment variables', function ($initialValue, $newValue, $expectSet) {
         // ARRANGE

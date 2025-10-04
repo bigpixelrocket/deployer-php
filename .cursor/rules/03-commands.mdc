@@ -21,14 +21,14 @@ alwaysApply: true
 ```php
 // ✅ CORRECT - BaseCommand custom methods
 $this->writeln(['Multiple', 'lines']);     // Multi-line output
-$this->text('Single line message');        // Simple text output
 $this->hr();                               // Beautiful section separator
 $this->h1('Section Heading');              // Heading with icon
 
 // Status messages
 $this->success('Server added successfully');
-$this->error('Failed to connect', 'Check your SSH key permissions');
+$this->error('Failed to connect to server');
 $this->warning('Skipping connection check');
+$this->info('Configuration loaded');
 ```
 
 **❌ FORBIDDEN - Direct Symfony IO Usage:**
@@ -61,9 +61,9 @@ protected function success(string $message): void {
 - Base implementation: [BaseCommand.php](mdc:app/Contracts/BaseCommand.php)
 - Output trait: [ConsoleOutputTrait.php](mdc:app/Traits/ConsoleOutputTrait.php)
 - Input trait: [ConsoleInputTrait.php](mdc:app/Traits/ConsoleInputTrait.php)
-- Output methods: `writeln()`, `text()`, `info()`, `note()`, `hr()`, `h1()`
+- Output methods: `writeln()`, `info()`, `hr()`, `h1()`
 - Status methods: `success()`, `error()`, `warning()`
-- Input methods: `getOptionOrPrompt()`
+- Input methods: `getOptionOrPrompt()`, `promptText()`, `promptPassword()`, `promptConfirm()`, `promptSelect()`, `promptMultiselect()`, `promptSuggest()`, `promptSearch()`, `promptPause()`, `promptSpin()`
 - Helper methods: `showCommandHint()`
 
 **When to Add New Methods:**
@@ -93,12 +93,13 @@ This separation ensures console I/O methods remain reusable across different com
 $this->success('Server added successfully');
 $this->success('Connection successful');
 
-// ✅ Error messages (red X) with optional tip
+// ✅ Error messages (red X)
 $this->error('Failed to connect to server');
-$this->error(
-    'Failed to add server: ' . $e->getMessage(),
-    'Use <fg=cyan>server:list</> to view existing servers.'
-);
+$this->error('Failed to add server: ' . $e->getMessage());
+
+// ✅ Info messages (cyan info symbol)
+$this->info('Configuration loaded from .env');
+$this->info('Using custom inventory path');
 
 // ✅ Warning messages (yellow warning symbol)
 $this->warning('Skipping SSH connection check');
@@ -108,9 +109,8 @@ $this->warning('Server add cancelled');
 **Benefits:**
 
 - Consistent formatting across all commands
-- Automatic spacing (blank line after message)
-- Clear visual indicators (✓, ✗, ⚠)
-- Optional tips for error messages
+- Clear visual indicators (✓, ✗, ℹ, ⚠)
+- Modern, colorful output styling
 
 ### 🎯 User Input with Laravel Prompts
 
@@ -160,7 +160,8 @@ $result = spin(fn() => $this->service->heavyOperation(), 'Processing...');
 class MyCommand extends BaseCommand {
     protected function execute(InputInterface $input, OutputInterface $output): int {
         // ✅ CORRECT - Custom BaseCommand methods
-        $this->text('Starting process...');
+        $this->h1('Deployment');
+        $this->info('Starting deployment process...');
 
         // Prompt user with Laravel Prompts
         $confirmed = confirm('Continue with deployment?', default: true);
@@ -169,7 +170,7 @@ class MyCommand extends BaseCommand {
         $result = $this->service->performWork();
 
         // Custom output formatting
-        $this->writeln('<fg=green>✓</> Completed: ' . $result);
+        $this->success('Deployment completed: ' . $result);
 
         return Command::SUCCESS;
     }
@@ -198,32 +199,41 @@ protected function configure(): void {
 }
 
 protected function execute(InputInterface $input, OutputInterface $output): int {
-    // Track which options were provided vs prompted
-    $provided = [];
-
-    // Use BaseCommand helper method (uses $this->input internally)
+    // Use getOptionOrPrompt with closures for flexible prompting
     $name = $this->getOptionOrPrompt(
         'name',
-        'Server name:',
-        placeholder: 'production-web-01',
-        wasProvided: $provided['name']
+        fn() => $this->promptText(
+            label: 'Server name:',
+            placeholder: 'production-web-01',
+            required: true
+        )
     );
 
     $host = $this->getOptionOrPrompt(
         'host',
-        'Host/IP address:',
-        placeholder: '192.168.1.100',
-        wasProvided: $provided['host']
+        fn() => $this->promptText(
+            label: 'Host/IP address:',
+            placeholder: '192.168.1.100',
+            required: true
+        )
+    );
+
+    $skipConfirm = $this->getOptionOrPrompt(
+        'yes',
+        fn() => $this->promptConfirm(
+            label: 'Skip verification?',
+            default: false
+        )
     );
 
     // ... process command ...
 
-    // Show command hint with highlighted missing options
+    // Show command hint for non-interactive usage
     $this->showCommandHint('my:command', [
         'name' => $name,
         'host' => $host,
-        'yes' => true,
-    ], $provided);
+        'yes' => $skipConfirm,
+    ]);
 
     return Command::SUCCESS;
 }
@@ -233,20 +243,47 @@ protected function execute(InputInterface $input, OutputInterface $output): int 
 
 The `getOptionOrPrompt()` method is available in BaseCommand for all commands:
 
+- **Signature:** `getOptionOrPrompt(string $optionName, Closure $promptCallback): mixed`
 - Checks if option was provided via CLI
-- If yes, returns the value and sets `wasProvided` to `true`
-- If not, prompts user interactively and sets `wasProvided` to `false`
-- Supports all Laravel Prompts parameters (label, default, required, placeholder)
+- If yes, returns the option value directly
+- If not, executes the closure to prompt user interactively
+- Supports any return type (string, bool, int, array) via the closure
+- Works with all prompt methods: `promptText()`, `promptSelect()`, `promptConfirm()`, etc.
+
+**Prompt Wrapper Methods:**
+
+ConsoleInputTrait provides wrappers for all Laravel Prompts functions:
+
+- `promptText()` - Text input with validation
+- `promptPassword()` - Password input (masked)
+- `promptConfirm()` - Yes/No confirmation
+- `promptSelect()` - Single selection from list
+- `promptMultiselect()` - Multiple selections
+- `promptSuggest()` - Autocomplete suggestions
+- `promptSearch()` - Searchable options
+- `promptPause()` - Wait for Enter key
+- `promptSpin()` - Loading spinner for operations
+
+All wrappers automatically suppress extra spacing for cleaner output.
 
 **Command Hint Output:**
 
-- Gray = option was provided
-- Bright yellow = option was prompted (user should include next time)
-- Shows complete non-interactive command for copy/paste
+Shows the complete non-interactive command with all options for easy copy/paste:
+
+```
+◆ Run non-interactively:
+
+  vendor/bin/deployer my:command \
+    --name='production-web-01' \
+    --host='192.168.1.100' \
+    --yes
+```
 
 **Benefits:**
 
 - Script-friendly with full option support
 - User-friendly with interactive fallbacks
 - Educational - teaches users the non-interactive syntax
+- Flexible - supports any prompt type via closures
+- Type-safe - preserves return types from prompts
 - DRY - single command serves both use cases

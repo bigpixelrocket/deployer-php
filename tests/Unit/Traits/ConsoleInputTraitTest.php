@@ -4,23 +4,25 @@ declare(strict_types=1);
 
 namespace Bigpixelrocket\DeployerPHP\Tests\Unit\Traits;
 
-use Bigpixelrocket\DeployerPHP\Container;
-use Bigpixelrocket\DeployerPHP\Tests\Fixtures\TestConsoleCommand;
 use Symfony\Component\Console\Tester\CommandTester;
+use Throwable;
 
 require_once __DIR__.'/../../TestHelpers.php';
 
 describe('ConsoleInputTrait', function () {
     beforeEach(function () {
-        $container = new Container();
-        $this->command = new TestConsoleCommand($container, mockEnvService(true), mockInventoryService(true), mockServerRepository());
+        $this->command = mockTestConsoleCommand();
         $this->tester = new CommandTester($this->command);
     });
 
     //
     // getOptionOrPrompt
+    // -------------------------------------------------------------------------------
 
-    it('returns option value and sets wasProvided to true when option provided', function () {
+    //
+    // String Options
+
+    it('returns option value when string option provided', function () {
         // ARRANGE
         $this->command->setTestMethod('getOptionOrPrompt');
 
@@ -29,7 +31,137 @@ describe('ConsoleInputTrait', function () {
         $output = $this->tester->getDisplay();
 
         // ASSERT
-        expect($output)->toContain('Result: production')
-            ->and($output)->toContain('Provided: true');
+        expect($output)->toContain('Result: production');
+    });
+
+    it('executes closure when string option is empty', function () {
+        // ARRANGE
+        $this->command->setTestMethod('getOptionOrPromptEmpty');
+
+        // ACT
+        $this->tester->execute(['--name' => '']);
+        $output = $this->tester->getDisplay();
+
+        // ASSERT
+        expect($output)->toContain('Closure executed')
+            ->and($output)->toContain('Result: from-closure');
+    });
+
+    it('executes closure when string option not provided', function () {
+        // ARRANGE
+        $this->command->setTestMethod('getOptionOrPromptEmpty');
+
+        // ACT
+        $this->tester->execute([]);
+        $output = $this->tester->getDisplay();
+
+        // ASSERT
+        expect($output)->toContain('Closure executed')
+            ->and($output)->toContain('Result: from-closure');
+    });
+
+    //
+    // Boolean Flags
+
+    it('returns true when boolean flag is provided', function () {
+        // ARRANGE
+        $this->command->setTestMethod('getOptionOrPromptBoolean');
+
+        // ACT
+        $this->tester->execute(['--yes' => true]);
+        $output = $this->tester->getDisplay();
+
+        // ASSERT
+        expect($output)->toContain('Result: true');
+    });
+
+    it('executes closure when boolean flag not provided', function () {
+        // ARRANGE
+        $this->command->setTestMethod('getOptionOrPromptBoolean');
+
+        // ACT
+        $this->tester->execute([]);
+        $output = $this->tester->getDisplay();
+
+        // ASSERT
+        expect($output)->toContain('Result: false');
+    });
+
+    //
+    // Return Type Flexibility
+
+    it('supports different return types from closure', function (mixed $expected, string $description) {
+        // ARRANGE
+        $this->command->setTestMethod('getOptionOrPromptTypes', [$expected]);
+
+        // ACT
+        $this->tester->execute([]);
+        $output = $this->tester->getDisplay();
+
+        // ASSERT
+        if (is_bool($expected)) {
+            expect($output)->toContain('Result: ' . ($expected ? 'true' : 'false'));
+        } elseif (is_array($expected)) {
+            expect($output)->toContain('Result: ' . json_encode($expected));
+        } else {
+            expect($output)->toContain("Result: {$expected}");
+        }
+    })->with([
+        'string return' => ['text-value', 'string'],
+        'boolean true' => [true, 'boolean'],
+        'boolean false' => [false, 'boolean'],
+        'integer return' => [42, 'integer'],
+        'array return' => [['option1', 'option2'], 'array'],
+    ]);
+
+    //
+    // Prompt Wrappers
+    // -------------------------------------------------------------------------------
+
+    it('prompt wrappers suppress spacing with ANSI escape sequences', function (string $method) {
+        // ARRANGE
+        // Expected ANSI sequence: \033[1A (move up) + \033[2K (clear line)
+        $expectedAnsi = "\033[1A\033[2K";
+        $this->command->setTestMethod($method);
+
+        // ACT
+        // Capture raw output including ANSI sequences using output buffering
+        ob_start();
+
+        try {
+            // Execute command which calls the prompt wrapper
+            // It will output ANSI then fail on actual prompt (non-interactive mode)
+            $this->tester->execute([]);
+        } catch (Throwable) {
+            // Expected to fail in non-interactive mode, but ANSI was already output
+        }
+
+        $output = ob_get_clean();
+
+        // ASSERT
+        // Verify the ANSI escape sequence was output for spacing suppression
+        expect($output)->toContain($expectedAnsi);
+    })->with([
+        'promptText',
+        'promptPassword',
+        'promptConfirm',
+        'promptPause',
+        'promptSelect',
+        'promptMultiselect',
+        'promptSuggest',
+        // Note: promptSearch is not tested here as it requires user interaction
+        // and cannot be tested in non-interactive mode even with default values
+    ]);
+
+    it('promptSpin executes callback and returns result', function () {
+        // ARRANGE
+        $this->command->setTestMethod('testPromptSpin');
+
+        // ACT
+        $this->tester->execute([]);
+        $output = $this->tester->getDisplay();
+
+        // ASSERT
+        expect($output)->toContain('Spin result: success');
     });
 });
