@@ -9,6 +9,8 @@ use Bigpixelrocket\DeployerPHP\Contracts\BaseCommand;
 use Bigpixelrocket\DeployerPHP\Repositories\ServerRepository;
 use Bigpixelrocket\DeployerPHP\Services\EnvService;
 use Bigpixelrocket\DeployerPHP\Services\InventoryService;
+use Bigpixelrocket\DeployerPHP\Services\SSHService;
+use Bigpixelrocket\DeployerPHP\Traits\ServerHelpersTrait;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -17,10 +19,11 @@ use Symfony\Component\Console\Output\OutputInterface;
 /**
  * Test fixture for BaseCommand trait testing.
  *
- * Supports testing both ConsoleInputTrait and ConsoleOutputTrait methods.
+ * Supports testing both ConsoleInputTrait, ConsoleOutputTrait, and ServerHelpersTrait methods.
  */
 class TestConsoleCommand extends BaseCommand
 {
+    use ServerHelpersTrait;
     private string $methodToTest = '';
 
     private array $testArgs = [];
@@ -30,8 +33,9 @@ class TestConsoleCommand extends BaseCommand
         EnvService $env,
         InventoryService $inventory,
         ServerRepository $servers,
+        SSHService $ssh,
     ) {
-        parent::__construct($container, $env, $inventory, $servers);
+        parent::__construct($container, $env, $inventory, $servers, $ssh);
     }
 
     /**
@@ -64,6 +68,7 @@ class TestConsoleCommand extends BaseCommand
                 'hr' => $this->hr(),
                 'writeln' => $this->writeln(...$this->testArgs),
                 'showCommandHint' => $this->showCommandHint(...$this->testArgs),
+                'displayServerInfo' => $this->displayServerInfo(...$this->testArgs),
                 'getOptionOrPrompt' => $this->testGetOptionOrPrompt(),
                 'getOptionOrPromptEmpty' => $this->testGetOptionOrPromptEmpty(),
                 'getOptionOrPromptBoolean' => $this->testGetOptionOrPromptBoolean(),
