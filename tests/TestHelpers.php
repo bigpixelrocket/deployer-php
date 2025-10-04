@@ -2,12 +2,14 @@
 
 declare(strict_types=1);
 
+use Bigpixelrocket\DeployerPHP\Container;
 use Bigpixelrocket\DeployerPHP\Repositories\ServerRepository;
 use Bigpixelrocket\DeployerPHP\Services\EnvService;
 use Bigpixelrocket\DeployerPHP\Services\FilesystemService;
 use Bigpixelrocket\DeployerPHP\Services\InventoryService;
 use Bigpixelrocket\DeployerPHP\Services\ProcessFactory;
 use Bigpixelrocket\DeployerPHP\Services\VersionService;
+use Bigpixelrocket\DeployerPHP\Tests\Fixtures\TestConsoleCommand;
 use Symfony\Component\Dotenv\Dotenv;
 use Symfony\Component\Filesystem\Exception\IOException;
 use Symfony\Component\Filesystem\Filesystem;
@@ -248,5 +250,24 @@ if (!function_exists('mockServerRepository')) {
         $repository->loadInventory($inventory);
 
         return $repository;
+    }
+}
+
+if (!function_exists('mockTestConsoleCommand')) {
+    /**
+     * Create a TestConsoleCommand for testing with mocked dependencies.
+     */
+    function mockTestConsoleCommand(
+        bool $envFileExists = true,
+        string $envContent = 'API_KEY=test_value',
+        bool $inventoryFileExists = true,
+        array|string $inventoryData = '',
+    ): TestConsoleCommand {
+        $container = new Container();
+        $env = mockEnvService($envFileExists, $envContent);
+        $inventory = mockInventoryService($inventoryFileExists, $inventoryData);
+        $servers = mockServerRepository($inventoryFileExists, $inventoryData);
+
+        return new TestConsoleCommand($container, $env, $inventory, $servers);
     }
 }

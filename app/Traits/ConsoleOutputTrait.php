@@ -33,27 +33,11 @@ trait ConsoleOutputTrait
     // -------------------------------------------------------------------------------
 
     /**
-     * Display a plain text message.
-     */
-    protected function text(string $message): void
-    {
-        $this->writeln($message);
-    }
-
-    /**
      * Display an info message with cyan info symbol.
      */
     protected function info(string $message): void
     {
-        $this->writeln("<fg=cyan>ℹ</> {$message}");
-    }
-
-    /**
-     * Display a note message with cyan info symbol (alias for info).
-     */
-    protected function note(string $message): void
-    {
-        $this->info($message);
+        $this->writeln("<fg=cyan>ℹ {$message}</>");
     }
 
     /**
@@ -61,7 +45,7 @@ trait ConsoleOutputTrait
      */
     protected function success(string $message): void
     {
-        $this->writeln("<fg=green>✓</> {$message}");
+        $this->writeln("<fg=green>✓ {$message}</>");
     }
 
     /**
@@ -69,21 +53,15 @@ trait ConsoleOutputTrait
      */
     protected function warning(string $message): void
     {
-        $this->writeln("<fg=yellow>⚠</> {$message}");
+        $this->writeln("<fg=yellow>⚠ {$message}</>");
     }
 
     /**
-     * Display an error message with red X and optional tip.
+     * Display an error message with red X.
      */
-    protected function error(string $message, ?string $tip = null): void
+    protected function error(string $message): void
     {
-        $output = ["<fg=red>✗</> {$message}"];
-
-        if ($tip !== null) {
-            $output[] = "<fg=gray>Tip:</> {$tip}";
-        }
-
-        $this->writeln($output);
+        $this->writeln("<fg=red>✗ {$message}</>");
     }
 
     //
@@ -95,7 +73,10 @@ trait ConsoleOutputTrait
      */
     protected function h1(string $text): void
     {
-        $this->writeln('<fg=bright-blue>▸ </><fg=cyan>'.$text.'</>');
+        $this->writeln([
+            '<fg=bright-blue>▸ </><fg=cyan>'.$text.'</>',
+            '',
+        ]);
     }
 
     /**
@@ -110,27 +91,24 @@ trait ConsoleOutputTrait
     }
 
     //
-    // Command Hints
+    // Command hint
     // -------------------------------------------------------------------------------
 
     /**
      * Display a command replay hint showing how to run non-interactively.
      *
      * @param array<string, mixed> $options Array of option name => value pairs
-     * @param array<string, bool> $provided Array of option name => was provided (true) or prompted (false)
      */
-    protected function showCommandHint(string $commandName, array $options, array $provided): void
+    protected function showCommandHint(string $commandName, array $options): void
     {
-        $this->writeln('<fg=cyan>💡 Next time, run non-interactively:</>');
+        $this->writeln('<fg=cyan>◆ Run non-interactively:</>');
         $this->writeln('');
 
-        // Build command parts
-        $parts = [$commandName];
+        //
+        // Build command options
 
+        $parts = [];
         foreach ($options as $optionName => $value) {
-            $wasProvided = $provided[$optionName] ?? false;
-            $color = $wasProvided ? 'gray' : 'bright-yellow';
-
             if ($value === null || $value === '') {
                 continue;
             }
@@ -139,17 +117,23 @@ trait ConsoleOutputTrait
             $optionFlag = '--'.$optionName;
             if (is_bool($value)) {
                 if ($value) {
-                    $parts[] = "<fg={$color}>{$optionFlag}</>";
+                    $parts[] = $optionFlag;
                 }
             } else {
                 $stringValue = is_scalar($value) ? (string) $value : '';
                 $escapedValue = escapeshellarg($stringValue);
-                $parts[] = "<fg={$color}>{$optionFlag}={$escapedValue}</>";
+                $parts[] = "{$optionFlag}={$escapedValue}";
             }
         }
 
-        $command = implode(' ', $parts);
-        $this->writeln("  {$command}");
-        $this->writeln('');
+        //
+        // Display command hint
+
+        $this->writeln("  <fg=gray>vendor/bin/deployer {$commandName} \\ </>");
+
+        foreach ($parts as $index => $part) {
+            $last = $index === count($parts) - 1;
+            $this->writeln("  <fg=gray>  {$part}</>".($last ? '' : '<fg=gray> \\ </>'));
+        }
     }
 }

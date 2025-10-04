@@ -49,15 +49,14 @@ class TestConsoleCommand extends BaseCommand
         $this->setName('test-console')->setDescription('Test console trait methods');
         $this->addOption('name', null, InputOption::VALUE_REQUIRED, 'Test name option');
         $this->addOption('host', null, InputOption::VALUE_REQUIRED, 'Test host option');
+        $this->addOption('yes', 'y', InputOption::VALUE_NONE, 'Test yes flag');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         if ($this->methodToTest !== '') {
             match ($this->methodToTest) {
-                'text' => $this->text(...$this->testArgs),
                 'info' => $this->info(...$this->testArgs),
-                'note' => $this->note(...$this->testArgs),
                 'error' => $this->error(...$this->testArgs),
                 'success' => $this->success(...$this->testArgs),
                 'warning' => $this->warning(...$this->testArgs),
@@ -66,6 +65,10 @@ class TestConsoleCommand extends BaseCommand
                 'writeln' => $this->writeln(...$this->testArgs),
                 'showCommandHint' => $this->showCommandHint(...$this->testArgs),
                 'getOptionOrPrompt' => $this->testGetOptionOrPrompt(),
+                'getOptionOrPromptEmpty' => $this->testGetOptionOrPromptEmpty(),
+                'getOptionOrPromptBoolean' => $this->testGetOptionOrPromptBoolean(),
+                'getOptionOrPromptTypes' => $this->testGetOptionOrPromptTypes(),
+                'testPromptSpin' => $this->testPromptSpinWrapper(),
                 default => null,
             };
         }
@@ -78,8 +81,77 @@ class TestConsoleCommand extends BaseCommand
      */
     private function testGetOptionOrPrompt(): void
     {
-        $wasProvided = false;
-        $result = $this->getOptionOrPrompt('name', 'Name:', wasProvided: $wasProvided);
-        $this->io->text("Result: {$result}, Provided: ".($wasProvided ? 'true' : 'false'));
+        $result = $this->getOptionOrPrompt(
+            'name',
+            fn () => $this->promptText(label: 'Name:', required: true)
+        );
+        $this->io->text("Result: {$result}");
+    }
+
+    /**
+     * Test getOptionOrPrompt with empty string handling.
+     */
+    private function testGetOptionOrPromptEmpty(): void
+    {
+        $closureExecuted = false;
+        $result = $this->getOptionOrPrompt(
+            'name',
+            function () use (&$closureExecuted) {
+                $closureExecuted = true;
+
+                return 'from-closure';
+            }
+        );
+
+        if ($closureExecuted) {
+            $this->io->text('Closure executed');
+        }
+        $this->io->text("Result: {$result}");
+    }
+
+    /**
+     * Test getOptionOrPrompt with boolean flag.
+     */
+    private function testGetOptionOrPromptBoolean(): void
+    {
+        $result = $this->getOptionOrPrompt(
+            'yes',
+            fn () => false
+        );
+        $this->io->text('Result: '.($result ? 'true' : 'false'));
+    }
+
+    /**
+     * Test getOptionOrPrompt with different return types.
+     */
+    private function testGetOptionOrPromptTypes(): void
+    {
+        $expected = $this->testArgs[0] ?? 'default';
+
+        $result = $this->getOptionOrPrompt(
+            'name',
+            fn () => $expected
+        );
+
+        if (is_bool($result)) {
+            $this->io->text('Result: '.($result ? 'true' : 'false'));
+        } elseif (is_array($result)) {
+            $this->io->text('Result: '.json_encode($result));
+        } else {
+            $this->io->text("Result: {$result}");
+        }
+    }
+
+    /**
+     * Test promptSpin wrapper.
+     */
+    private function testPromptSpinWrapper(): void
+    {
+        $result = $this->promptSpin(
+            fn () => 'success',
+            'Testing...'
+        );
+
+        $this->io->text("Spin result: {$result}");
     }
 }
