@@ -141,3 +141,5 @@ vendor/bin/pint $CHANGED_PHP_FILES    # Fix code style (changed files only)
 # Static analysis excluding tests (never do static analysis against tests)
 vendor/bin/phpstan analyze $CHANGED_PHP_FILES_EXCEPT_TESTS
 ```
+
+**Important: ** Don't run PHPStan on test files; tests are excluded from static analysis.

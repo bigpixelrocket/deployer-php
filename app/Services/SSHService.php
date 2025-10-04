@@ -185,14 +185,9 @@ class SSHService
 
         try {
             $ssh = new SSH2($host, $port);
-        } catch (\Throwable $e) {
-            throw new \RuntimeException("Error initiating SSH connection to {$host}:{$port}: " . $e->getMessage());
-        }
-
-        try {
             $loggedIn = $ssh->login($username, $key);
         } catch (\Throwable $e) {
-            throw new \RuntimeException("Error authenticating SSH for {$username}@{$host}: " . $e->getMessage());
+            throw new \RuntimeException($e->getMessage());
         }
 
         if ($loggedIn !== true) {

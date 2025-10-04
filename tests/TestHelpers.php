@@ -8,6 +8,7 @@ use Bigpixelrocket\DeployerPHP\Services\EnvService;
 use Bigpixelrocket\DeployerPHP\Services\FilesystemService;
 use Bigpixelrocket\DeployerPHP\Services\InventoryService;
 use Bigpixelrocket\DeployerPHP\Services\ProcessFactory;
+use Bigpixelrocket\DeployerPHP\Services\SSHService;
 use Bigpixelrocket\DeployerPHP\Services\VersionService;
 use Bigpixelrocket\DeployerPHP\Tests\Fixtures\TestConsoleCommand;
 use Symfony\Component\Dotenv\Dotenv;
@@ -253,6 +254,90 @@ if (!function_exists('mockServerRepository')) {
     }
 }
 
+if (!function_exists('mockSSHService')) {
+    /**
+     * Create an SSHService for testing with mocked dependencies.
+     */
+    function mockSSHService(): SSHService
+    {
+        $envService = mockEnvService(true);
+        $filesystemService = new FilesystemService(new Filesystem());
+
+        return new SSHService($envService, $filesystemService);
+    }
+}
+
+if (!function_exists('mockSSHServiceWithBehavior')) {
+    /**
+     * Create a mock SSHService that simulates connection success/failure.
+     *
+     * @param bool $canConnect Whether SSH connection should succeed or fail
+     */
+    function mockSSHServiceWithBehavior(bool $canConnect = true): SSHService
+    {
+        return new class ($canConnect) extends SSHService {
+            public function __construct(private readonly bool $canConnect)
+            {
+                // Skip parent constructor to avoid dependency injection
+            }
+
+            public function assertCanConnect(
+                string $host,
+                int $port,
+                string $username,
+                ?string $privateKeyPath = null
+            ): void {
+                if (!$this->canConnect) {
+                    throw new \RuntimeException('Failed to connect to SSH server');
+                }
+                // Success - no exception thrown
+            }
+
+            public function executeCommand(
+                string $host,
+                int $port,
+                string $username,
+                string $command,
+                ?string $privateKeyPath = null
+            ): array {
+                return ['output' => 'command output', 'exit_code' => 0];
+            }
+
+            public function executeScript(
+                string $host,
+                int $port,
+                string $username,
+                string $scriptPath,
+                ?string $privateKeyPath = null
+            ): array {
+                return ['output' => 'script output', 'exit_code' => 0];
+            }
+
+            public function uploadFile(
+                string $host,
+                int $port,
+                string $username,
+                string $localPath,
+                string $remotePath,
+                ?string $privateKeyPath = null
+            ): void {
+                // Mock implementation - no actual upload
+            }
+
+            public function downloadFile(
+                string $host,
+                int $port,
+                string $username,
+                string $remotePath,
+                string $localPath,
+                ?string $privateKeyPath = null
+            ): void {
+                // Mock implementation - no actual download
+            }
+        };
+    }
+}
+
 if (!function_exists('mockTestConsoleCommand')) {
     /**
      * Create a TestConsoleCommand for testing with mocked dependencies.
@@ -267,7 +352,8 @@ if (!function_exists('mockTestConsoleCommand')) {
         $env = mockEnvService($envFileExists, $envContent);
         $inventory = mockInventoryService($inventoryFileExists, $inventoryData);
         $servers = mockServerRepository($inventoryFileExists, $inventoryData);
+        $ssh = mockSSHService();
 
-        return new TestConsoleCommand($container, $env, $inventory, $servers);
+        return new TestConsoleCommand($container, $env, $inventory, $servers, $ssh);
     }
 }

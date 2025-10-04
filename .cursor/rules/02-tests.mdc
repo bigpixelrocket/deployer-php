@@ -123,5 +123,7 @@ $mock->shouldReceive('method')->with('param')->andReturn('result');
 
 ### Static Analysis
 
+**Running PHPStan applies to PRODUCTION code, not tests.**
+
 - Ignore PHPStan issues in tests - focus on test functionality over compliance
 - Avoid excessive phpdoc just to appease types

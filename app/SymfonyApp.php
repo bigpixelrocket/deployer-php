@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace Bigpixelrocket\DeployerPHP;
 
 use Bigpixelrocket\DeployerPHP\Console\HelloCommand;
+use Bigpixelrocket\DeployerPHP\Console\Server\ServerAddCommand;
+use Bigpixelrocket\DeployerPHP\Console\Server\ServerDeleteCommand;
+use Bigpixelrocket\DeployerPHP\Console\Server\ServerListCommand;
 use Bigpixelrocket\DeployerPHP\Services\VersionService;
 use Symfony\Component\Console\Application as SymfonyApplication;
 use Symfony\Component\Console\Command\Command;
@@ -114,6 +117,9 @@ final class SymfonyApp extends SymfonyApplication
     {
         $commands = [
             HelloCommand::class,
+            ServerAddCommand::class,
+            ServerDeleteCommand::class,
+            ServerListCommand::class,
         ];
 
         foreach ($commands as $command) {

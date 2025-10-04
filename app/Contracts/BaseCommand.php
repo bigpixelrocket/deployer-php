@@ -8,6 +8,7 @@ use Bigpixelrocket\DeployerPHP\Container;
 use Bigpixelrocket\DeployerPHP\Repositories\ServerRepository;
 use Bigpixelrocket\DeployerPHP\Services\EnvService;
 use Bigpixelrocket\DeployerPHP\Services\InventoryService;
+use Bigpixelrocket\DeployerPHP\Services\SSHService;
 use Bigpixelrocket\DeployerPHP\Traits\ConsoleInputTrait;
 use Bigpixelrocket\DeployerPHP\Traits\ConsoleOutputTrait;
 use Symfony\Component\Console\Command\Command;
@@ -36,6 +37,7 @@ abstract class BaseCommand extends Command
         protected readonly EnvService $env,
         protected readonly InventoryService $inventory,
         protected readonly ServerRepository $servers,
+        protected readonly SSHService $ssh,
     ) {
         parent::__construct();
     }
