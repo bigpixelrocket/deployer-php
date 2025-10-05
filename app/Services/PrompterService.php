@@ -244,4 +244,3 @@ class PrompterService
         echo "\033[1A\033[2K";
     }
 }
-
