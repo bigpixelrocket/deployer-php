@@ -61,13 +61,14 @@ class MockFilesystem extends Filesystem
             return true;
         }
 
-        // Check files (direct match or path ends with stored key)
+        // Check files (direct match or basename match)
         if (isset($this->files[$files])) {
             return true;
         }
 
         foreach (array_keys($this->files) as $storedPath) {
-            if (str_ends_with($files, $storedPath)) {
+            // Match if the basename matches or if it's a path component match
+            if (basename($files) === $storedPath || str_ends_with($files, '/'.$storedPath)) {
                 return true;
             }
         }
@@ -93,9 +94,10 @@ class MockFilesystem extends Filesystem
             return $this->files[$filename];
         }
 
-        // Try path ending match
+        // Try basename or path component match
         foreach ($this->files as $storedPath => $content) {
-            if (str_ends_with($filename, $storedPath)) {
+            // Match if the basename matches or if it's a path component match
+            if (basename($filename) === $storedPath || str_ends_with($filename, '/'.$storedPath)) {
                 return $content;
             }
         }
