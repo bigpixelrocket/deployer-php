@@ -9,6 +9,7 @@ use Bigpixelrocket\DeployerPHP\Contracts\BaseCommand;
 use Bigpixelrocket\DeployerPHP\Repositories\ServerRepository;
 use Bigpixelrocket\DeployerPHP\Services\EnvService;
 use Bigpixelrocket\DeployerPHP\Services\InventoryService;
+use Bigpixelrocket\DeployerPHP\Services\PrompterService;
 use Bigpixelrocket\DeployerPHP\Services\SSHService;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -29,9 +30,10 @@ class TestableBaseCommand extends BaseCommand
         InventoryService $inventory,
         ServerRepository $servers,
         SSHService $ssh,
+        PrompterService $prompter,
         private readonly string $testName = 'test-command',
     ) {
-        parent::__construct($container, $env, $inventory, $servers, $ssh);
+        parent::__construct($container, $env, $inventory, $servers, $ssh, $prompter);
     }
 
     protected function configure(): void
@@ -60,9 +62,10 @@ describe('BaseCommand', function () {
         $inventory = mockInventoryService(true);
         $servers = mockServerRepository();
         $ssh = mockSSHService();
+        $prompter = mockPrompter();
 
         // ACT
-        $command = new TestableBaseCommand($container, $env, $inventory, $servers, $ssh, 'test');
+        $command = new TestableBaseCommand($container, $env, $inventory, $servers, $ssh, $prompter, 'test');
 
         // ASSERT
         expect($command->getName())->toBe('test')
@@ -81,7 +84,8 @@ describe('BaseCommand', function () {
         $inventory = mockInventoryService(true);
         $servers = mockServerRepository();
         $ssh = mockSSHService();
-        $command = new TestableBaseCommand($container, $env, $inventory, $servers, $ssh);
+        $prompter = mockPrompter();
+        $command = new TestableBaseCommand($container, $env, $inventory, $servers, $ssh, $prompter);
         $tester = new CommandTester($command);
 
         // ACT

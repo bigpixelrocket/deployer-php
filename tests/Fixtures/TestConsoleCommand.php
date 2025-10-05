@@ -9,6 +9,7 @@ use Bigpixelrocket\DeployerPHP\Contracts\BaseCommand;
 use Bigpixelrocket\DeployerPHP\Repositories\ServerRepository;
 use Bigpixelrocket\DeployerPHP\Services\EnvService;
 use Bigpixelrocket\DeployerPHP\Services\InventoryService;
+use Bigpixelrocket\DeployerPHP\Services\PrompterService;
 use Bigpixelrocket\DeployerPHP\Services\SSHService;
 use Bigpixelrocket\DeployerPHP\Traits\ServerHelpersTrait;
 use Symfony\Component\Console\Command\Command;
@@ -34,8 +35,9 @@ class TestConsoleCommand extends BaseCommand
         InventoryService $inventory,
         ServerRepository $servers,
         SSHService $ssh,
+        PrompterService $prompter,
     ) {
-        parent::__construct($container, $env, $inventory, $servers, $ssh);
+        parent::__construct($container, $env, $inventory, $servers, $ssh, $prompter);
     }
 
     /**

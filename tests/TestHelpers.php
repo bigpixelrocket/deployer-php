@@ -11,6 +11,7 @@ use Bigpixelrocket\DeployerPHP\Services\ProcessFactory;
 use Bigpixelrocket\DeployerPHP\Services\SSHService;
 use Bigpixelrocket\DeployerPHP\Services\VersionService;
 use Bigpixelrocket\DeployerPHP\Tests\Fixtures\MockFilesystem;
+use Bigpixelrocket\DeployerPHP\Tests\Fixtures\MockPrompter;
 use Bigpixelrocket\DeployerPHP\Tests\Fixtures\MockSSHService;
 use Bigpixelrocket\DeployerPHP\Tests\Fixtures\TestConsoleCommand;
 use Symfony\Component\Dotenv\Dotenv;
@@ -230,6 +231,44 @@ if (!function_exists('mockSSHServiceWithBehavior')) {
     }
 }
 
+if (!function_exists('mockPrompter')) {
+    /**
+     * Create a mock PrompterService for testing.
+     *
+     * Returns predefined values instead of displaying interactive prompts.
+     * Values are consumed in order as prompts are called.
+     *
+     * @param array<string> $text Text input values
+     * @param array<string> $password Password input values
+     * @param array<bool> $confirm Confirmation values
+     * @param array<int|string> $select Selection values
+     * @param array<array<int|string>> $multiselect Multiselection values
+     * @param array<string> $suggest Suggestion values
+     * @param array<int|string> $search Search values
+     * @param array<bool> $pause Pause values
+     *
+     * @example
+     *   // Mock text inputs
+     *   $prompter = mockPrompter(text: ['web1', '192.168.1.1']);
+     *
+     * @example
+     *   // Mock confirmations
+     *   $prompter = mockPrompter(confirm: [true, false]);
+     */
+    function mockPrompter(
+        array $text = [],
+        array $password = [],
+        array $confirm = [],
+        array $select = [],
+        array $multiselect = [],
+        array $suggest = [],
+        array $search = [],
+        array $pause = []
+    ): MockPrompter {
+        return new MockPrompter($text, $password, $confirm, $select, $multiselect, $suggest, $search, $pause);
+    }
+}
+
 if (!function_exists('mockVersionService')) {
     /**
      * Create a VersionService for testing with configurable package name and fallback.
@@ -337,7 +376,8 @@ if (!function_exists('mockTestConsoleCommand')) {
         $inventory = mockInventoryService($inventoryFileExists, $inventoryData);
         $servers = mockServerRepository($inventoryFileExists, $inventoryData);
         $ssh = mockSSHService();
+        $prompter = mockPrompter();
 
-        return new TestConsoleCommand($container, $env, $inventory, $servers, $ssh);
+        return new TestConsoleCommand($container, $env, $inventory, $servers, $ssh, $prompter);
     }
 }

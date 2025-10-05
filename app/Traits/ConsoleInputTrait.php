@@ -6,20 +6,12 @@ namespace Bigpixelrocket\DeployerPHP\Traits;
 
 use Closure;
 
-use function Laravel\Prompts\confirm;
-use function Laravel\Prompts\multiselect;
-use function Laravel\Prompts\password;
-use function Laravel\Prompts\pause;
-use function Laravel\Prompts\search;
-use function Laravel\Prompts\select;
-use function Laravel\Prompts\spin;
-use function Laravel\Prompts\suggest;
-use function Laravel\Prompts\text;
-
 /**
  * Console input gathering helpers.
  *
- * Requires the using class to have a `protected InputInterface $input` property.
+ * Requires the using class to have:
+ * - `protected InputInterface $input` property
+ * - `protected PrompterService $prompter` property
  */
 trait ConsoleInputTrait
 {
@@ -61,13 +53,14 @@ trait ConsoleInputTrait
     ): mixed {
         $value = $this->input->getOption($optionName);
 
-        // Handle boolean flags (for VALUE_NONE options)
-        if (is_bool($value) && $value === true) {
-            return true;
+        // Handle boolean flags (for VALUE_NONE options) - both true and false are valid
+        if (is_bool($value)) {
+            return $value;
         }
 
-        // Handle string options with non-empty values
-        if (is_string($value) && $value !== '') {
+        // Handle string options (including empty strings)
+        // null means option was not provided, empty string means it was provided but empty
+        if ($value !== null) {
             return $value;
         }
 
@@ -78,18 +71,6 @@ trait ConsoleInputTrait
     //
     // Laravel Prompts Wrappers
     // -------------------------------------------------------------------------------
-
-    /**
-     * Remove the annoying newline that Laravel Prompts adds before each prompt.
-     *
-     * Uses ANSI escape sequence to move cursor up one line and clear it.
-     */
-    private function suppressPromptSpacing(): void
-    {
-        // Move cursor up one line and clear it
-        // This compensates for the newline Laravel Prompts adds
-        echo "\033[1A\033[2K";
-    }
 
     /**
      * Prompt for text input.
@@ -111,9 +92,7 @@ trait ConsoleInputTrait
         mixed $validate = null,
         string $hint = ''
     ): string {
-        $this->suppressPromptSpacing();
-
-        return text(
+        return $this->prompter->text(
             label: $label,
             placeholder: $placeholder,
             default: $default,
@@ -141,9 +120,7 @@ trait ConsoleInputTrait
         mixed $validate = null,
         string $hint = ''
     ): string {
-        $this->suppressPromptSpacing();
-
-        return password(
+        return $this->prompter->password(
             label: $label,
             placeholder: $placeholder,
             required: $required,
@@ -170,9 +147,7 @@ trait ConsoleInputTrait
         string $no = 'No',
         string $hint = ''
     ): bool {
-        $this->suppressPromptSpacing();
-
-        return confirm(
+        return $this->prompter->confirm(
             label: $label,
             default: $default,
             yes: $yes,
@@ -190,9 +165,7 @@ trait ConsoleInputTrait
      */
     protected function promptPause(string $message = 'Press enter to continue...'): bool
     {
-        $this->suppressPromptSpacing();
-
-        return pause($message);
+        return $this->prompter->pause($message);
     }
 
     /**
@@ -215,9 +188,7 @@ trait ConsoleInputTrait
         mixed $validate = null,
         string $hint = ''
     ): int|string {
-        $this->suppressPromptSpacing();
-
-        return select(
+        return $this->prompter->select(
             label: $label,
             options: $options,
             default: $default,
@@ -249,9 +220,7 @@ trait ConsoleInputTrait
         mixed $validate = null,
         string $hint = ''
     ): array {
-        $this->suppressPromptSpacing();
-
-        return multiselect(
+        return $this->prompter->multiselect(
             label: $label,
             options: $options,
             default: $default,
@@ -286,9 +255,7 @@ trait ConsoleInputTrait
         mixed $validate = null,
         string $hint = ''
     ): string {
-        $this->suppressPromptSpacing();
-
-        return suggest(
+        return $this->prompter->suggest(
             label: $label,
             options: $options,
             placeholder: $placeholder,
@@ -320,9 +287,7 @@ trait ConsoleInputTrait
         mixed $validate = null,
         string $hint = ''
     ): int|string {
-        $this->suppressPromptSpacing();
-
-        return search(
+        return $this->prompter->search(
             label: $label,
             options: $options,
             placeholder: $placeholder,
@@ -346,7 +311,7 @@ trait ConsoleInputTrait
         Closure $callback,
         string $message = 'Loading...'
     ): mixed {
-        return spin(
+        return $this->prompter->spin(
             callback: $callback,
             message: $message
         );

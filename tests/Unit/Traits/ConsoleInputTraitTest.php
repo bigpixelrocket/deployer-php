@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Bigpixelrocket\DeployerPHP\Tests\Unit\Traits;
 
 use Symfony\Component\Console\Tester\CommandTester;
-use Throwable;
 
 require_once __DIR__.'/../../TestHelpers.php';
 
@@ -34,7 +33,7 @@ describe('ConsoleInputTrait', function () {
         expect($output)->toContain('Result: production');
     });
 
-    it('executes closure when string option is empty', function () {
+    it('returns empty string when option is explicitly set to empty', function () {
         // ARRANGE
         $this->command->setTestMethod('getOptionOrPromptEmpty');
 
@@ -42,9 +41,9 @@ describe('ConsoleInputTrait', function () {
         $this->tester->execute(['--name' => '']);
         $output = $this->tester->getDisplay();
 
-        // ASSERT
-        expect($output)->toContain('Closure executed')
-            ->and($output)->toContain('Result: from-closure');
+        // ASSERT - Empty string is a valid value, so closure should NOT execute
+        expect($output)->not->toContain('Closure executed')
+            ->and($output)->toContain('Result:');
     });
 
     it('executes closure when string option not provided', function () {
@@ -118,40 +117,9 @@ describe('ConsoleInputTrait', function () {
     // Prompt Wrappers
     // -------------------------------------------------------------------------------
 
-    it('prompt wrappers suppress spacing with ANSI escape sequences', function (string $method) {
-        // ARRANGE
-        // Expected ANSI sequence: \033[1A (move up) + \033[2K (clear line)
-        $expectedAnsi = "\033[1A\033[2K";
-        $this->command->setTestMethod($method);
-
-        // ACT
-        // Capture raw output including ANSI sequences using output buffering
-        ob_start();
-
-        try {
-            // Execute command which calls the prompt wrapper
-            // It will output ANSI then fail on actual prompt (non-interactive mode)
-            $this->tester->execute([]);
-        } catch (Throwable) {
-            // Expected to fail in non-interactive mode, but ANSI was already output
-        }
-
-        $output = ob_get_clean();
-
-        // ASSERT
-        // Verify the ANSI escape sequence was output for spacing suppression
-        expect($output)->toContain($expectedAnsi);
-    })->with([
-        'promptText',
-        'promptPassword',
-        'promptConfirm',
-        'promptPause',
-        'promptSelect',
-        'promptMultiselect',
-        'promptSuggest',
-        // Note: promptSearch is not tested here as it requires user interaction
-        // and cannot be tested in non-interactive mode even with default values
-    ]);
+    // Note: Spacing suppression is now handled by PrompterService internally.
+    // When using MockPrompter in tests, no ANSI sequences are output (as expected).
+    // The real PrompterService handles spacing suppression for actual prompts.
 
     it('promptSpin executes callback and returns result', function () {
         // ARRANGE
