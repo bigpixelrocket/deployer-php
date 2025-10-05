@@ -66,7 +66,7 @@ if (!function_exists('mockFilesystem')) {
         bool $throwOnRead = false,
         bool $throwOnMkdir = false,
         bool $throwOnDump = false,
-        string $initialPath = '.deployer/inventory.yml'
+        string $initialPath = 'inventory.yml'
     ): Filesystem {
         return new MockFilesystem($exists, $content, $throwOnRead, $throwOnMkdir, $throwOnDump, $initialPath);
     }

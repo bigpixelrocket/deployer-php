@@ -44,7 +44,12 @@ class MockFilesystem extends Filesystem
         if ($this->initialExists) {
             $this->files[$this->initialPath] = $this->initialContent;
         }
-        $this->directories = $this->throwOnMkdir ? [] : ['.deployer'];
+
+        // Extract parent directory from initial path if exists
+        $directory = dirname($this->initialPath);
+        $hasDirectory = $directory !== '.' && $directory !== '';
+
+        $this->directories = $this->throwOnMkdir ? [] : ($hasDirectory ? [$directory] : []);
     }
 
     /**
@@ -61,14 +66,13 @@ class MockFilesystem extends Filesystem
             return true;
         }
 
-        // Check files (direct match or basename match)
+        // Check files (direct match or path ends with stored key)
         if (isset($this->files[$files])) {
             return true;
         }
 
         foreach (array_keys($this->files) as $storedPath) {
-            // Match if the basename matches or if it's a path component match
-            if (basename($files) === $storedPath || str_ends_with($files, '/'.$storedPath)) {
+            if (str_ends_with($files, $storedPath)) {
                 return true;
             }
         }
@@ -94,10 +98,9 @@ class MockFilesystem extends Filesystem
             return $this->files[$filename];
         }
 
-        // Try basename or path component match
+        // Try path ending match
         foreach ($this->files as $storedPath => $content) {
-            // Match if the basename matches or if it's a path component match
-            if (basename($filename) === $storedPath || str_ends_with($filename, '/'.$storedPath)) {
+            if (str_ends_with($filename, $storedPath)) {
                 return $content;
             }
         }
