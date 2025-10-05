@@ -2,8 +2,10 @@
 
 declare(strict_types=1);
 
+use Bigpixelrocket\DeployerPHP\Console\Server\ServerListCommand;
 use Bigpixelrocket\DeployerPHP\Container;
 use Bigpixelrocket\DeployerPHP\DTOs\ServerDTO;
+use Bigpixelrocket\DeployerPHP\Repositories\ServerRepository;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Tester\CommandTester;
 
@@ -33,12 +35,13 @@ function createServerListCommandTester(array $existingServers = []): CommandTest
     $inventory = mockInventoryService(true, $inventoryData);
     $inventory->loadInventoryFile();
 
-    $repository = new \Bigpixelrocket\DeployerPHP\Repositories\ServerRepository();
+    $repository = new ServerRepository();
     $repository->loadInventory($inventory);
 
     $ssh = mockSSHService();
+    $prompter = mockPrompter();
 
-    $command = new \Bigpixelrocket\DeployerPHP\Console\Server\ServerListCommand($container, $env, $inventory, $repository, $ssh);
+    $command = new ServerListCommand($container, $env, $inventory, $repository, $ssh, $prompter);
     return new CommandTester($command);
 }
 

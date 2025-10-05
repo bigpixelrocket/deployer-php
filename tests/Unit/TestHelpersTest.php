@@ -18,13 +18,13 @@ describe('mockFilesystem', function () {
         // ACT & ASSERT
         expect($mockFs->exists($checkPath))->toBe($expected, $description);
     })->with([
-        'directory exists' => [true, 'content', '.deployer/inventory.yml', '.deployer', true, 'directory should exist'],
-        'directory with trailing slash' => [true, 'content', '.deployer/inventory.yml', '.deployer/', true, 'directory with trailing slash should exist'],
-        'existing file' => [true, 'content', '.deployer/inventory.yml', '.deployer/inventory.yml', true, 'existing file should exist'],
-        'non-existent file in existing dir' => [true, 'content', '.deployer/inventory.yml', '.deployer/missing.yml', false, 'non-existent file should not exist'],
-        'directory exists when file does not' => [false, '', '.deployer/inventory.yml', '.deployer', true, 'directory should exist'],
-        'non-existent file (no substring match)' => [false, '', '.deployer/inventory.yml', '.deployer/inventory.yml', false, 'non-existent file should not exist even if directory matches'],
-        'different path no substring match' => [false, '', '.deployer/inventory.yml', '/path/to/.deployer/config.yml', false, 'non-existent file with directory substring should not exist'],
+        'directory exists' => [true, 'content', 'config/app.yml', 'config', true, 'directory should exist'],
+        'directory with trailing slash' => [true, 'content', 'config/app.yml', 'config/', true, 'directory with trailing slash should exist'],
+        'existing file' => [true, 'content', 'inventory.yml', 'inventory.yml', true, 'existing file should exist'],
+        'non-existent file in existing dir' => [true, 'content', 'config/app.yml', 'config/missing.yml', false, 'non-existent file should not exist'],
+        'directory exists when file does not' => [false, '', 'config/app.yml', 'config', true, 'directory should exist'],
+        'non-existent file (no substring match)' => [false, '', 'inventory.yml', 'inventory.yml', false, 'non-existent file should not exist even if directory matches'],
+        'different path no substring match' => [false, '', 'config/app.yml', '/path/to/config/other.yml', false, 'non-existent file with directory substring should not exist'],
         'direct path match' => [true, 'test', 'inventory.yml', 'inventory.yml', true, 'direct match should work'],
         'path ending match' => [true, 'test', 'inventory.yml', '/path/to/inventory.yml', true, 'path ending match should work'],
         'different path ending' => [true, 'test', 'inventory.yml', '/different/inventory.yml', true, 'different path ending should work'],

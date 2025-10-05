@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Bigpixelrocket\DeployerPHP\Console\Server\ServerAddCommand;
 use Bigpixelrocket\DeployerPHP\Container;
+use Bigpixelrocket\DeployerPHP\Repositories\ServerRepository;
 use Bigpixelrocket\DeployerPHP\Services\SSHService;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Tester\CommandTester;
@@ -21,12 +22,13 @@ function createServerAddCommandTester(?SSHService $sshService = null): CommandTe
     $inventory = mockInventoryService(true, ['servers' => []]);
     $inventory->loadInventoryFile();
 
-    $repository = new \Bigpixelrocket\DeployerPHP\Repositories\ServerRepository();
+    $repository = new ServerRepository();
     $repository->loadInventory($inventory);
 
     $ssh = $sshService ?? mockSSHService();
+    $prompter = mockPrompter();
 
-    $command = new ServerAddCommand($container, $env, $inventory, $repository, $ssh);
+    $command = new ServerAddCommand($container, $env, $inventory, $repository, $ssh, $prompter);
     return new CommandTester($command);
 }
 
@@ -44,7 +46,7 @@ describe('ServerAddCommand', function () {
         $sshService = mockSSHServiceWithBehavior(true);
         $tester = createServerAddCommandTester($sshService);
 
-        // ACT - Capture all output including ANSI sequences from Laravel Prompts
+        // ACT - Provide all options for fully non-interactive execution
         ob_start();
         $exitCode = $tester->execute([
             '--name' => 'production-web',
@@ -52,6 +54,7 @@ describe('ServerAddCommand', function () {
             '--port' => '2222',
             '--username' => 'deployer',
             '--private-key-path' => '~/.ssh/prod_key',
+            '--skip' => true,
             '--yes' => true,
         ]);
         ob_end_clean();
@@ -72,11 +75,15 @@ describe('ServerAddCommand', function () {
         $sshService = mockSSHServiceWithBehavior(true);
         $tester = createServerAddCommandTester($sshService);
 
-        // ACT - Capture all output including ANSI sequences from Laravel Prompts
+        // ACT - Provide all required options to avoid prompting
         ob_start();
         $exitCode = $tester->execute([
             '--name' => 'web1',
             '--host' => '192.168.1.1',
+            '--port' => '22',
+            '--username' => 'root',
+            '--private-key-path' => '',
+            '--skip' => true,
             '--yes' => true,
         ]);
         ob_end_clean();
@@ -96,11 +103,14 @@ describe('ServerAddCommand', function () {
         $sshService = mockSSHServiceWithBehavior(true);
         $tester = createServerAddCommandTester($sshService);
 
-        // ACT - Capture all output including ANSI sequences from Laravel Prompts
+        // ACT - Provide all required options
         ob_start();
         $exitCode = $tester->execute([
             '--name' => 'test-server',
             '--host' => '10.0.0.1',
+            '--port' => '22',
+            '--username' => 'root',
+            '--private-key-path' => '',
             '--skip' => false,
             '--yes' => true,
         ]);
@@ -119,11 +129,14 @@ describe('ServerAddCommand', function () {
         $sshService = mockSSHServiceWithBehavior(false);
         $tester = createServerAddCommandTester($sshService);
 
-        // ACT - Capture all output including ANSI sequences from Laravel Prompts
+        // ACT - Provide all required options
         ob_start();
         $exitCode = $tester->execute([
             '--name' => 'untested-server',
             '--host' => '192.168.1.50',
+            '--port' => '22',
+            '--username' => 'root',
+            '--private-key-path' => '',
             '--skip' => true,
             '--yes' => true,
         ]);
@@ -146,10 +159,14 @@ describe('ServerAddCommand', function () {
         $sshService = mockSSHServiceWithBehavior(true);
         $tester = createServerAddCommandTester($sshService);
 
-        // ACT & ASSERT
+        // ACT & ASSERT - Provide all required options
         expect(fn () => $tester->execute([
             '--name' => 'test',
             '--host' => $invalidHost,
+            '--port' => '22',
+            '--username' => 'root',
+            '--private-key-path' => '',
+            '--skip' => true,
             '--yes' => true,
         ]))->toThrow(\InvalidArgumentException::class, 'Invalid host');
     })->with([
@@ -163,11 +180,14 @@ describe('ServerAddCommand', function () {
         $sshService = mockSSHServiceWithBehavior(true);
         $tester = createServerAddCommandTester($sshService);
 
-        // ACT & ASSERT
+        // ACT & ASSERT - Provide all required options
         expect(fn () => $tester->execute([
             '--name' => 'test',
             '--host' => '192.168.1.1',
             '--port' => $invalidPort,
+            '--username' => 'root',
+            '--private-key-path' => '',
+            '--skip' => true,
             '--yes' => true,
         ]))->toThrow(\InvalidArgumentException::class, 'between 1 and 65535');
     })->with([
@@ -187,6 +207,10 @@ describe('ServerAddCommand', function () {
         $tester->execute([
             '--name' => 'duplicate-name',
             '--host' => '192.168.1.1',
+            '--port' => '22',
+            '--username' => 'root',
+            '--private-key-path' => '',
+            '--skip' => true,
             '--yes' => true,
         ]);
         ob_end_clean();
@@ -196,6 +220,10 @@ describe('ServerAddCommand', function () {
         $exitCode = $tester->execute([
             '--name' => 'duplicate-name',
             '--host' => '192.168.1.2',
+            '--port' => '22',
+            '--username' => 'root',
+            '--private-key-path' => '',
+            '--skip' => true,
             '--yes' => true,
         ]);
         ob_end_clean();
@@ -213,11 +241,14 @@ describe('ServerAddCommand', function () {
         $sshService = mockSSHServiceWithBehavior(false);
         $tester = createServerAddCommandTester($sshService);
 
-        // ACT - Capture all output including ANSI sequences from Laravel Prompts
+        // ACT - Provide all required options
         ob_start();
         $exitCode = $tester->execute([
             '--name' => 'unreachable',
             '--host' => '192.168.1.99',
+            '--port' => '22',
+            '--username' => 'root',
+            '--private-key-path' => '',
             '--skip' => false,
             '--yes' => true,
         ]);
@@ -239,11 +270,14 @@ describe('ServerAddCommand', function () {
         $sshService = mockSSHServiceWithBehavior(true);
         $tester = createServerAddCommandTester($sshService);
 
-        // ACT - Capture all output including ANSI sequences from Laravel Prompts
+        // ACT - Provide all required options
         ob_start();
         $exitCode = $tester->execute([
             '--name' => 'confirmed-server',
             '--host' => '192.168.1.1',
+            '--port' => '22',
+            '--username' => 'root',
+            '--private-key-path' => '',
             '--skip' => true,
             '--yes' => true,
         ]);
@@ -268,13 +302,15 @@ describe('ServerAddCommand', function () {
         $inventory = mockInventoryService(true, ['servers' => []]);
         $inventory->loadInventoryFile();
 
-        $repository = new \Bigpixelrocket\DeployerPHP\Repositories\ServerRepository();
+        $repository = new ServerRepository();
         $repository->loadInventory($inventory);
 
-        $command = new ServerAddCommand($container, $env, $inventory, $repository, $sshService);
+        $prompter = mockPrompter();
+
+        $command = new ServerAddCommand($container, $env, $inventory, $repository, $sshService, $prompter);
         $tester = new CommandTester($command);
 
-        // ACT - Capture all output including ANSI sequences from Laravel Prompts
+        // ACT - Provide all required options
         ob_start();
         $tester->execute([
             '--name' => 'persisted-server',
@@ -282,6 +318,7 @@ describe('ServerAddCommand', function () {
             '--port' => '8022',
             '--username' => 'admin',
             '--private-key-path' => '~/.ssh/admin_key',
+            '--skip' => true,
             '--yes' => true,
         ]);
         ob_end_clean();
@@ -302,7 +339,8 @@ describe('ServerAddCommand', function () {
         $sshService = mockSSHServiceWithBehavior(true);
         $tester = createServerAddCommandTester($sshService);
 
-        // ACT
+        // ACT - Provide all required options
+        ob_start();
         $tester->execute([
             '--name' => 'display-test',
             '--host' => 'example.com',
@@ -312,6 +350,7 @@ describe('ServerAddCommand', function () {
             '--skip' => true,
             '--yes' => true,
         ]);
+        ob_end_clean();
 
         // ASSERT
         $output = $tester->getDisplay();
@@ -332,11 +371,14 @@ describe('ServerAddCommand', function () {
         $sshService = mockSSHServiceWithBehavior(true);
         $tester = createServerAddCommandTester($sshService);
 
-        // ACT - Capture all output including ANSI sequences from Laravel Prompts
+        // ACT - Provide all required options except private-key-path to test default
         ob_start();
         $tester->execute([
             '--name' => 'default-key',
             '--host' => '192.168.1.1',
+            '--port' => '22',
+            '--username' => 'root',
+            '--private-key-path' => '',
             '--skip' => true,
             '--yes' => true,
         ]);

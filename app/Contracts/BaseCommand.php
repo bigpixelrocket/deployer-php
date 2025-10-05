@@ -8,6 +8,7 @@ use Bigpixelrocket\DeployerPHP\Container;
 use Bigpixelrocket\DeployerPHP\Repositories\ServerRepository;
 use Bigpixelrocket\DeployerPHP\Services\EnvService;
 use Bigpixelrocket\DeployerPHP\Services\InventoryService;
+use Bigpixelrocket\DeployerPHP\Services\PrompterService;
 use Bigpixelrocket\DeployerPHP\Services\SSHService;
 use Bigpixelrocket\DeployerPHP\Traits\ConsoleInputTrait;
 use Bigpixelrocket\DeployerPHP\Traits\ConsoleOutputTrait;
@@ -38,6 +39,7 @@ abstract class BaseCommand extends Command
         protected readonly InventoryService $inventory,
         protected readonly ServerRepository $servers,
         protected readonly SSHService $ssh,
+        protected readonly PrompterService $prompter,
     ) {
         parent::__construct();
     }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Bigpixelrocket\DeployerPHP\Console\Server\ServerDeleteCommand;
 use Bigpixelrocket\DeployerPHP\Container;
 use Bigpixelrocket\DeployerPHP\DTOs\ServerDTO;
+use Bigpixelrocket\DeployerPHP\Repositories\ServerRepository;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Tester\CommandTester;
 
@@ -34,12 +35,13 @@ function createServerDeleteCommandTester(array $existingServers = []): CommandTe
     $inventory = mockInventoryService(true, $inventoryData);
     $inventory->loadInventoryFile();
 
-    $repository = new \Bigpixelrocket\DeployerPHP\Repositories\ServerRepository();
+    $repository = new ServerRepository();
     $repository->loadInventory($inventory);
 
     $ssh = mockSSHService();
+    $prompter = mockPrompter();
 
-    $command = new ServerDeleteCommand($container, $env, $inventory, $repository, $ssh);
+    $command = new ServerDeleteCommand($container, $env, $inventory, $repository, $ssh, $prompter);
     return new CommandTester($command);
 }
 
