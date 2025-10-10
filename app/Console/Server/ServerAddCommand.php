@@ -129,7 +129,7 @@ class ServerAddCommand extends BaseCommand
 
         $this->hr();
 
-        $this->displayServerInfo($server);
+        $this->displayServerDeets($server);
 
         //
         // Verify connectivity
