@@ -94,13 +94,13 @@ final class SymfonyApp extends SymfonyApplication
         // Simple, compact banner
         $banner = [
             '',
-            '<fg=cyan>╭───────</><fg=blue>─────────</><fg=bright-blue>─────────</><fg=magenta>─────────</><fg=gray>────────</>',
-            ' <fg=cyan>┌┬┐┌─┐┌─┐┬  ┌─┐┬ ┬┌─┐┬─┐</>',
-            ' <fg=cyan> ││├┤ ├─┘│  │ │└┬┘├┤ ├┬┘</>',
-            ' <fg=blue>─┴┘└─┘┴  ┴─┘└─┘ ┴ └─┘┴└─PHP</> <fg=bright-blue>'.$version.'</>',
+            '<fg=cyan;options=bold>╭────────</><fg=blue;options=bold>──────────</><fg=bright-blue;options=bold>──────────</><fg=magenta;options=bold>──────────</><fg=gray;options=bold>─────────</>',
+            '  <fg=cyan;options=bold>┌┬┐┌─┐┌─┐┬  ┌─┐┬ ┬┌─┐┬─┐</>',
+            '  <fg=cyan;options=bold> ││├┤ ├─┘│  │ │└┬┘├┤ ├┬┘</>',
+            '  <fg=blue;options=bold>─┴┘└─┘┴  ┴─┘└─┘ ┴ └─┘┴└─PHP</> <fg=bright-blue;options=bold>'.$version.'</>',
             '',
-            ' <fg=gray>The Server & Site Deployment Tool for PHP</>',
-            '<fg=cyan>╰───────</><fg=blue>─────────</><fg=bright-blue>─────────</><fg=magenta>─────────</><fg=gray>────────</>',
+            '  The Server & Site Deployment Tool for PHP',
+            '<fg=cyan;options=bold>╰────────</><fg=blue;options=bold>──────────</><fg=bright-blue;options=bold>──────────</><fg=magenta;options=bold>──────────</><fg=gray;options=bold>─────────</>',
             ''
         ];
 
