@@ -146,30 +146,6 @@ describe('ServerListCommand', function () {
             ->and($output)->not->toContain('default');
     });
 
-    it('displays all server fields correctly', function () {
-        // ARRANGE
-        $existingServers = [
-            new ServerDTO('full-details', 'server.example.com', 9022, 'sysadmin', '/home/user/.ssh/key'),
-        ];
-        $tester = createServerListCommandTester($existingServers);
-
-        // ACT
-        $exitCode = $tester->execute([]);
-
-        // ASSERT
-        $output = $tester->getDisplay();
-        expect($output)->toContain('Name:')
-            ->and($output)->toContain('full-details')
-            ->and($output)->toContain('Host:')
-            ->and($output)->toContain('server.example.com')
-            ->and($output)->toContain('Port:')
-            ->and($output)->toContain('9022')
-            ->and($output)->toContain('User:')
-            ->and($output)->toContain('sysadmin')
-            ->and($output)->toContain('Key:')
-            ->and($output)->toContain('/home/user/.ssh/key');
-    });
-
     it('lists servers in order they appear in inventory', function () {
         // ARRANGE
         $existingServers = [

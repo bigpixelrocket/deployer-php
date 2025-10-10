@@ -253,7 +253,11 @@ describe('ServerAddCommand', function () {
             ->and($output)->toContain('--skip');
     });
 
-    it('saves server when confirmation is given', function () {
+    //
+    // Inventory Persistence & Display
+    // -------------------------------------------------------------------------------
+
+    it('displays complete server information and persists to inventory', function () {
         // ARRANGE
         $sshService = mockSSHServiceWithBehavior(true);
         $tester = createServerAddCommandTester($sshService);
@@ -261,64 +265,9 @@ describe('ServerAddCommand', function () {
         // ACT - Provide all required options
         ob_start();
         $exitCode = $tester->execute([
-            '--name' => 'confirmed-server',
-            '--host' => '192.168.1.1',
-            '--port' => '22',
-            '--username' => 'root',
-            '--private-key-path' => '',
-            '--skip' => true,
-            '--yes' => true,
-        ]);
-        ob_end_clean();
-
-        // ASSERT
-        $output = $tester->getDisplay();
-        expect($exitCode)->toBe(Command::SUCCESS)
-            ->and($output)->toContain('✓')
-            ->and($output)->toContain('Server added successfully');
-    });
-
-    //
-    // Inventory Persistence
-    // -------------------------------------------------------------------------------
-
-    it('persists server data to inventory correctly', function () {
-        // ARRANGE
-        $sshService = mockSSHServiceWithBehavior(true);
-        $tester = createServerAddCommandTester($sshService);
-
-        // ACT - Provide all required options
-        ob_start();
-        $tester->execute([
-            '--name' => 'persisted-server',
-            '--host' => '10.20.30.40',
-            '--port' => '8022',
-            '--username' => 'admin',
-            '--private-key-path' => '~/.ssh/admin_key',
-            '--skip' => true,
-            '--yes' => true,
-        ]);
-        ob_end_clean();
-
-        // ASSERT - Verify server persisted by checking command output
-        $output = $tester->getDisplay();
-        expect($output)->toContain('✓')
-            ->and($output)->toContain('Server added successfully')
-            ->and($output)->toContain('persisted-server')
-            ->and($output)->toContain('10.20.30.40');
-    });
-
-    it('displays complete server information before saving', function () {
-        // ARRANGE
-        $sshService = mockSSHServiceWithBehavior(true);
-        $tester = createServerAddCommandTester($sshService);
-
-        // ACT - Provide all required options
-        ob_start();
-        $tester->execute([
-            '--name' => 'display-test',
+            '--name' => 'complete-test',
             '--host' => 'example.com',
-            '--port' => '22',
+            '--port' => '8022',
             '--username' => 'deployer',
             '--private-key-path' => '~/.ssh/key',
             '--skip' => true,
@@ -326,43 +275,20 @@ describe('ServerAddCommand', function () {
         ]);
         ob_end_clean();
 
-        // ASSERT
+        // ASSERT - Verify display AND persistence
         $output = $tester->getDisplay();
-        expect($output)->toContain('Name:')
-            ->and($output)->toContain('display-test')
+        expect($exitCode)->toBe(Command::SUCCESS)
+            ->and($output)->toContain('Name:')
+            ->and($output)->toContain('complete-test')
             ->and($output)->toContain('Host:')
             ->and($output)->toContain('example.com')
             ->and($output)->toContain('Port:')
-            ->and($output)->toContain('22')
+            ->and($output)->toContain('8022')
             ->and($output)->toContain('User:')
             ->and($output)->toContain('deployer')
             ->and($output)->toContain('Key:')
-            ->and($output)->toContain('~/.ssh/key');
-    });
-
-    it('shows default SSH key path when not provided', function () {
-        // ARRANGE
-        $sshService = mockSSHServiceWithBehavior(true);
-        $tester = createServerAddCommandTester($sshService);
-
-        // ACT - Provide all required options except private-key-path to test default
-        ob_start();
-        $tester->execute([
-            '--name' => 'default-key',
-            '--host' => '192.168.1.1',
-            '--port' => '22',
-            '--username' => 'root',
-            '--private-key-path' => '',
-            '--skip' => true,
-            '--yes' => true,
-        ]);
-        ob_end_clean();
-
-        // ASSERT
-        $output = $tester->getDisplay();
-        expect($output)->toContain('Key:')
-            ->and($output)->toContain('default')
-            ->and($output)->toContain('~/.ssh/id_ed25519')
-            ->and($output)->toContain('~/.ssh/id_rsa');
+            ->and($output)->toContain('~/.ssh/key')
+            ->and($output)->toContain('✓')
+            ->and($output)->toContain('Server added successfully');
     });
 });

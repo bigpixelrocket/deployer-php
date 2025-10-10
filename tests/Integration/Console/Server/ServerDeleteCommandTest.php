@@ -80,25 +80,6 @@ describe('ServerDeleteCommand', function () {
         // ASSERT
         $output = $tester->getDisplay();
         expect($exitCode)->toBe(Command::SUCCESS)
-            ->and($output)->toContain('deleted successfully');
-    });
-
-    it('deletes server when confirmation is provided', function () {
-        // ARRANGE
-        $existingServers = [
-            new ServerDTO('delete-me', '192.168.1.1', 22, 'root', null),
-        ];
-        $tester = createServerDeleteCommandTester($existingServers);
-
-        // ACT
-        $exitCode = $tester->execute([
-            '--name' => 'delete-me',
-            '--yes' => true,
-        ]);
-
-        // ASSERT
-        $output = $tester->getDisplay();
-        expect($exitCode)->toBe(Command::SUCCESS)
             ->and($output)->toContain('✓')
             ->and($output)->toContain('deleted successfully');
     });
@@ -146,53 +127,31 @@ describe('ServerDeleteCommand', function () {
     // Display Verification
     // -------------------------------------------------------------------------------
 
-    it('displays server info before confirmation', function () {
+    it('displays server information before deletion', function (ServerDTO $server, array $expectedOutput) {
         // ARRANGE
-        $existingServers = [
-            new ServerDTO('display-test', 'example.com', 2222, 'deployer', '~/.ssh/key'),
-        ];
-        $tester = createServerDeleteCommandTester($existingServers);
+        $tester = createServerDeleteCommandTester([$server]);
 
         // ACT
         $tester->execute([
-            '--name' => 'display-test',
+            '--name' => $server->name,
             '--yes' => true,
         ]);
 
         // ASSERT
         $output = $tester->getDisplay();
-        expect($output)->toContain('Name:')
-            ->and($output)->toContain('display-test')
-            ->and($output)->toContain('Host:')
-            ->and($output)->toContain('example.com')
-            ->and($output)->toContain('Port:')
-            ->and($output)->toContain('2222')
-            ->and($output)->toContain('User:')
-            ->and($output)->toContain('deployer')
-            ->and($output)->toContain('Key:')
-            ->and($output)->toContain('~/.ssh/key');
-    });
-
-    it('displays default SSH key message when path is null', function () {
-        // ARRANGE
-        $existingServers = [
-            new ServerDTO('default-key-server', '192.168.1.1', 22, 'root', null),
-        ];
-        $tester = createServerDeleteCommandTester($existingServers);
-
-        // ACT
-        $tester->execute([
-            '--name' => 'default-key-server',
-            '--yes' => true,
-        ]);
-
-        // ASSERT
-        $output = $tester->getDisplay();
-        expect($output)->toContain('Key:')
-            ->and($output)->toContain('default')
-            ->and($output)->toContain('~/.ssh/id_ed25519')
-            ->and($output)->toContain('~/.ssh/id_rsa');
-    });
+        foreach ($expectedOutput as $expected) {
+            expect($output)->toContain($expected);
+        }
+    })->with([
+        'custom key path' => [
+            new ServerDTO('custom-key', 'example.com', 2222, 'deployer', '~/.ssh/key'),
+            ['Name:', 'custom-key', 'Host:', 'example.com', 'Port:', '2222', 'User:', 'deployer', 'Key:', '~/.ssh/key'],
+        ],
+        'default key path' => [
+            new ServerDTO('default-key', '192.168.1.1', 22, 'root', null),
+            ['Name:', 'default-key', 'Host:', '192.168.1.1', 'Port:', '22', 'User:', 'root', 'Key:', 'default', '~/.ssh/id_ed25519', '~/.ssh/id_rsa'],
+        ],
+    ]);
 
     it('shows command hint with correct parameters', function () {
         // ARRANGE

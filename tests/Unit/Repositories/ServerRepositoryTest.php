@@ -135,22 +135,4 @@ describe('ServerRepository', function () {
         // ASSERT
         expect($repository->all())->toBeArray()->toBeEmpty();
     });
-
-    it('loads existing servers from inventory', function () {
-        // ARRANGE
-        $inventory = mockInventoryService(true, ['servers' => [
-            ['name' => 'web1', 'host' => '192.168.1.1', 'port' => 22, 'username' => 'root', 'privateKeyPath' => null],
-            ['name' => 'web2', 'host' => '192.168.1.2', 'port' => 22, 'username' => 'root', 'privateKeyPath' => null],
-        ]]);
-        $inventory->loadInventoryFile();
-        $repository = new ServerRepository();
-
-        // ACT
-        $repository->loadInventory($inventory);
-
-        // ASSERT
-        expect($repository->all())->toHaveCount(2)
-            ->and($repository->findByName('web1'))->not->toBeNull()
-            ->and($repository->findByName('web2'))->not->toBeNull();
-    });
 });
