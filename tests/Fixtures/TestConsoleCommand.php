@@ -70,7 +70,7 @@ class TestConsoleCommand extends BaseCommand
                 'hr' => $this->hr(),
                 'writeln' => $this->writeln(...$this->testArgs),
                 'showCommandHint' => $this->showCommandHint(...$this->testArgs),
-                'displayServerInfo' => $this->displayServerInfo(...$this->testArgs),
+                'displayServerDeets' => $this->displayServerDeets(...$this->testArgs),
                 'getOptionOrPrompt' => $this->testGetOptionOrPrompt(),
                 'getOptionOrPromptEmpty' => $this->testGetOptionOrPromptEmpty(),
                 'getOptionOrPromptBoolean' => $this->testGetOptionOrPromptBoolean(),

@@ -17,12 +17,12 @@ describe('ServerHelpersTrait', function () {
     });
 
     //
-    // displayServerInfo
+    // displayServerDeets
     // -------------------------------------------------------------------------------
 
     it('displays server information with all fields', function () {
         // ARRANGE
-        $this->command->setTestMethod('displayServerInfo', [
+        $this->command->setTestMethod('displayServerDeets', [
             new ServerDTO(
                 name: 'production-web',
                 host: '192.168.1.100',
@@ -51,7 +51,7 @@ describe('ServerHelpersTrait', function () {
 
     it('displays default SSH key message when privateKeyPath is null', function () {
         // ARRANGE
-        $this->command->setTestMethod('displayServerInfo', [
+        $this->command->setTestMethod('displayServerDeets', [
             new ServerDTO(name: 'test-server', host: '127.0.0.1'),
         ]);
 
@@ -68,7 +68,7 @@ describe('ServerHelpersTrait', function () {
 
     it('displays server info with default values', function () {
         // ARRANGE
-        $this->command->setTestMethod('displayServerInfo', [
+        $this->command->setTestMethod('displayServerDeets', [
             new ServerDTO(name: 'minimal', host: 'example.com'),
         ]);
 

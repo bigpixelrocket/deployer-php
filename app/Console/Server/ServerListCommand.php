@@ -47,7 +47,7 @@ class ServerListCommand extends BaseCommand
         $this->h1('All Servers');
 
         foreach ($allServers as $server) {
-            $this->displayServerInfo($server);
+            $this->displayServerDeets($server);
         }
 
         return Command::SUCCESS;

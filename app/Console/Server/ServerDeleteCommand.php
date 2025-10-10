@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Bigpixelrocket\DeployerPHP\Console\Server;
 
 use Bigpixelrocket\DeployerPHP\Contracts\BaseCommand;
-use Bigpixelrocket\DeployerPHP\DTOs\ServerDTO;
 use Bigpixelrocket\DeployerPHP\Traits\ServerHelpersTrait;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -44,54 +43,19 @@ class ServerDeleteCommand extends BaseCommand
 
         $this->hr();
 
-        //
-        // Get all servers
-
-        $allServers = $this->servers->all();
-        if (count($allServers) === 0) {
-            $this->warning('No servers found in inventory');
-            $this->writeln([
-                '',
-                'Use <fg=cyan>server:add</> to add a server',
-                '',
-            ]);
-
-            return Command::SUCCESS;
-        }
-
-        // Extract server names from DTOs for promptSelect
-        $serverNames = array_map(fn (ServerDTO $server) => $server->name, $allServers);
-
-        //
-        // Select server to delete
-
         $this->h1('Delete Server');
 
-        $name = (string) $this->getOptionOrPrompt(
-            'name',
-            fn () => $this->promptSelect(
-                label: 'Select server:',
-                options: $serverNames,
-            )
-        );
-
         //
-        // Find server and display info
+        // Select server
 
-        $server = null;
-        foreach ($allServers as $s) {
-            if ($s->name === $name) {
-                $server = $s;
-                break;
-            }
+        $selection = $this->selectServer();
+
+        if ($selection['server'] === null) {
+            return $selection['exit_code'];
         }
 
-        if ($server === null) {
-            $this->error("Server '{$name}' not found in inventory");
-            return Command::FAILURE;
-        }
-
-        $this->displayServerInfo($server);
+        $server = $selection['server'];
+        $this->displayServerDeets($server);
 
         //
         // Confirm deletion
@@ -115,16 +79,16 @@ class ServerDeleteCommand extends BaseCommand
         //
         // Delete server
 
-        $this->servers->delete($name);
+        $this->servers->delete($server->name);
 
-        $this->success("Server '{$name}' deleted successfully");
+        $this->success("Server '{$server->name}' deleted successfully");
         $this->writeln('');
 
         //
         // Show command hint
 
         $this->showCommandHint('server:delete', [
-            'name' => $name,
+            'name' => $server->name,
             'yes' => $confirmed,
         ]);
 

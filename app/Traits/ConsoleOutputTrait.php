@@ -74,7 +74,7 @@ trait ConsoleOutputTrait
     protected function h1(string $text): void
     {
         $this->writeln([
-            '<fg=bright-blue>▸ </><fg=cyan>'.$text.'</>',
+            '<fg=bright-blue>▸ </><fg=cyan;options=bold>'.$text.'</>',
             '',
         ]);
     }
@@ -85,7 +85,7 @@ trait ConsoleOutputTrait
     protected function hr(): void
     {
         $this->writeln([
-            '<fg=cyan>╭───────</><fg=blue>─────────</><fg=bright-blue>─────────</><fg=magenta>─────────</><fg=gray>────────</>',
+            '<fg=cyan;options=bold>╭────────</><fg=blue;options=bold>──────────</><fg=bright-blue;options=bold>──────────</><fg=magenta;options=bold>──────────</><fg=gray;options=bold>─────────</>',
             '',
         ]);
     }
