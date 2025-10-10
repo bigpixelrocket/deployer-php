@@ -12,9 +12,9 @@ describe('VersionService', function () {
         // ACT
         $version = $service->getVersion();
 
-        // ASSERT - Version should be a non-empty string
-        expect($version)->toBeString()
-            ->and(strlen($version))->toBeGreaterThan(0);
+        // ASSERT - Version should match valid version patterns (semver, git-describe, branch names, or commit hashes)
+        expect($version)->toMatch('/^(v?\d+\.\d+\.\d+|dev-|main-|master-|[0-9a-f]{7,40})/')
+            ->and($version)->not->toBeEmpty();
 
         // ASSERT - If we're in a git repo, git version takes priority over fallback
         if ($service->isGitRepository(getcwd())) {

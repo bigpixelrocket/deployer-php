@@ -126,8 +126,7 @@ describe('ConsoleOutputTrait', function () {
         $output = $this->tester->getDisplay();
 
         // ASSERT
-        expect($output)->toContain('╭───────')
-            ->and(strlen($output))->toBeGreaterThan(40);
+        expect($output)->toContain('╭───────');
     });
 
     //

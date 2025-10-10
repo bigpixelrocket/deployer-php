@@ -80,8 +80,9 @@ describe('FilesystemService', function () {
         // ACT
         $result = $service->getCwd();
 
-        // ASSERT
-        expect($result)->toBeString()->not->toBeEmpty();
+        // ASSERT - Should return a valid directory path
+        expect($result)->toBeString()
+            ->and($service->isDirectory($result))->toBeTrue('getCwd should return valid directory');
     });
 
     it('checks if path is directory', function (string $path, bool $expected) {

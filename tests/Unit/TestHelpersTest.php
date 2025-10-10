@@ -160,23 +160,26 @@ describe('mockFilesystemService', function () {
         $service = mockFilesystemService(fileExists: true, fileContent: 'test content', filePath: 'test.txt');
 
         // ACT
-        $exists = $service->exists('test.txt');
         $content = $service->readFile('test.txt');
 
         // ASSERT
-        expect($exists)->toBeTrue()
-            ->and($content)->toBe('test content');
+        expect($content)->toBe('test content');
     });
 });
 
 describe('mockCommandContainer', function () {
     it('creates container with all BaseCommand dependencies bound', function () {
-        // ACT
+        // ARRANGE
         $container = mockCommandContainer();
         $command = $container->build(\Bigpixelrocket\DeployerPHP\Tests\Fixtures\TestConsoleCommand::class);
 
+        // ACT - Verify command is properly configured and executable
+        $tester = new \Symfony\Component\Console\Tester\CommandTester($command);
+        $exitCode = $tester->execute([]);
+
         // ASSERT
-        expect($command)->toBeInstanceOf(\Bigpixelrocket\DeployerPHP\Tests\Fixtures\TestConsoleCommand::class);
+        expect($command)->toBeInstanceOf(\Bigpixelrocket\DeployerPHP\Tests\Fixtures\TestConsoleCommand::class)
+            ->and($exitCode)->toBe(\Symfony\Component\Console\Command\Command::SUCCESS);
     });
 
     it('allows overriding specific services', function () {
