@@ -10,7 +10,8 @@ require_once __DIR__.'/../../TestHelpers.php';
 
 describe('ConsoleOutputTrait', function () {
     beforeEach(function () {
-        $this->command = mockTestConsoleCommand();
+        $container = mockCommandContainer();
+        $this->command = $container->build(\Bigpixelrocket\DeployerPHP\Tests\Fixtures\TestConsoleCommand::class);
         $this->tester = new CommandTester($this->command);
     });
 
