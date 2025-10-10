@@ -20,23 +20,64 @@ alwaysApply: true
 **✅ PREFERRED - Manual Instantiation (Unit Tests):**
 
 ```php
+// Testing services in isolation
 $mockFs = mockFilesystem(true, 'content');
 $service = new EnvService(new FilesystemService($mockFs), new Dotenv());
 ```
 
 Benefits: Clear dependency wiring, easy mock injection, no container overhead.
 
-**✅ OPTIONAL - Container (Integration Tests):**
+**✅ RECOMMENDED - Container with Bindings (Command/Integration Tests):**
 
 ```php
-$container = new Container();
-$container->bind(Filesystem::class, fn() => $mockFs);
-$service = $container->build(EnvService::class);
+// Testing commands with mockCommandContainer()
+$container = mockCommandContainer();
+$command = $container->build(ServerAddCommand::class);
+
+// Override specific services when needed
+$customSSH = mockSSHServiceWithBehavior(canConnect: false);
+$container = mockCommandContainer(ssh: $customSSH);
+$command = $container->build(ServerAddCommand::class);
+
+// Pre-populate inventory data
+$container = mockCommandContainer(
+    inventoryData: ['servers' => [['name' => 'web1', 'host' => '192.168.1.1']]]
+);
+$command = $container->build(ServerListCommand::class);
 ```
 
-When to use: Testing multiple services together or verifying DI configuration.
+Benefits: Sustainable (no updates needed when BaseCommand grows), consistent pattern, easy service overrides.
 
-**Rule:** In unit tests, prefer `new ClassName()` with explicit mocks. Save the container for integration tests.
+**✅ OPTIONAL - Container Auto-wiring (Edge Cases):**
+
+```php
+// Testing DI configuration or service integration
+$container = new Container();
+$container->bind(Filesystem::class, $mockFs);
+$service = $container->build(CustomService::class);
+```
+
+When to use: Verifying DI configuration or testing multiple services together.
+
+**Rule:** Unit tests (services/utilities) use manual instantiation. Command/integration tests use `mockCommandContainer()`.
+
+**Maintenance Note:** When adding a new service to `BaseCommand`, update `mockCommandContainer()` in `tests/TestHelpers.php`:
+
+```php
+function mockCommandContainer(
+    ?NewService $newService = null,  // 1. Add parameter
+    // ... existing parameters
+) {
+    // ...
+    $newService = $newService ?? mockNewService();  // 2. Build or use provided
+
+    // Bind services to container
+    $container->bind(NewService::class, $newService);  // 3. Bind to container
+    // ...
+}
+```
+
+This is the ONLY place you need to update for command testing.
 
 ### Test Minimalism
 

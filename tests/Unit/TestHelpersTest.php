@@ -169,13 +169,43 @@ describe('mockFilesystemService', function () {
     });
 });
 
-describe('mockTestConsoleCommand', function () {
-    it('creates TestConsoleCommand with mocked dependencies', function () {
+describe('mockCommandContainer', function () {
+    it('creates container with all BaseCommand dependencies bound', function () {
         // ACT
-        $command = mockTestConsoleCommand();
+        $container = mockCommandContainer();
+        $command = $container->build(\Bigpixelrocket\DeployerPHP\Tests\Fixtures\TestConsoleCommand::class);
 
         // ASSERT
         expect($command)->toBeInstanceOf(\Bigpixelrocket\DeployerPHP\Tests\Fixtures\TestConsoleCommand::class);
+    });
+
+    it('allows overriding specific services', function () {
+        // ARRANGE
+        $customSSH = mockSSHServiceWithBehavior(canConnect: false);
+
+        // ACT
+        $container = mockCommandContainer(ssh: $customSSH);
+        $builtSSH = $container->build(\Bigpixelrocket\DeployerPHP\Services\SSHService::class);
+
+        // ASSERT
+        expect($builtSSH)->toBe($customSSH);
+    });
+
+    it('allows overriding inventory data', function () {
+        // ARRANGE
+        $inventoryData = ['servers' => [
+            ['name' => 'web1', 'host' => '192.168.1.1', 'port' => 22, 'username' => 'root'],
+        ]];
+
+        // ACT
+        $container = mockCommandContainer(inventoryData: $inventoryData);
+        $repository = $container->build(\Bigpixelrocket\DeployerPHP\Repositories\ServerRepository::class);
+        $servers = $repository->all();
+
+        // ASSERT
+        expect($servers)->toHaveCount(1)
+            ->and($servers[0]->name)->toBe('web1')
+            ->and($servers[0]->host)->toBe('192.168.1.1');
     });
 });
 

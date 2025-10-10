@@ -131,4 +131,59 @@ describe('Container', function () {
         expect(fn () => $this->container->build(ServiceWithUnionAndCircular::class))
             ->toThrow(\RuntimeException::class, 'Circular dependency detected');
     });
+
+    it('binds instances for testing', function () {
+        // ARRANGE
+        $mockService = new SimpleService();
+
+        // ACT
+        $result = $this->container->bind(SimpleService::class, $mockService);
+        $retrieved = $this->container->build(SimpleService::class);
+
+        // ASSERT
+        expect($result)->toBe($this->container) // Fluent interface
+            ->and($retrieved)->toBe($mockService); // Returns bound instance
+    });
+
+    it('uses bound instances in dependency resolution', function () {
+        // ARRANGE
+        $mockSimple = new SimpleService();
+        $this->container->bind(SimpleService::class, $mockSimple);
+
+        // ACT - Build ServiceWithMultipleDeps which depends on SimpleService
+        $service = $this->container->build(ServiceWithMultipleDeps::class);
+
+        // ASSERT - Should use bound instance
+        expect($service->getSimple())->toBe($mockSimple)
+            ->and($service->getComplex()->getDependency())->toBe($mockSimple);
+    });
+
+    it('binds override auto-wiring', function () {
+        // ARRANGE
+        $auto = $this->container->build(SimpleService::class);
+        $mockService = new SimpleService();
+
+        // ACT
+        $this->container->bind(SimpleService::class, $mockService);
+        $bound = $this->container->build(SimpleService::class);
+
+        // ASSERT
+        expect($bound)->not->toBe($auto)
+            ->and($bound)->toBe($mockService);
+    });
+
+    it('returns same bound instance on multiple builds (singleton behavior)', function () {
+        // ARRANGE
+        $mock = new SimpleService();
+        $this->container->bind(SimpleService::class, $mock);
+
+        // ACT - Build twice
+        $first = $this->container->build(SimpleService::class);
+        $second = $this->container->build(SimpleService::class);
+
+        // ASSERT - Same bound instance both times
+        expect($first)->toBe($mock)
+            ->and($second)->toBe($mock)
+            ->and($first)->toBe($second);
+    });
 });

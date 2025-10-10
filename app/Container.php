@@ -28,9 +28,26 @@ final class Container
     /** @var array<string, bool> */
     private array $resolving = [];
 
+    /** @var array<class-string, object> */
+    private array $bindings = [];
+
     //
     // Public
     // -------------------------------------------------------------------------------
+
+    /**
+     * Bind a concrete instance to a class name for testing.
+     *
+     * @template T of object
+     * @param class-string<T> $className
+     * @param T $instance
+     * @return self
+     */
+    public function bind(string $className, object $instance): self
+    {
+        $this->bindings[$className] = $instance;
+        return $this;
+    }
 
     /**
      * Build a class instance with auto-wired dependencies.
@@ -41,6 +58,12 @@ final class Container
      */
     public function build(string $className): object
     {
+        // Return bound instance if available
+        if (isset($this->bindings[$className])) {
+            /** @var T */
+            return $this->bindings[$className];
+        }
+
         $this->guardAgainstCircularDependency($className);
         $this->guardAgainstInvalidClass($className);
 
