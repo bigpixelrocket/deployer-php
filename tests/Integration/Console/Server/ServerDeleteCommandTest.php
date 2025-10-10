@@ -3,9 +3,7 @@
 declare(strict_types=1);
 
 use Bigpixelrocket\DeployerPHP\Console\Server\ServerDeleteCommand;
-use Bigpixelrocket\DeployerPHP\Container;
 use Bigpixelrocket\DeployerPHP\DTOs\ServerDTO;
-use Bigpixelrocket\DeployerPHP\Repositories\ServerRepository;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Tester\CommandTester;
 
@@ -17,9 +15,6 @@ require_once __DIR__ . '/../../../TestHelpers.php';
 
 function createServerDeleteCommandTester(array $existingServers = []): CommandTester
 {
-    $container = new Container();
-    $env = mockEnvService(true);
-
     // Pre-populate repository with test servers
     $inventoryData = empty($existingServers) ? ['servers' => []] : ['servers' => array_map(
         fn (ServerDTO $server) => [
@@ -32,16 +27,8 @@ function createServerDeleteCommandTester(array $existingServers = []): CommandTe
         $existingServers
     )];
 
-    $inventory = mockInventoryService(true, $inventoryData);
-    $inventory->loadInventoryFile();
-
-    $repository = new ServerRepository();
-    $repository->loadInventory($inventory);
-
-    $ssh = mockSSHService();
-    $prompter = mockPrompter();
-
-    $command = new ServerDeleteCommand($container, $env, $inventory, $repository, $ssh, $prompter);
+    $container = mockCommandContainer(inventoryData: $inventoryData);
+    $command = $container->build(ServerDeleteCommand::class);
     return new CommandTester($command);
 }
 

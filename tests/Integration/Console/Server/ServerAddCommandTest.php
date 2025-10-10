@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 use Bigpixelrocket\DeployerPHP\Console\Server\ServerAddCommand;
-use Bigpixelrocket\DeployerPHP\Container;
 use Bigpixelrocket\DeployerPHP\Repositories\ServerRepository;
 use Bigpixelrocket\DeployerPHP\Services\SSHService;
 use Symfony\Component\Console\Command\Command;
@@ -17,18 +16,8 @@ require_once __DIR__ . '/../../../TestHelpers.php';
 
 function createServerAddCommandTester(?SSHService $sshService = null): CommandTester
 {
-    $container = new Container();
-    $env = mockEnvService(true);
-    $inventory = mockInventoryService(true, ['servers' => []]);
-    $inventory->loadInventoryFile();
-
-    $repository = new ServerRepository();
-    $repository->loadInventory($inventory);
-
-    $ssh = $sshService ?? mockSSHService();
-    $prompter = mockPrompter();
-
-    $command = new ServerAddCommand($container, $env, $inventory, $repository, $ssh, $prompter);
+    $container = mockCommandContainer(ssh: $sshService);
+    $command = $container->build(ServerAddCommand::class);
     return new CommandTester($command);
 }
 
@@ -297,17 +286,8 @@ describe('ServerAddCommand', function () {
     it('persists server data to inventory correctly', function () {
         // ARRANGE
         $sshService = mockSSHServiceWithBehavior(true);
-        $container = new Container();
-        $env = mockEnvService(true);
-        $inventory = mockInventoryService(true, ['servers' => []]);
-        $inventory->loadInventoryFile();
-
-        $repository = new ServerRepository();
-        $repository->loadInventory($inventory);
-
-        $prompter = mockPrompter();
-
-        $command = new ServerAddCommand($container, $env, $inventory, $repository, $sshService, $prompter);
+        $container = mockCommandContainer(ssh: $sshService);
+        $command = $container->build(ServerAddCommand::class);
         $tester = new CommandTester($command);
 
         // ACT - Provide all required options
@@ -324,6 +304,7 @@ describe('ServerAddCommand', function () {
         ob_end_clean();
 
         // ASSERT - Verify server persisted in repository
+        $repository = $container->build(ServerRepository::class);
         $server = $repository->findByName('persisted-server');
 
         expect($server)->not->toBeNull()
