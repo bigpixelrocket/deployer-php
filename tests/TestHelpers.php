@@ -8,12 +8,12 @@ use Bigpixelrocket\DeployerPHP\Services\EnvService;
 use Bigpixelrocket\DeployerPHP\Services\FilesystemService;
 use Bigpixelrocket\DeployerPHP\Services\InventoryService;
 use Bigpixelrocket\DeployerPHP\Services\ProcessFactory;
+use Bigpixelrocket\DeployerPHP\Services\PrompterService;
 use Bigpixelrocket\DeployerPHP\Services\SSHService;
 use Bigpixelrocket\DeployerPHP\Services\VersionService;
 use Bigpixelrocket\DeployerPHP\Tests\Fixtures\MockFilesystem;
 use Bigpixelrocket\DeployerPHP\Tests\Fixtures\MockPrompter;
 use Bigpixelrocket\DeployerPHP\Tests\Fixtures\MockSSHService;
-use Bigpixelrocket\DeployerPHP\Tests\Fixtures\TestConsoleCommand;
 use Symfony\Component\Dotenv\Dotenv;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Yaml\Yaml;
@@ -345,39 +345,58 @@ if (!function_exists('mockServerRepository')) {
 // Command & Integration Test Mocks
 // -------------------------------------------------------------------------------
 
-if (!function_exists('mockTestConsoleCommand')) {
+if (!function_exists('mockCommandContainer')) {
     /**
-     * Create a TestConsoleCommand for testing with mocked dependencies.
+     * Create a Container with mocked dependencies for command testing.
      *
-     * Returns a fully configured command with all dependencies injected.
-     * Useful for testing BaseCommand, console traits, and server helpers.
-     *
-     * @example
-     *   // Default configuration
-     *   $command = mockTestConsoleCommand();
+     * Returns a Container with sensible mock defaults for all BaseCommand dependencies.
+     * Override specific services by passing them as arguments.
      *
      * @example
-     *   // Custom environment and inventory
-     *   $command = mockTestConsoleCommand(
-     *       envFileExists: true,
-     *       envContent: 'API_KEY=secret',
-     *       inventoryFileExists: true,
-     *       inventoryData: ['servers' => []]
+     *   // Build command with default mocks
+     *   $container = mockCommandContainer();
+     *   $command = $container->build(ServerListCommand::class);
+     *
+     * @example
+     *   // Override SSH service for connection testing
+     *   $ssh = mockSSHServiceWithBehavior(canConnect: false);
+     *   $container = mockCommandContainer(ssh: $ssh);
+     *   $command = $container->build(ServerAddCommand::class);
+     *
+     * @example
+     *   // Override inventory data for pre-populated servers
+     *   $container = mockCommandContainer(
+     *       inventoryData: ['servers' => ['web1' => ['host' => '192.168.1.1']]]
      *   );
+     *   $command = $container->build(ServerListCommand::class);
      */
-    function mockTestConsoleCommand(
+    function mockCommandContainer(
+        ?EnvService $env = null,
+        ?InventoryService $inventory = null,
+        ?ServerRepository $servers = null,
+        ?SSHService $ssh = null,
+        ?PrompterService $prompter = null,
         bool $envFileExists = true,
         string $envContent = 'API_KEY=test_value',
         bool $inventoryFileExists = true,
         array|string $inventoryData = []
-    ): TestConsoleCommand {
+    ): Container {
         $container = new Container();
-        $env = mockEnvService($envFileExists, $envContent);
-        $inventory = mockInventoryService($inventoryFileExists, $inventoryData);
-        $servers = mockServerRepository($inventoryFileExists, $inventoryData);
-        $ssh = mockSSHService();
-        $prompter = mockPrompter();
 
-        return new TestConsoleCommand($container, $env, $inventory, $servers, $ssh, $prompter);
+        // Build or use provided services
+        $env = $env ?? mockEnvService($envFileExists, $envContent);
+        $inventory = $inventory ?? mockInventoryService($inventoryFileExists, $inventoryData);
+        $servers = $servers ?? mockServerRepository($inventoryFileExists, $inventoryData);
+        $ssh = $ssh ?? mockSSHService();
+        $prompter = $prompter ?? mockPrompter();
+
+        // Bind services to container
+        $container->bind(EnvService::class, $env);
+        $container->bind(InventoryService::class, $inventory);
+        $container->bind(ServerRepository::class, $servers);
+        $container->bind(SSHService::class, $ssh);
+        $container->bind(PrompterService::class, $prompter);
+
+        return $container;
     }
 }
