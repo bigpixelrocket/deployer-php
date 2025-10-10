@@ -171,4 +171,19 @@ describe('Container', function () {
         expect($bound)->not->toBe($auto)
             ->and($bound)->toBe($mockService);
     });
+
+    it('returns same bound instance on multiple builds (singleton behavior)', function () {
+        // ARRANGE
+        $mock = new SimpleService();
+        $this->container->bind(SimpleService::class, $mock);
+
+        // ACT - Build twice
+        $first = $this->container->build(SimpleService::class);
+        $second = $this->container->build(SimpleService::class);
+
+        // ASSERT - Same bound instance both times
+        expect($first)->toBe($mock)
+            ->and($second)->toBe($mock)
+            ->and($first)->toBe($second);
+    });
 });

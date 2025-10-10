@@ -371,11 +371,11 @@ if (!function_exists('mockCommandContainer')) {
      *   $command = $container->build(ServerListCommand::class);
      */
     function mockCommandContainer(
+        ?SSHService $ssh = null,
+        ?PrompterService $prompter = null,
         ?EnvService $env = null,
         ?InventoryService $inventory = null,
         ?ServerRepository $servers = null,
-        ?SSHService $ssh = null,
-        ?PrompterService $prompter = null,
         bool $envFileExists = true,
         string $envContent = 'API_KEY=test_value',
         bool $inventoryFileExists = true,
