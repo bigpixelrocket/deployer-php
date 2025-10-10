@@ -384,11 +384,11 @@ if (!function_exists('mockCommandContainer')) {
         $container = new Container();
 
         // Build or use provided services
-        $env = $env ?? mockEnvService($envFileExists, $envContent);
-        $inventory = $inventory ?? mockInventoryService($inventoryFileExists, $inventoryData);
-        $servers = $servers ?? mockServerRepository($inventoryFileExists, $inventoryData);
-        $ssh = $ssh ?? mockSSHService();
-        $prompter = $prompter ?? mockPrompter();
+        $env ??= mockEnvService($envFileExists, $envContent);
+        $inventory ??= mockInventoryService($inventoryFileExists, $inventoryData);
+        $servers ??= mockServerRepository($inventoryFileExists, $inventoryData);
+        $ssh ??= mockSSHService();
+        $prompter ??= mockPrompter();
 
         // Bind services to container
         $container->bind(EnvService::class, $env);
