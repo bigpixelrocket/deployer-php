@@ -70,6 +70,20 @@ $container = new Container();
 $service = $container->build(TestService::class);
 ```
 
+**Test Mocking:** The Container supports `bind()` for registering mock instances in tests.
+
+```php
+// Register mocks for testing
+$container = new Container();
+$container->bind(SSHService::class, $mockSSH);
+$container->bind(EnvService::class, $mockEnv);
+
+// Container uses bound instances instead of auto-wiring
+$command = $container->build(ServerAddCommand::class);  // Gets mocks
+```
+
+This enables isolated testing while maintaining production auto-wiring behavior.
+
 ### Command Layer
 
 - Commands handle user interaction (input/output) and orchestrate Services
