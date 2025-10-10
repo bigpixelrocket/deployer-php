@@ -54,7 +54,7 @@ describe('ServerRepository', function () {
         // ASSERT - All returns both servers
         $all = $repository->all();
         expect($all)->toHaveCount(2)
-            ->and($all[0])->toBeInstanceOf(ServerDTO::class)
+            ->and($all[0]->name)->toBe('web1')
             ->and($all[1]->name)->toBe('web2');
 
         // ACT & ASSERT - Delete
