@@ -18,7 +18,7 @@ use Symfony\Component\Process\Process;
 class VersionService
 {
     public function __construct(
-        private readonly ProcessFactory $processFactory,
+        private readonly ProcessService $proc,
         private readonly FilesystemService $fs,
         private readonly string $packageName = 'bigpixelrocket/deployer-php',
         private readonly string $fallbackVersion = 'dev-main'
@@ -114,8 +114,7 @@ class VersionService
     public function getExactGitTag(string $projectRoot): ?string
     {
         try {
-            $process = $this->processFactory->create(['git', 'describe', '--tags', '--exact-match'], $projectRoot);
-            $process->run();
+            $process = $this->proc->run(['git', 'describe', '--tags', '--exact-match'], $projectRoot);
 
             if ($process->isSuccessful()) {
                 return trim($process->getOutput());
@@ -133,8 +132,7 @@ class VersionService
     public function getGitDescribeVersion(string $projectRoot): ?string
     {
         try {
-            $process = $this->processFactory->create(['git', 'describe', '--tags', '--always'], $projectRoot);
-            $process->run();
+            $process = $this->proc->run(['git', 'describe', '--tags', '--always'], $projectRoot);
 
             if ($process->isSuccessful()) {
                 return trim($process->getOutput());
@@ -152,11 +150,8 @@ class VersionService
     public function getBranchWithCommit(string $projectRoot): ?string
     {
         try {
-            $branchProcess = $this->processFactory->create(['git', 'rev-parse', '--abbrev-ref', 'HEAD'], $projectRoot);
-            $branchProcess->run();
-
-            $commitProcess = $this->processFactory->create(['git', 'rev-parse', '--short', 'HEAD'], $projectRoot);
-            $commitProcess->run();
+            $branchProcess = $this->proc->run(['git', 'rev-parse', '--abbrev-ref', 'HEAD'], $projectRoot);
+            $commitProcess = $this->proc->run(['git', 'rev-parse', '--short', 'HEAD'], $projectRoot);
 
             if ($branchProcess->isSuccessful() && $commitProcess->isSuccessful()) {
                 $branch = trim($branchProcess->getOutput());
