@@ -26,7 +26,11 @@ final class SiteRepository
     // -------------------------------------------------------------------------------
 
     /**
-     * Set the inventory service instance to use for storage operations.
+     * Configure the repository with an InventoryService and load site entries from storage.
+     *
+     * Loads the value stored under the repository's PREFIX key into the internal sites cache
+     * ($this->sites). If the stored value is not an array, an empty array is persisted under
+     * the PREFIX key and loaded into the cache.
      */
     public function loadInventory(InventoryService $inventory): void
     {
@@ -43,7 +47,10 @@ final class SiteRepository
     }
 
     /**
-     * Create a new site in the inventory.
+     * Add a new site to the inventory storage ensuring the site's domain is unique.
+     *
+     * @param SiteDTO $site The site to store; its domain must not already exist in inventory.
+     * @throws \RuntimeException If the inventory has not been loaded or a site with the same domain already exists.
      */
     public function create(SiteDTO $site): void
     {
@@ -60,8 +67,11 @@ final class SiteRepository
     }
 
     /**
-     * Find a site by domain.
-     */
+         * Retrieve the site matching the given domain.
+         *
+         * @throws \RuntimeException If the inventory has not been loaded via loadInventory().
+         * @return SiteDTO|null The SiteDTO for the matching domain, or `null` if no match is found.
+         */
     public function findByDomain(string $domain): ?SiteDTO
     {
         $this->assertInventoryLoaded();
@@ -76,9 +86,9 @@ final class SiteRepository
     }
 
     /**
-     * Get all sites from the inventory.
+     * Retrieve all stored sites as SiteDTO objects.
      *
-     * @return array<int, SiteDTO>
+     * @return array<int, SiteDTO> An array of SiteDTO objects.
      */
     public function all(): array
     {
@@ -93,7 +103,11 @@ final class SiteRepository
     }
 
     /**
-     * Delete a site from the inventory.
+     * Remove the site with the given domain from the stored inventory.
+     *
+     * If no site matches the domain, the inventory remains unchanged.
+     *
+     * @param string $domain The domain of the site to remove.
      */
     public function delete(string $domain): void
     {
@@ -116,9 +130,9 @@ final class SiteRepository
     // -------------------------------------------------------------------------------
 
     /**
-     * Ensure inventory service is loaded before operations.
+     * Asserts that the repository's inventory service has been loaded.
      *
-     * @throws \RuntimeException If inventory is not set
+     * @throws \RuntimeException If the inventory service has not been loaded.
      * @phpstan-assert !null $this->inventory
      */
     private function assertInventoryLoaded(): void
@@ -129,9 +143,10 @@ final class SiteRepository
     }
 
     /**
-     * Convert SiteDTO to array for storage.
+     * Serialize a SiteDTO into an associative array suitable for inventory storage.
      *
-     * @return array<string, mixed>
+     * @param SiteDTO $site The site DTO to serialize.
+     * @return array<string, mixed> Associative array with keys `domain`, `repo`, `branch`, and `servers`.
      */
     private function dehydrateSiteDTO(SiteDTO $site): array
     {
@@ -144,10 +159,11 @@ final class SiteRepository
     }
 
     /**
-     * Hydrate a SiteDTO from inventory data.
-     *
-     * @param array<string, mixed> $data
-     */
+         * Create a SiteDTO from raw inventory data.
+         *
+         * @param array<string,mixed> $data Raw associative array from inventory.
+         * @return SiteDTO A SiteDTO where `domain`, `repo`, and `branch` are strings (empty string if missing or not a string) and `servers` is an array of strings (empty array if missing or invalid).
+         */
     private function hydrateSiteDTO(array $data): SiteDTO
     {
         $domain = $data['domain'] ?? '';

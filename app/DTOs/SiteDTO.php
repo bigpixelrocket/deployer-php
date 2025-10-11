@@ -7,7 +7,12 @@ namespace Bigpixelrocket\DeployerPHP\DTOs;
 readonly class SiteDTO
 {
     /**
-     * @param array<int, string> $servers
+     * Create a SiteDTO containing the site's domain, repository, branch, and associated servers.
+     *
+     * @param string $domain The site's domain name (e.g. example.com).
+     * @param string $repo   The repository URL or identifier for the site.
+     * @param string $branch The repository branch to deploy (e.g. main).
+     * @param array<int, string> $servers Ordered list of server hostnames or addresses associated with the site.
      */
     public function __construct(
         public string $domain,
