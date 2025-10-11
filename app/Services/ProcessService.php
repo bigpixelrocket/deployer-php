@@ -21,7 +21,7 @@ final readonly class ProcessService
      *
      * @param list<string> $command
      */
-    public function run(array $command, string $cwd, ?float $timeout = 3.0): Process
+    public function run(array $command, string $cwd, float $timeout = 3.0): Process
     {
         if ($command === []) {
             throw new \InvalidArgumentException('Process command cannot be empty');
@@ -32,7 +32,7 @@ final readonly class ProcessService
         }
 
         $process = new Process($command, $cwd);
-        $process->setTimeout($timeout ?? 3.0);
+        $process->setTimeout($timeout);
         $process->run();
 
         return $process;

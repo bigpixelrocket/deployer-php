@@ -16,7 +16,9 @@ describe('ProcessService', function () {
         $command = ['echo', 'test'];
 
         // ACT
-        $process = $this->proc->run($command, $this->validCwd, $inputTimeout);
+        $process = $inputTimeout === null
+            ? $this->proc->run($command, $this->validCwd)
+            : $this->proc->run($command, $this->validCwd, $inputTimeout);
 
         // ASSERT
         expect($process->getCommandLine())->toContain('echo')
