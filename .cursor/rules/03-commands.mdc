@@ -187,7 +187,19 @@ class MyCommand extends BaseCommand {
 
 ### 🔀 Interactive + Options Pattern
 
-**Support both interactive prompts AND command-line options for maximum flexibility:**
+**Support both interactive prompts AND command-line options for maximum flexibility using the `getOptionOrPrompt()` helper.**
+
+**The Pattern:**
+
+The `getOptionOrPrompt()` method enables dual-mode commands that work both interactively and via CLI options:
+
+- **Signature:** `getOptionOrPrompt(string $optionName, Closure $promptCallback): mixed`
+- Checks if option was provided via CLI → returns option value
+- If not provided → executes the closure to prompt user interactively
+- Supports any return type (string, bool, int, array) via the closure
+- Works with all prompt methods: `promptText()`, `promptSelect()`, `promptConfirm()`, etc.
+
+**Example (Creating New Resource):**
 
 ```php
 protected function configure(): void {
@@ -199,7 +211,7 @@ protected function configure(): void {
 }
 
 protected function execute(InputInterface $input, OutputInterface $output): int {
-    // Use getOptionOrPrompt with closures for flexible prompting
+    // Text input with option fallback
     $name = $this->getOptionOrPrompt(
         'name',
         fn() => $this->promptText(
@@ -218,6 +230,7 @@ protected function execute(InputInterface $input, OutputInterface $output): int 
         )
     );
 
+    // Boolean flag with interactive fallback
     $skipConfirm = $this->getOptionOrPrompt(
         'yes',
         fn() => $this->promptConfirm(
@@ -228,27 +241,35 @@ protected function execute(InputInterface $input, OutputInterface $output): int 
 
     // ... process command ...
 
-    // Show command hint for non-interactive usage
-    $this->showCommandHint('my:command', [
-        'name' => $name,
-        'host' => $host,
-        'yes' => $skipConfirm,
-    ]);
-
     return Command::SUCCESS;
 }
 ```
 
-**`getOptionOrPrompt()` Helper:**
+**Example (Selecting Existing Resource):**
 
-The `getOptionOrPrompt()` method is available in BaseCommand for all commands:
+```php
+protected function configure(): void {
+    parent::configure();
 
-- **Signature:** `getOptionOrPrompt(string $optionName, Closure $promptCallback): mixed`
-- Checks if option was provided via CLI
-- If yes, returns the option value directly
-- If not, executes the closure to prompt user interactively
-- Supports any return type (string, bool, int, array) via the closure
-- Works with all prompt methods: `promptText()`, `promptSelect()`, `promptConfirm()`, etc.
+    $this->addOption('server', null, InputOption::VALUE_REQUIRED, 'Server name');
+    $this->addOption('yes', 'y', InputOption::VALUE_NONE, 'Skip confirmation');
+}
+
+protected function execute(InputInterface $input, OutputInterface $output): int {
+    // Selection with option fallback
+    $serverName = $this->getOptionOrPrompt(
+        'server',
+        fn() => $this->promptSelect(
+            label: 'Select server:',
+            options: $this->servers->getNames()
+        )
+    );
+
+    // ... process command ...
+
+    return Command::SUCCESS;
+}
+```
 
 **Prompt Wrapper Methods:**
 
@@ -266,24 +287,100 @@ ConsoleInputTrait provides wrappers for all Laravel Prompts functions:
 
 All wrappers automatically suppress extra spacing for cleaner output.
 
-**Command Hint Output:**
-
-Shows the complete non-interactive command with all options for easy copy/paste:
-
-```
-◆ Run non-interactively:
-
-  vendor/bin/deployer my:command \
-    --name='production-web-01' \
-    --host='192.168.1.100' \
-    --yes
-```
-
 **Benefits:**
 
 - Script-friendly with full option support
 - User-friendly with interactive fallbacks
-- Educational - teaches users the non-interactive syntax
 - Flexible - supports any prompt type via closures
 - Type-safe - preserves return types from prompts
 - DRY - single command serves both use cases
+
+**See also:** "Command Options & Input" section below for mandatory naming conventions.
+
+### ⚙️ Command Options & Input (MANDATORY)
+
+**Naming Convention Rules:**
+
+Command options must follow consistent naming to prevent conflicts and improve clarity:
+
+| Option         | Usage                    | InputOption Type | When to Use                   |
+| -------------- | ------------------------ | ---------------- | ----------------------------- |
+| `--server`     | Select existing server   | `VALUE_REQUIRED` | delete, info, deploy commands |
+| `--site`       | Select existing site     | `VALUE_REQUIRED` | site management commands      |
+| `--name`       | Define new resource name | `VALUE_REQUIRED` | add, create commands          |
+| `--host`       | Host/IP address          | `VALUE_REQUIRED` | server configuration          |
+| `--port`       | Port number              | `VALUE_REQUIRED` | server configuration          |
+| `--yes` / `-y` | Skip confirmation        | `VALUE_NONE`     | all confirmation prompts      |
+| `--skip`       | Skip validation          | `VALUE_NONE`     | validation steps              |
+
+**The Golden Rule:**
+
+- **`--server` / `--site`**: SELECTING existing resources (resource is the operation target)
+- **`--name`**: DEFINING new resource properties (name is one of many properties being set)
+
+This distinction prevents naming conflicts in commands that work with multiple resource types.
+
+**Examples:**
+
+```php
+// ✅ CORRECT - Selecting existing server (target of operation)
+// Commands: server:delete, server:info, deploy, etc.
+protected function configure(): void {
+    $this->addOption('server', null, InputOption::VALUE_REQUIRED, 'Server name');
+    $this->addOption('yes', 'y', InputOption::VALUE_NONE, 'Skip confirmation');
+}
+
+// ✅ CORRECT - Creating new server (name is a property)
+// Commands: server:add, server:create
+protected function configure(): void {
+    $this->addOption('name', null, InputOption::VALUE_REQUIRED, 'Server name');
+    $this->addOption('host', null, InputOption::VALUE_REQUIRED, 'Host/IP');
+    $this->addOption('port', null, InputOption::VALUE_REQUIRED, 'Port');
+    $this->addOption('skip', null, InputOption::VALUE_NONE, 'Skip SSH validation');
+}
+```
+
+**Additional Rules:**
+
+- Use **OPTIONS** only, never ARGUMENTS (enables `getOptionOrPrompt()` pattern)
+- Pair all options with `getOptionOrPrompt()` for dual-mode support
+- Boolean flags always use `VALUE_NONE`
+- Data inputs always use `VALUE_REQUIRED`
+- Only `--yes` gets a short flag (`-y`)
+
+**See Examples:**
+
+- Selection: [ServerDeleteCommand.php](mdc:app/Console/Server/ServerDeleteCommand.php#L32-L33)
+- Creation: [ServerAddCommand.php](mdc:app/Console/Server/ServerAddCommand.php#L37-L43)
+
+### 🎯 Command Completion (MANDATORY)
+
+**Always call `showCommandHint()` before returning SUCCESS to educate users on non-interactive usage:**
+
+```php
+$this->showCommandHint('command:name', [
+    'option1' => $value1,
+    'option2' => $value2,
+]);
+
+return Command::SUCCESS;
+```
+
+**Why This Matters:**
+
+- Teaches users the CLI syntax for scripting/automation
+- Improves developer experience with copy-paste ready commands
+- Reduces support questions about non-interactive usage
+- Self-documenting command behavior
+
+**Example Output:**
+
+```
+◆ Run non-interactively:
+
+  vendor/bin/deployer server:delete \
+    --server='production-web-01' \
+    --yes
+```
+
+**See:** [ServerDeleteCommand.php](mdc:app/Console/Server/ServerDeleteCommand.php#L90-L93)

@@ -34,11 +34,11 @@ trait ServerHelpersTrait
     }
 
     /**
-     * Select a server from inventory by name option or interactive prompt.
+     * Select a server from inventory by server option or interactive prompt.
      *
      * @return array{server: ServerDTO|null, exit_code: int} Server DTO and exit code (SUCCESS if empty inventory, FAILURE if not found)
      */
-    protected function selectServer(string $optionName = 'name', string $promptLabel = 'Select server:'): array
+    protected function selectServer(string $optionName = 'server', string $promptLabel = 'Select server:'): array
     {
         //
         // Get all servers

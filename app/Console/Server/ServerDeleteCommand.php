@@ -29,7 +29,7 @@ class ServerDeleteCommand extends BaseCommand
         parent::configure();
 
         $this
-            ->addOption('name', null, InputOption::VALUE_REQUIRED, 'Server name')
+            ->addOption('server', null, InputOption::VALUE_REQUIRED, 'Server name')
             ->addOption('yes', 'y', InputOption::VALUE_NONE, 'Skip confirmation prompt');
     }
 
@@ -88,7 +88,7 @@ class ServerDeleteCommand extends BaseCommand
         // Show command hint
 
         $this->showCommandHint('server:delete', [
-            'name' => $server->name,
+            'server' => $server->name,
             'yes' => $confirmed,
         ]);
 

@@ -41,7 +41,7 @@ describe('ServerDeleteCommand', function () {
     // Success Scenarios
     // -------------------------------------------------------------------------------
 
-    it('deletes server with name option non-interactively', function () {
+    it('deletes server with server option non-interactively', function () {
         // ARRANGE
         $existingServers = [
             new ServerDTO('web1', '192.168.1.1', 22, 'root', null),
@@ -51,7 +51,7 @@ describe('ServerDeleteCommand', function () {
 
         // ACT
         $exitCode = $tester->execute([
-            '--name' => 'web1',
+            '--server' => 'web1',
             '--yes' => true,
         ]);
 
@@ -73,7 +73,7 @@ describe('ServerDeleteCommand', function () {
 
         // ACT
         $exitCode = $tester->execute([
-            '--name' => 'production',
+            '--server' => 'production',
             '--yes' => true,
         ]);
 
@@ -97,7 +97,7 @@ describe('ServerDeleteCommand', function () {
 
         // ACT
         $exitCode = $tester->execute([
-            '--name' => 'non-existent',
+            '--server' => 'non-existent',
             '--yes' => true,
         ]);
 
@@ -133,7 +133,7 @@ describe('ServerDeleteCommand', function () {
 
         // ACT
         $tester->execute([
-            '--name' => $server->name,
+            '--server' => $server->name,
             '--yes' => true,
         ]);
 
@@ -162,7 +162,7 @@ describe('ServerDeleteCommand', function () {
 
         // ACT
         $tester->execute([
-            '--name' => 'hint-test',
+            '--server' => 'hint-test',
             '--yes' => true,
         ]);
 
@@ -170,7 +170,7 @@ describe('ServerDeleteCommand', function () {
         $output = $tester->getDisplay();
         expect($output)->toContain('Run non-interactively:')
             ->and($output)->toContain('server:delete')
-            ->and($output)->toContain('--name')
+            ->and($output)->toContain('--server')
             ->and($output)->toContain('hint-test')
             ->and($output)->toContain('--yes');
     });
