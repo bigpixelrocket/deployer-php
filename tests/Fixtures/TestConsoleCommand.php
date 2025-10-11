@@ -7,8 +7,10 @@ namespace Bigpixelrocket\DeployerPHP\Tests\Fixtures;
 use Bigpixelrocket\DeployerPHP\Container;
 use Bigpixelrocket\DeployerPHP\Contracts\BaseCommand;
 use Bigpixelrocket\DeployerPHP\Repositories\ServerRepository;
+use Bigpixelrocket\DeployerPHP\Repositories\SiteRepository;
 use Bigpixelrocket\DeployerPHP\Services\EnvService;
 use Bigpixelrocket\DeployerPHP\Services\InventoryService;
+use Bigpixelrocket\DeployerPHP\Services\ProcessService;
 use Bigpixelrocket\DeployerPHP\Services\PrompterService;
 use Bigpixelrocket\DeployerPHP\Services\SSHService;
 use Bigpixelrocket\DeployerPHP\Traits\ServerHelpersTrait;
@@ -29,15 +31,29 @@ class TestConsoleCommand extends BaseCommand
 
     private array $testArgs = [];
 
+    /**
+     * Create a TestConsoleCommand instance with the required service and repository dependencies.
+     *
+     * @param Container $container Dependency injection container.
+     * @param EnvService $env Environment service.
+     * @param InventoryService $inventory Inventory management service.
+     * @param ProcessService $proc Process execution service.
+     * @param PrompterService $prompter Interactive prompt service.
+     * @param ServerRepository $servers Repository for server records.
+     * @param SiteRepository $sites Repository for site records.
+     * @param SSHService $ssh SSH service for remote execution.
+     */
     public function __construct(
         Container $container,
         EnvService $env,
         InventoryService $inventory,
-        ServerRepository $servers,
-        SSHService $ssh,
+        ProcessService $proc,
         PrompterService $prompter,
+        ServerRepository $servers,
+        SiteRepository $sites,
+        SSHService $ssh,
     ) {
-        parent::__construct($container, $env, $inventory, $servers, $ssh, $prompter);
+        parent::__construct($container, $env, $inventory, $proc, $prompter, $servers, $sites, $ssh);
     }
 
     /**

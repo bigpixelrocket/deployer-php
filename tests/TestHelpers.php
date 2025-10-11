@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 use Bigpixelrocket\DeployerPHP\Container;
 use Bigpixelrocket\DeployerPHP\Repositories\ServerRepository;
+use Bigpixelrocket\DeployerPHP\Repositories\SiteRepository;
 use Bigpixelrocket\DeployerPHP\Services\EnvService;
 use Bigpixelrocket\DeployerPHP\Services\FilesystemService;
 use Bigpixelrocket\DeployerPHP\Services\InventoryService;
-use Bigpixelrocket\DeployerPHP\Services\ProcessFactory;
+use Bigpixelrocket\DeployerPHP\Services\ProcessService;
 use Bigpixelrocket\DeployerPHP\Services\PrompterService;
 use Bigpixelrocket\DeployerPHP\Services\SSHService;
 use Bigpixelrocket\DeployerPHP\Services\VersionService;
@@ -129,28 +130,15 @@ if (!function_exists('mockEnvService')) {
 
 if (!function_exists('mockInventoryService')) {
     /**
-     * Create a mock InventoryService for testing with configurable filesystem behavior.
+     * Create a mock InventoryService for tests with a configurable in-memory inventory file.
      *
-     * Accepts either array data (auto-converts to YAML) or raw string content.
-     * Use arrays for clean test setup, strings for testing YAML parsing edge cases.
+     * If $data is an array, it is dumped to YAML and used as the inventory file content; if it is a string, it is used verbatim. The filesystem mock can be configured to simulate missing files or read/write errors.
      *
-     * @example
-     *   // Using array data (recommended)
-     *   $service = mockInventoryService(
-     *       fileExists: true,
-     *       data: ['servers' => ['web1' => ['host' => '192.168.1.1']]]
-     *   );
-     *
-     * @example
-     *   // Using raw YAML string
-     *   $service = mockInventoryService(
-     *       fileExists: true,
-     *       data: "servers:\n  web1:\n    host: 192.168.1.1"
-     *   );
-     *
-     * @example
-     *   // Test write failures
-     *   $service = mockInventoryService(fileExists: true, throwOnWrite: true);
+     * @param bool $fileExists Whether the inventory file should appear to exist.
+     * @param array|string $data Array to be converted to YAML or raw YAML string to use as file content.
+     * @param bool $throwOnRead If true, the mocked filesystem will throw on read operations.
+     * @param bool $throwOnWrite If true, the mocked filesystem will throw on write/dump operations.
+     * @return InventoryService An InventoryService backed by a mocked FilesystemService. 
      */
     function mockInventoryService(
         bool $fileExists = true,
@@ -171,21 +159,18 @@ if (!function_exists('mockInventoryService')) {
     }
 }
 
-if (!function_exists('mockProcessFactory')) {
+if (!function_exists('mockProcessService')) {
     /**
-     * Create a ProcessFactory for testing.
+     * Creates a ProcessService configured for tests.
      *
-     * Uses real Filesystem since directory validation requires is_dir() checks.
-     * Tests should use real directories (e.g., __DIR__, sys_get_temp_dir()).
+     * Uses a real FilesystemService (Symfony Filesystem) so directory validation relies on is_dir(); tests should provide real directories (e.g., __DIR__, sys_get_temp_dir()).
      *
-     * @example
-     *   $factory = mockProcessFactory();
-     *   $process = $factory->create(['echo', 'test'], __DIR__);
+     * @return ProcessService A ProcessService backed by a FilesystemService using a real Filesystem.
      */
-    function mockProcessFactory(): ProcessFactory
+    function mockProcessService(): ProcessService
     {
         $filesystemService = new FilesystemService(new Filesystem());
-        return new ProcessFactory($filesystemService);
+        return new ProcessService($filesystemService);
     }
 }
 
@@ -271,32 +256,25 @@ if (!function_exists('mockPrompter')) {
 
 if (!function_exists('mockVersionService')) {
     /**
-     * Create a VersionService for testing with configurable package name and fallback.
+     * Create a VersionService configured for tests with an optional package name and fallback version.
      *
-     * Uses real Filesystem and ProcessFactory since git operations require real directory checks.
+     * Uses a real Filesystem and ProcessService because version resolution may perform git/directory checks.
      *
-     * @example
-     *   // Default configuration
-     *   $service = mockVersionService();
-     *
-     * @example
-     *   // Custom package and fallback
-     *   $service = mockVersionService(
-     *       packageName: 'vendor/package',
-     *       fallback: '1.0.0-dev'
-     *   );
+     * @param string|null $packageName Optional package name to use (e.g., "vendor/package"). If omitted the service uses its default discovery.
+     * @param string|null $fallback Optional fallback version string used when the package/version cannot be determined.
+     * @return VersionService The configured VersionService instance.
      */
     function mockVersionService(
         ?string $packageName = null,
         ?string $fallback = null
     ): VersionService {
         $filesystemService = new FilesystemService(new Filesystem());
-        $processFactory = new ProcessFactory($filesystemService);
+        $proc = new ProcessService($filesystemService);
 
         return match (true) {
-            $packageName !== null && $fallback !== null => new VersionService($processFactory, $filesystemService, $packageName, $fallback),
-            $packageName !== null => new VersionService($processFactory, $filesystemService, $packageName),
-            default => new VersionService($processFactory, $filesystemService),
+            $packageName !== null && $fallback !== null => new VersionService($proc, $filesystemService, $packageName, $fallback),
+            $packageName !== null => new VersionService($proc, $filesystemService, $packageName),
+            default => new VersionService($proc, $filesystemService),
         };
     }
 }
@@ -307,23 +285,15 @@ if (!function_exists('mockVersionService')) {
 
 if (!function_exists('mockServerRepository')) {
     /**
-     * Create a ServerRepository for testing with a loaded inventory service.
+     * Create a ServerRepository preloaded with inventory data for use in tests.
      *
-     * Repository is returned fully initialized with inventory loaded and ready for use.
+     * The returned repository has its inventory loaded from a mocked InventoryService and is ready for immediate use.
      *
-     * @example
-     *   // Empty repository
-     *   $repo = mockServerRepository(fileExists: true, data: ['servers' => []]);
-     *
-     * @example
-     *   // Pre-populated with servers
-     *   $repo = mockServerRepository(
-     *       fileExists: true,
-     *       data: ['servers' => [
-     *           'web1' => ['host' => '192.168.1.1', 'port' => 22]
-     *       ]]
-     *   );
-     *   $repo->findByName('web1'); // Returns ServerDTO
+     * @param bool $fileExists Whether the mocked inventory file should exist.
+     * @param array|string $data Inventory content to load; an array will be converted to YAML, a string will be used as raw file content.
+     * @param bool $throwOnRead If true, the mocked filesystem will throw on read operations to simulate read errors.
+     * @param bool $throwOnWrite If true, the mocked filesystem will throw on write/dump operations to simulate write errors.
+     * @return ServerRepository A ServerRepository instance with inventory loaded from the mocked service.
      */
     function mockServerRepository(
         bool $fileExists = true,
@@ -335,6 +305,32 @@ if (!function_exists('mockServerRepository')) {
         $inventory->loadInventoryFile();
 
         $repository = new ServerRepository();
+        $repository->loadInventory($inventory);
+
+        return $repository;
+    }
+}
+
+if (!function_exists('mockSiteRepository')) {
+    /**
+     * Creates a SiteRepository for testing with its inventory loaded from a mocked InventoryService.
+     *
+     * @param bool $fileExists Whether the underlying inventory file should appear to exist.
+     * @param array|string $data Inventory contents as an array (converted to YAML) or raw YAML string.
+     * @param bool $throwOnRead If true, the mocked inventory service will throw on read operations.
+     * @param bool $throwOnWrite If true, the mocked inventory service will throw on write operations.
+     * @return SiteRepository A repository instance with inventory loaded and ready for use.
+     */
+    function mockSiteRepository(
+        bool $fileExists = true,
+        array|string $data = [],
+        bool $throwOnRead = false,
+        bool $throwOnWrite = false
+    ): SiteRepository {
+        $inventory = mockInventoryService($fileExists, $data, $throwOnRead, $throwOnWrite);
+        $inventory->loadInventoryFile();
+
+        $repository = new SiteRepository();
         $repository->loadInventory($inventory);
 
         return $repository;
@@ -371,11 +367,18 @@ if (!function_exists('mockCommandContainer')) {
      *   $command = $container->build(ServerListCommand::class);
      */
     function mockCommandContainer(
-        ?SSHService $ssh = null,
-        ?PrompterService $prompter = null,
+        // Base services
         ?EnvService $env = null,
         ?InventoryService $inventory = null,
+        ?ProcessService $proc = null,
+        ?PrompterService $prompter = null,
+
+        // Servers & sites
         ?ServerRepository $servers = null,
+        ?SiteRepository $sites = null,
+        ?SSHService $ssh = null,
+
+        // Configuration
         bool $envFileExists = true,
         string $envContent = 'API_KEY=test_value',
         bool $inventoryFileExists = true,
@@ -383,19 +386,23 @@ if (!function_exists('mockCommandContainer')) {
     ): Container {
         $container = new Container();
 
-        // Build or use provided services
+        // Build or use provided services (matches BaseCommand constructor order)
         $env ??= mockEnvService($envFileExists, $envContent);
         $inventory ??= mockInventoryService($inventoryFileExists, $inventoryData);
-        $servers ??= mockServerRepository($inventoryFileExists, $inventoryData);
-        $ssh ??= mockSSHService();
+        $proc ??= mockProcessService();
         $prompter ??= mockPrompter();
+        $servers ??= mockServerRepository($inventoryFileExists, $inventoryData);
+        $sites ??= mockSiteRepository($inventoryFileExists, $inventoryData);
+        $ssh ??= mockSSHService();
 
-        // Bind services to container
+        // Bind services to container (matches BaseCommand constructor order)
         $container->bind(EnvService::class, $env);
         $container->bind(InventoryService::class, $inventory);
-        $container->bind(ServerRepository::class, $servers);
-        $container->bind(SSHService::class, $ssh);
+        $container->bind(ProcessService::class, $proc);
         $container->bind(PrompterService::class, $prompter);
+        $container->bind(ServerRepository::class, $servers);
+        $container->bind(SiteRepository::class, $sites);
+        $container->bind(SSHService::class, $ssh);
 
         return $container;
     }

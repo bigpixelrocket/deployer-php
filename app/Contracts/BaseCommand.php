@@ -6,8 +6,10 @@ namespace Bigpixelrocket\DeployerPHP\Contracts;
 
 use Bigpixelrocket\DeployerPHP\Container;
 use Bigpixelrocket\DeployerPHP\Repositories\ServerRepository;
+use Bigpixelrocket\DeployerPHP\Repositories\SiteRepository;
 use Bigpixelrocket\DeployerPHP\Services\EnvService;
 use Bigpixelrocket\DeployerPHP\Services\InventoryService;
+use Bigpixelrocket\DeployerPHP\Services\ProcessService;
 use Bigpixelrocket\DeployerPHP\Services\PrompterService;
 use Bigpixelrocket\DeployerPHP\Services\SSHService;
 use Bigpixelrocket\DeployerPHP\Traits\ConsoleInputTrait;
@@ -33,13 +35,27 @@ abstract class BaseCommand extends Command
     protected OutputInterface $output;
     protected SymfonyStyle $io;
 
+    /**
+     * Create a new BaseCommand with the application's services and repositories.
+     *
+     * The constructor accepts and stores dependencies (environment and inventory services,
+     * process and prompting helpers, server/site repositories, SSH service, and the DI container)
+     * used by this command and its subclasses.
+     */
     public function __construct(
+        // Framework
         protected readonly Container $container,
+
+        // Base services
         protected readonly EnvService $env,
         protected readonly InventoryService $inventory,
-        protected readonly ServerRepository $servers,
-        protected readonly SSHService $ssh,
+        protected readonly ProcessService $proc,
         protected readonly PrompterService $prompter,
+
+        // Servers & sites
+        protected readonly ServerRepository $servers,
+        protected readonly SiteRepository $sites,
+        protected readonly SSHService $ssh,
     ) {
         parent::__construct();
     }
@@ -71,7 +87,15 @@ abstract class BaseCommand extends Command
     }
 
     /**
-     * Initialize IO and services.
+     * Prepare console IO and initialize environment, inventory, and repositories.
+     *
+     * Sets the command's input/output properties, creates a SymfonyStyle IO helper,
+     * applies any custom paths provided via the `--env` and `--inventory` options,
+     * loads the corresponding files, and populates the servers and sites repositories
+     * from the loaded inventory.
+     *
+     * @param InputInterface  $input  The current console input.
+     * @param OutputInterface $output The current console output.
      */
     protected function initialize(InputInterface $input, OutputInterface $output): void
     {
@@ -101,6 +125,7 @@ abstract class BaseCommand extends Command
         // Initialize repositories
 
         $this->servers->loadInventory($this->inventory);
+        $this->sites->loadInventory($this->inventory);
     }
 
     //

@@ -17,8 +17,14 @@ use Symfony\Component\Process\Process;
  */
 class VersionService
 {
+    /**
+     * Create a VersionService configured with process and filesystem services and package/fallback version.
+     *
+     * @param string $packageName The Composer package name to query for version information (default 'bigpixelrocket/deployer-php').
+     * @param string $fallbackVersion The version to return when no other source provides one (default 'dev-main').
+     */
     public function __construct(
-        private readonly ProcessFactory $processFactory,
+        private readonly ProcessService $proc,
         private readonly FilesystemService $fs,
         private readonly string $packageName = 'bigpixelrocket/deployer-php',
         private readonly string $fallbackVersion = 'dev-main'
@@ -109,13 +115,15 @@ class VersionService
     }
 
     /**
-     * Get exact git tag if HEAD is tagged.
+     * Retrieve the exact Git tag name that points to HEAD, if present.
+     *
+     * @param string $projectRoot Path to the Git repository root.
+     * @return string|null The exact tag name that points to HEAD, or `null` if HEAD is not tagged or an error occurs.
      */
     public function getExactGitTag(string $projectRoot): ?string
     {
         try {
-            $process = $this->processFactory->create(['git', 'describe', '--tags', '--exact-match'], $projectRoot);
-            $process->run();
+            $process = $this->proc->run(['git', 'describe', '--tags', '--exact-match'], $projectRoot);
 
             if ($process->isSuccessful()) {
                 return trim($process->getOutput());
@@ -128,13 +136,17 @@ class VersionService
     }
 
     /**
-     * Get git describe version (tag + commit info).
+     * Determine a human-readable Git reference for the repository at the given path.
+     *
+     * Attempts to run `git describe --tags --always` and returns the trimmed output on success.
+     *
+     * @param string $projectRoot Path to the repository root where the Git command will run.
+     * @return string|null The described reference (tag, tag+commit, or short commit) if available, `null` otherwise.
      */
     public function getGitDescribeVersion(string $projectRoot): ?string
     {
         try {
-            $process = $this->processFactory->create(['git', 'describe', '--tags', '--always'], $projectRoot);
-            $process->run();
+            $process = $this->proc->run(['git', 'describe', '--tags', '--always'], $projectRoot);
 
             if ($process->isSuccessful()) {
                 return trim($process->getOutput());
@@ -147,16 +159,20 @@ class VersionService
     }
 
     /**
-     * Get current branch with short commit hash.
+     * Produce the current Git branch combined with the short commit hash.
+     *
+     * Returns a string in the format "branch@commit" where `branch` is the current branch name
+     * and `commit` is the short commit hash. Returns `null` if the repository information cannot
+     * be determined or an error occurs.
+     *
+     * @param string $projectRoot Path to the repository root.
+     * @return string|null The branch and short commit separated by '@', or `null` if unavailable.
      */
     public function getBranchWithCommit(string $projectRoot): ?string
     {
         try {
-            $branchProcess = $this->processFactory->create(['git', 'rev-parse', '--abbrev-ref', 'HEAD'], $projectRoot);
-            $branchProcess->run();
-
-            $commitProcess = $this->processFactory->create(['git', 'rev-parse', '--short', 'HEAD'], $projectRoot);
-            $commitProcess->run();
+            $branchProcess = $this->proc->run(['git', 'rev-parse', '--abbrev-ref', 'HEAD'], $projectRoot);
+            $commitProcess = $this->proc->run(['git', 'rev-parse', '--short', 'HEAD'], $projectRoot);
 
             if ($branchProcess->isSuccessful() && $commitProcess->isSuccessful()) {
                 $branch = trim($branchProcess->getOutput());

@@ -5,23 +5,26 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../../TestHelpers.php';
 
-describe('ProcessFactory', function () {
+describe('ProcessService', function () {
     beforeEach(function () {
         $this->validCwd = __DIR__;
-        $this->factory = mockProcessFactory();
+        $this->proc = mockProcessService();
     });
 
-    it('configures process timeout correctly', function (?float $inputTimeout, ?float $expectedTimeout) {
+    it('executes process and returns result', function (?float $inputTimeout, ?float $expectedTimeout) {
         // ARRANGE
         $command = ['echo', 'test'];
 
         // ACT
-        $process = $this->factory->create($command, $this->validCwd, $inputTimeout);
+        $process = $inputTimeout === null
+            ? $this->proc->run($command, $this->validCwd)
+            : $this->proc->run($command, $this->validCwd, $inputTimeout);
 
         // ASSERT
         expect($process->getCommandLine())->toContain('echo')
             ->and($process->getWorkingDirectory())->toBe($this->validCwd)
-            ->and($process->getTimeout())->toBe($expectedTimeout);
+            ->and($process->getTimeout())->toBe($expectedTimeout)
+            ->and($process->isSuccessful())->toBeTrue();
     })->with([
         'null timeout defaults to 3.0' => [null, 3.0],
         'explicit default timeout' => [3.0, 3.0],
@@ -35,7 +38,7 @@ describe('ProcessFactory', function () {
         $emptyCommand = [];
 
         // ACT & ASSERT
-        expect(fn () => $this->factory->create($emptyCommand, $this->validCwd))
+        expect(fn () => $this->proc->run($emptyCommand, $this->validCwd))
             ->toThrow(InvalidArgumentException::class, 'Process command cannot be empty');
     });
 
@@ -44,7 +47,7 @@ describe('ProcessFactory', function () {
         $command = ['echo', 'test'];
 
         // ACT & ASSERT
-        expect(fn () => $this->factory->create($command, $invalidPath))
+        expect(fn () => $this->proc->run($command, $invalidPath))
             ->toThrow(InvalidArgumentException::class);
     })->with([
         'empty string' => [''],

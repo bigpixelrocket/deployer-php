@@ -4,13 +4,9 @@ declare(strict_types=1);
 
 namespace Bigpixelrocket\DeployerPHP\Tests\Unit\Contracts;
 
-use Bigpixelrocket\DeployerPHP\Container;
 use Bigpixelrocket\DeployerPHP\Contracts\BaseCommand;
 use Bigpixelrocket\DeployerPHP\Repositories\ServerRepository;
-use Bigpixelrocket\DeployerPHP\Services\EnvService;
-use Bigpixelrocket\DeployerPHP\Services\InventoryService;
-use Bigpixelrocket\DeployerPHP\Services\PrompterService;
-use Bigpixelrocket\DeployerPHP\Services\SSHService;
+use Bigpixelrocket\DeployerPHP\Repositories\SiteRepository;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -24,22 +20,10 @@ require_once __DIR__ . '/../../TestHelpers.php';
 
 class TestableBaseCommand extends BaseCommand
 {
-    public function __construct(
-        Container $container,
-        EnvService $env,
-        InventoryService $inventory,
-        ServerRepository $servers,
-        SSHService $ssh,
-        PrompterService $prompter,
-        private readonly string $testName = 'test-command',
-    ) {
-        parent::__construct($container, $env, $inventory, $servers, $ssh, $prompter);
-    }
-
     protected function configure(): void
     {
         parent::configure();
-        $this->setName($this->testName)->setDescription('Test command for BaseCommand testing');
+        $this->setName('test-command')->setDescription('Test command for BaseCommand testing');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -57,18 +41,11 @@ class TestableBaseCommand extends BaseCommand
 describe('BaseCommand', function () {
     it('constructs with dependencies and registers custom options', function () {
         // ARRANGE
-        $container = new Container();
-        $env = mockEnvService(true);
-        $inventory = mockInventoryService(true);
-        $servers = mockServerRepository();
-        $ssh = mockSSHService();
-        $prompter = mockPrompter();
-
-        // ACT
-        $command = new TestableBaseCommand($container, $env, $inventory, $servers, $ssh, $prompter, 'test');
+        $container = mockCommandContainer();
+        $command = $container->build(TestableBaseCommand::class);
 
         // ASSERT
-        expect($command->getName())->toBe('test')
+        expect($command->getName())->toBe('test-command')
             ->and($command->getDefinition()->hasOption('env'))->toBeTrue()
             ->and($command->getDefinition()->hasOption('inventory'))->toBeTrue()
             ->and($command->getDefinition()->getOption('env')->getDescription())
@@ -79,13 +56,8 @@ describe('BaseCommand', function () {
 
     it('executes with proper env and inventory status output', function (bool $hasEnvFile, string $expectedEnvMessage) {
         // ARRANGE
-        $container = new Container();
-        $env = mockEnvService($hasEnvFile);
-        $inventory = mockInventoryService(true);
-        $servers = mockServerRepository();
-        $ssh = mockSSHService();
-        $prompter = mockPrompter();
-        $command = new TestableBaseCommand($container, $env, $inventory, $servers, $ssh, $prompter);
+        $container = mockCommandContainer(envFileExists: $hasEnvFile);
+        $command = $container->build(TestableBaseCommand::class);
         $tester = new CommandTester($command);
 
         // ACT
@@ -103,4 +75,34 @@ describe('BaseCommand', function () {
         'env file exists' => [true, 'Reading variables from'],
         'no env file' => [false, 'No .env file found'],
     ]);
+
+    it('initializes repositories with inventory during initialization', function () {
+        // ARRANGE
+        $inventory = mockInventoryService(true, [
+            'servers' => [['name' => 'web1', 'host' => '192.168.1.1', 'port' => 22, 'user' => 'deploy']],
+            'sites' => [['domain' => 'example.com', 'repo' => 'git@github.com:user/repo.git', 'branch' => 'main', 'servers' => ['web1']]],
+        ]);
+
+        // Create uninitialized repositories (not using helper to avoid auto-loading)
+        $servers = new ServerRepository();
+        $sites = new SiteRepository();
+
+        $container = mockCommandContainer(
+            inventory: $inventory,
+            servers: $servers,
+            sites: $sites
+        );
+
+        $command = $container->build(TestableBaseCommand::class);
+        $tester = new CommandTester($command);
+
+        // ACT
+        $tester->execute([]);
+
+        // ASSERT - Verify repositories were loaded with inventory data
+        expect($servers->findByName('web1'))->not->toBeNull()
+            ->and($servers->findByName('web1')->host)->toBe('192.168.1.1')
+            ->and($sites->findByDomain('example.com'))->not->toBeNull()
+            ->and($sites->findByDomain('example.com')->domain)->toBe('example.com');
+    });
 });
