@@ -287,3 +287,93 @@ Shows the complete non-interactive command with all options for easy copy/paste:
 - Flexible - supports any prompt type via closures
 - Type-safe - preserves return types from prompts
 - DRY - single command serves both use cases
+
+### ⚙️ Command Options & Input (MANDATORY)
+
+**Standard option names (use consistently):**
+
+```php
+protected function configure(): void {
+    parent::configure();
+
+    // Resource selection (selecting existing resources)
+    $this->addOption('server', null, InputOption::VALUE_REQUIRED, 'Server name');
+    $this->addOption('site', null, InputOption::VALUE_REQUIRED, 'Site name');
+
+    // Property definition (creating new resources)
+    $this->addOption('name', null, InputOption::VALUE_REQUIRED, 'Resource name');
+
+    // Confirmation/validation skips
+    $this->addOption('yes', 'y', InputOption::VALUE_NONE, 'Skip confirmation');
+    $this->addOption('skip', null, InputOption::VALUE_NONE, 'Skip validation');
+
+    // Data inputs
+    $this->addOption('host', null, InputOption::VALUE_REQUIRED, 'Host/IP');
+    $this->addOption('port', null, InputOption::VALUE_REQUIRED, 'Port');
+}
+```
+
+**Naming Convention (MANDATORY):**
+
+- **`--server`**: For SELECTING an existing server (delete, info, deploy, etc.)
+- **`--site`**: For SELECTING an existing site
+- **`--name`**: For DEFINING a new resource's name property (add, create)
+- This prevents naming conflicts in commands that might work with multiple resource types
+
+**Examples:**
+
+```php
+// ✅ CORRECT - Selecting existing server
+// server:delete, server:info, deploy
+$this->addOption('server', null, InputOption::VALUE_REQUIRED, 'Server name');
+
+// ✅ CORRECT - Creating new server
+// server:add
+$this->addOption('name', null, InputOption::VALUE_REQUIRED, 'Server name');
+$this->addOption('host', null, InputOption::VALUE_REQUIRED, 'Host/IP');
+```
+
+**Rules:**
+
+- Use OPTIONS, never ARGUMENTS (enables interactive + CLI dual mode)
+- Pair all options with `getOptionOrPrompt()` for interactive fallback
+- Boolean flags: `VALUE_NONE` (--yes, --skip)
+- Data inputs: `VALUE_REQUIRED` (--name, --host, --server, --site)
+- Short flags: only `-y` for --yes
+- Resource selection: use `--server` + helper methods (e.g., `selectServer()`)
+
+**Pattern:**
+
+```php
+// Selecting existing resource
+$serverName = $this->getOptionOrPrompt(
+    'server',
+    fn() => $this->promptSelect(label: 'Select server:', options: $names)
+);
+
+// Defining new resource property
+$name = $this->getOptionOrPrompt(
+    'name',
+    fn() => $this->promptText(label: 'Server name:', required: true)
+);
+```
+
+**See:**
+
+- Selection: [ServerDeleteCommand.php](mdc:app/Console/Server/ServerDeleteCommand.php#L32-L33)
+- Creation: [ServerAddCommand.php](mdc:app/Console/Server/ServerAddCommand.php#L37-L43)
+
+### 🎯 Command Completion (MANDATORY)
+
+**Call `showCommandHint()` before returning:**
+
+```php
+$this->showCommandHint('command:name', [
+    'option1' => $value1,
+    'option2' => $value2,
+]);
+
+return Command::SUCCESS;
+```
+
+**See:** [ServerInfoCommand.php](mdc:app/Console/Server/ServerInfoCommand.php#L126-L128)
