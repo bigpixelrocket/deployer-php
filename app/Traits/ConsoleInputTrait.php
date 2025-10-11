@@ -12,6 +12,7 @@ use Closure;
  * Requires the using class to have:
  * - `protected InputInterface $input` property
  * - `protected PrompterService $prompter` property
+ * - `getDefinition()` method (typically from extending Command)
  */
 trait ConsoleInputTrait
 {
@@ -53,9 +54,38 @@ trait ConsoleInputTrait
     ): mixed {
         $value = $this->input->getOption($optionName);
 
-        // Handle boolean flags (for VALUE_NONE options) - both true and false are valid
+        // For boolean flags (VALUE_NONE options), check if actually provided
         if (is_bool($value)) {
-            return $value;
+            // Build list of option flags to check
+            $optionFlags = ['--' . $optionName];
+
+            // Try to find short flag from option definition
+            try {
+                $inputDef = $this->getDefinition();
+                if ($inputDef->hasOption($optionName)) {
+                    $option = $inputDef->getOption($optionName);
+                    if ($option->getShortcut() !== null) {
+                        $optionFlags[] = '-' . $option->getShortcut();
+                    }
+                }
+            } catch (\Throwable) {
+                // Ignore errors getting shortcut
+            }
+
+            // Check if flag was actually provided (works for both CLI and tests with ArrayInput)
+            $wasProvided = $this->input->hasParameterOption($optionFlags, true);
+
+            if ($wasProvided) {
+                // Flag was provided - return its value (true for CLI flags, could be false in tests)
+                return $value;
+            }
+
+            // Flag was not provided - prompt in interactive mode, return false otherwise
+            if ($this->input->isInteractive()) {
+                return $promptCallback();
+            }
+
+            return false;
         }
 
         // Handle string options (including empty strings)
