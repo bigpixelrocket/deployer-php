@@ -138,7 +138,7 @@ if (!function_exists('mockInventoryService')) {
      * @param array|string $data Array to be converted to YAML or raw YAML string to use as file content.
      * @param bool $throwOnRead If true, the mocked filesystem will throw on read operations.
      * @param bool $throwOnWrite If true, the mocked filesystem will throw on write/dump operations.
-     * @return InventoryService An InventoryService backed by a mocked FilesystemService. 
+     * @return InventoryService An InventoryService backed by a mocked FilesystemService.
      */
     function mockInventoryService(
         bool $fileExists = true,
