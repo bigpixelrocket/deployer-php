@@ -7,8 +7,10 @@ namespace Bigpixelrocket\DeployerPHP\Tests\Fixtures;
 use Bigpixelrocket\DeployerPHP\Container;
 use Bigpixelrocket\DeployerPHP\Contracts\BaseCommand;
 use Bigpixelrocket\DeployerPHP\Repositories\ServerRepository;
+use Bigpixelrocket\DeployerPHP\Repositories\SiteRepository;
 use Bigpixelrocket\DeployerPHP\Services\EnvService;
 use Bigpixelrocket\DeployerPHP\Services\InventoryService;
+use Bigpixelrocket\DeployerPHP\Services\ProcessService;
 use Bigpixelrocket\DeployerPHP\Services\PrompterService;
 use Bigpixelrocket\DeployerPHP\Services\SSHService;
 use Bigpixelrocket\DeployerPHP\Traits\ServerHelpersTrait;
@@ -33,11 +35,13 @@ class TestConsoleCommand extends BaseCommand
         Container $container,
         EnvService $env,
         InventoryService $inventory,
-        ServerRepository $servers,
-        SSHService $ssh,
+        ProcessService $proc,
         PrompterService $prompter,
+        ServerRepository $servers,
+        SiteRepository $sites,
+        SSHService $ssh,
     ) {
-        parent::__construct($container, $env, $inventory, $servers, $ssh, $prompter);
+        parent::__construct($container, $env, $inventory, $proc, $prompter, $servers, $sites, $ssh);
     }
 
     /**

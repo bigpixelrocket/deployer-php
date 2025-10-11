@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 use Bigpixelrocket\DeployerPHP\Container;
 use Bigpixelrocket\DeployerPHP\Repositories\ServerRepository;
+use Bigpixelrocket\DeployerPHP\Repositories\SiteRepository;
 use Bigpixelrocket\DeployerPHP\Services\EnvService;
 use Bigpixelrocket\DeployerPHP\Services\FilesystemService;
 use Bigpixelrocket\DeployerPHP\Services\InventoryService;
-use Bigpixelrocket\DeployerPHP\Services\ProcessFactory;
+use Bigpixelrocket\DeployerPHP\Services\ProcessService;
 use Bigpixelrocket\DeployerPHP\Services\PrompterService;
 use Bigpixelrocket\DeployerPHP\Services\SSHService;
 use Bigpixelrocket\DeployerPHP\Services\VersionService;
@@ -171,21 +172,21 @@ if (!function_exists('mockInventoryService')) {
     }
 }
 
-if (!function_exists('mockProcessFactory')) {
+if (!function_exists('mockProcessService')) {
     /**
-     * Create a ProcessFactory for testing.
+     * Create a ProcessService for testing.
      *
      * Uses real Filesystem since directory validation requires is_dir() checks.
      * Tests should use real directories (e.g., __DIR__, sys_get_temp_dir()).
      *
      * @example
-     *   $factory = mockProcessFactory();
-     *   $process = $factory->create(['echo', 'test'], __DIR__);
+     *   $proc = mockProcessService();
+     *   $process = $proc->run(['echo', 'test'], __DIR__);
      */
-    function mockProcessFactory(): ProcessFactory
+    function mockProcessService(): ProcessService
     {
         $filesystemService = new FilesystemService(new Filesystem());
-        return new ProcessFactory($filesystemService);
+        return new ProcessService($filesystemService);
     }
 }
 
@@ -273,7 +274,7 @@ if (!function_exists('mockVersionService')) {
     /**
      * Create a VersionService for testing with configurable package name and fallback.
      *
-     * Uses real Filesystem and ProcessFactory since git operations require real directory checks.
+     * Uses real Filesystem and ProcessService since git operations require real directory checks.
      *
      * @example
      *   // Default configuration
@@ -291,12 +292,12 @@ if (!function_exists('mockVersionService')) {
         ?string $fallback = null
     ): VersionService {
         $filesystemService = new FilesystemService(new Filesystem());
-        $processFactory = new ProcessFactory($filesystemService);
+        $proc = new ProcessService($filesystemService);
 
         return match (true) {
-            $packageName !== null && $fallback !== null => new VersionService($processFactory, $filesystemService, $packageName, $fallback),
-            $packageName !== null => new VersionService($processFactory, $filesystemService, $packageName),
-            default => new VersionService($processFactory, $filesystemService),
+            $packageName !== null && $fallback !== null => new VersionService($proc, $filesystemService, $packageName, $fallback),
+            $packageName !== null => new VersionService($proc, $filesystemService, $packageName),
+            default => new VersionService($proc, $filesystemService),
         };
     }
 }
@@ -341,6 +342,42 @@ if (!function_exists('mockServerRepository')) {
     }
 }
 
+if (!function_exists('mockSiteRepository')) {
+    /**
+     * Create a SiteRepository for testing with a loaded inventory service.
+     *
+     * Repository is returned fully initialized with inventory loaded and ready for use.
+     *
+     * @example
+     *   // Empty repository
+     *   $repo = mockSiteRepository(fileExists: true, data: ['sites' => []]);
+     *
+     * @example
+     *   // Pre-populated with sites
+     *   $repo = mockSiteRepository(
+     *       fileExists: true,
+     *       data: ['sites' => [
+     *           ['domain' => 'example.com', 'repo' => 'git@github.com:user/repo.git', 'branch' => 'main', 'servers' => ['web1']]
+     *       ]]
+     *   );
+     *   $repo->findByDomain('example.com'); // Returns SiteDTO
+     */
+    function mockSiteRepository(
+        bool $fileExists = true,
+        array|string $data = [],
+        bool $throwOnRead = false,
+        bool $throwOnWrite = false
+    ): SiteRepository {
+        $inventory = mockInventoryService($fileExists, $data, $throwOnRead, $throwOnWrite);
+        $inventory->loadInventoryFile();
+
+        $repository = new SiteRepository();
+        $repository->loadInventory($inventory);
+
+        return $repository;
+    }
+}
+
 //
 // Command & Integration Test Mocks
 // -------------------------------------------------------------------------------
@@ -371,11 +408,18 @@ if (!function_exists('mockCommandContainer')) {
      *   $command = $container->build(ServerListCommand::class);
      */
     function mockCommandContainer(
-        ?SSHService $ssh = null,
-        ?PrompterService $prompter = null,
+        // Base services
         ?EnvService $env = null,
         ?InventoryService $inventory = null,
+        ?ProcessService $proc = null,
+        ?PrompterService $prompter = null,
+
+        // Servers & sites
         ?ServerRepository $servers = null,
+        ?SiteRepository $sites = null,
+        ?SSHService $ssh = null,
+
+        // Configuration
         bool $envFileExists = true,
         string $envContent = 'API_KEY=test_value',
         bool $inventoryFileExists = true,
@@ -383,19 +427,23 @@ if (!function_exists('mockCommandContainer')) {
     ): Container {
         $container = new Container();
 
-        // Build or use provided services
+        // Build or use provided services (matches BaseCommand constructor order)
         $env ??= mockEnvService($envFileExists, $envContent);
         $inventory ??= mockInventoryService($inventoryFileExists, $inventoryData);
-        $servers ??= mockServerRepository($inventoryFileExists, $inventoryData);
-        $ssh ??= mockSSHService();
+        $proc ??= mockProcessService();
         $prompter ??= mockPrompter();
+        $servers ??= mockServerRepository($inventoryFileExists, $inventoryData);
+        $sites ??= mockSiteRepository($inventoryFileExists, $inventoryData);
+        $ssh ??= mockSSHService();
 
-        // Bind services to container
+        // Bind services to container (matches BaseCommand constructor order)
         $container->bind(EnvService::class, $env);
         $container->bind(InventoryService::class, $inventory);
-        $container->bind(ServerRepository::class, $servers);
-        $container->bind(SSHService::class, $ssh);
+        $container->bind(ProcessService::class, $proc);
         $container->bind(PrompterService::class, $prompter);
+        $container->bind(ServerRepository::class, $servers);
+        $container->bind(SiteRepository::class, $sites);
+        $container->bind(SSHService::class, $ssh);
 
         return $container;
     }

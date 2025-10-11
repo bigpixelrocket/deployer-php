@@ -6,8 +6,10 @@ namespace Bigpixelrocket\DeployerPHP\Contracts;
 
 use Bigpixelrocket\DeployerPHP\Container;
 use Bigpixelrocket\DeployerPHP\Repositories\ServerRepository;
+use Bigpixelrocket\DeployerPHP\Repositories\SiteRepository;
 use Bigpixelrocket\DeployerPHP\Services\EnvService;
 use Bigpixelrocket\DeployerPHP\Services\InventoryService;
+use Bigpixelrocket\DeployerPHP\Services\ProcessService;
 use Bigpixelrocket\DeployerPHP\Services\PrompterService;
 use Bigpixelrocket\DeployerPHP\Services\SSHService;
 use Bigpixelrocket\DeployerPHP\Traits\ConsoleInputTrait;
@@ -34,12 +36,19 @@ abstract class BaseCommand extends Command
     protected SymfonyStyle $io;
 
     public function __construct(
+        // Framework
         protected readonly Container $container,
+
+        // Base services
         protected readonly EnvService $env,
         protected readonly InventoryService $inventory,
-        protected readonly ServerRepository $servers,
-        protected readonly SSHService $ssh,
+        protected readonly ProcessService $proc,
         protected readonly PrompterService $prompter,
+
+        // Servers & sites
+        protected readonly ServerRepository $servers,
+        protected readonly SiteRepository $sites,
+        protected readonly SSHService $ssh,
     ) {
         parent::__construct();
     }
@@ -101,6 +110,7 @@ abstract class BaseCommand extends Command
         // Initialize repositories
 
         $this->servers->loadInventory($this->inventory);
+        $this->sites->loadInventory($this->inventory);
     }
 
     //
