@@ -31,6 +31,18 @@ class TestConsoleCommand extends BaseCommand
 
     private array $testArgs = [];
 
+    /**
+     * Create a TestConsoleCommand instance with the required service and repository dependencies.
+     *
+     * @param Container $container Dependency injection container.
+     * @param EnvService $env Environment service.
+     * @param InventoryService $inventory Inventory management service.
+     * @param ProcessService $proc Process execution service.
+     * @param PrompterService $prompter Interactive prompt service.
+     * @param ServerRepository $servers Repository for server records.
+     * @param SiteRepository $sites Repository for site records.
+     * @param SSHService $ssh SSH service for remote execution.
+     */
     public function __construct(
         Container $container,
         EnvService $env,

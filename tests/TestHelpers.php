@@ -130,28 +130,15 @@ if (!function_exists('mockEnvService')) {
 
 if (!function_exists('mockInventoryService')) {
     /**
-     * Create a mock InventoryService for testing with configurable filesystem behavior.
+     * Create a mock InventoryService for tests with a configurable in-memory inventory file.
      *
-     * Accepts either array data (auto-converts to YAML) or raw string content.
-     * Use arrays for clean test setup, strings for testing YAML parsing edge cases.
+     * If $data is an array, it is dumped to YAML and used as the inventory file content; if it is a string, it is used verbatim. The filesystem mock can be configured to simulate missing files or read/write errors.
      *
-     * @example
-     *   // Using array data (recommended)
-     *   $service = mockInventoryService(
-     *       fileExists: true,
-     *       data: ['servers' => ['web1' => ['host' => '192.168.1.1']]]
-     *   );
-     *
-     * @example
-     *   // Using raw YAML string
-     *   $service = mockInventoryService(
-     *       fileExists: true,
-     *       data: "servers:\n  web1:\n    host: 192.168.1.1"
-     *   );
-     *
-     * @example
-     *   // Test write failures
-     *   $service = mockInventoryService(fileExists: true, throwOnWrite: true);
+     * @param bool $fileExists Whether the inventory file should appear to exist.
+     * @param array|string $data Array to be converted to YAML or raw YAML string to use as file content.
+     * @param bool $throwOnRead If true, the mocked filesystem will throw on read operations.
+     * @param bool $throwOnWrite If true, the mocked filesystem will throw on write/dump operations.
+     * @return InventoryService An InventoryService backed by a mocked FilesystemService. 
      */
     function mockInventoryService(
         bool $fileExists = true,
@@ -174,14 +161,11 @@ if (!function_exists('mockInventoryService')) {
 
 if (!function_exists('mockProcessService')) {
     /**
-     * Create a ProcessService for testing.
+     * Creates a ProcessService configured for tests.
      *
-     * Uses real Filesystem since directory validation requires is_dir() checks.
-     * Tests should use real directories (e.g., __DIR__, sys_get_temp_dir()).
+     * Uses a real FilesystemService (Symfony Filesystem) so directory validation relies on is_dir(); tests should provide real directories (e.g., __DIR__, sys_get_temp_dir()).
      *
-     * @example
-     *   $proc = mockProcessService();
-     *   $process = $proc->run(['echo', 'test'], __DIR__);
+     * @return ProcessService A ProcessService backed by a FilesystemService using a real Filesystem.
      */
     function mockProcessService(): ProcessService
     {
@@ -272,20 +256,13 @@ if (!function_exists('mockPrompter')) {
 
 if (!function_exists('mockVersionService')) {
     /**
-     * Create a VersionService for testing with configurable package name and fallback.
+     * Create a VersionService configured for tests with an optional package name and fallback version.
      *
-     * Uses real Filesystem and ProcessService since git operations require real directory checks.
+     * Uses a real Filesystem and ProcessService because version resolution may perform git/directory checks.
      *
-     * @example
-     *   // Default configuration
-     *   $service = mockVersionService();
-     *
-     * @example
-     *   // Custom package and fallback
-     *   $service = mockVersionService(
-     *       packageName: 'vendor/package',
-     *       fallback: '1.0.0-dev'
-     *   );
+     * @param string|null $packageName Optional package name to use (e.g., "vendor/package"). If omitted the service uses its default discovery.
+     * @param string|null $fallback Optional fallback version string used when the package/version cannot be determined.
+     * @return VersionService The configured VersionService instance.
      */
     function mockVersionService(
         ?string $packageName = null,
@@ -308,23 +285,15 @@ if (!function_exists('mockVersionService')) {
 
 if (!function_exists('mockServerRepository')) {
     /**
-     * Create a ServerRepository for testing with a loaded inventory service.
+     * Create a ServerRepository preloaded with inventory data for use in tests.
      *
-     * Repository is returned fully initialized with inventory loaded and ready for use.
+     * The returned repository has its inventory loaded from a mocked InventoryService and is ready for immediate use.
      *
-     * @example
-     *   // Empty repository
-     *   $repo = mockServerRepository(fileExists: true, data: ['servers' => []]);
-     *
-     * @example
-     *   // Pre-populated with servers
-     *   $repo = mockServerRepository(
-     *       fileExists: true,
-     *       data: ['servers' => [
-     *           'web1' => ['host' => '192.168.1.1', 'port' => 22]
-     *       ]]
-     *   );
-     *   $repo->findByName('web1'); // Returns ServerDTO
+     * @param bool $fileExists Whether the mocked inventory file should exist.
+     * @param array|string $data Inventory content to load; an array will be converted to YAML, a string will be used as raw file content.
+     * @param bool $throwOnRead If true, the mocked filesystem will throw on read operations to simulate read errors.
+     * @param bool $throwOnWrite If true, the mocked filesystem will throw on write/dump operations to simulate write errors.
+     * @return ServerRepository A ServerRepository instance with inventory loaded from the mocked service.
      */
     function mockServerRepository(
         bool $fileExists = true,
@@ -344,23 +313,13 @@ if (!function_exists('mockServerRepository')) {
 
 if (!function_exists('mockSiteRepository')) {
     /**
-     * Create a SiteRepository for testing with a loaded inventory service.
+     * Creates a SiteRepository for testing with its inventory loaded from a mocked InventoryService.
      *
-     * Repository is returned fully initialized with inventory loaded and ready for use.
-     *
-     * @example
-     *   // Empty repository
-     *   $repo = mockSiteRepository(fileExists: true, data: ['sites' => []]);
-     *
-     * @example
-     *   // Pre-populated with sites
-     *   $repo = mockSiteRepository(
-     *       fileExists: true,
-     *       data: ['sites' => [
-     *           ['domain' => 'example.com', 'repo' => 'git@github.com:user/repo.git', 'branch' => 'main', 'servers' => ['web1']]
-     *       ]]
-     *   );
-     *   $repo->findByDomain('example.com'); // Returns SiteDTO
+     * @param bool $fileExists Whether the underlying inventory file should appear to exist.
+     * @param array|string $data Inventory contents as an array (converted to YAML) or raw YAML string.
+     * @param bool $throwOnRead If true, the mocked inventory service will throw on read operations.
+     * @param bool $throwOnWrite If true, the mocked inventory service will throw on write operations.
+     * @return SiteRepository A repository instance with inventory loaded and ready for use.
      */
     function mockSiteRepository(
         bool $fileExists = true,

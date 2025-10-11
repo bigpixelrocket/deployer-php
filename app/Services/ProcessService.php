@@ -11,15 +11,24 @@ use Symfony\Component\Process\Process;
  */
 final readonly class ProcessService
 {
+    /**
+     * Initialize the service with a filesystem utility used for directory validation and inspection.
+     *
+     * @param FilesystemService $fs Filesystem utility used to validate working directories and perform filesystem checks.
+     */
     public function __construct(
         private FilesystemService $fs,
     ) {
     }
 
     /**
-     * Execute a shell command and return the Process instance.
+     * Execute the given command in the specified working directory and return the executed Process instance.
      *
-     * @param list<string> $command
+     * @param list<string> $command The command and its arguments.
+     * @param string $cwd The working directory in which to execute the command.
+     * @param float $timeout Process timeout in seconds.
+     * @return Process The Symfony Process instance after execution.
+     * @throws \InvalidArgumentException If `$command` is empty or `$cwd` is not a directory.
      */
     public function run(array $command, string $cwd, float $timeout = 3.0): Process
     {

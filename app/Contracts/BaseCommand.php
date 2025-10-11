@@ -35,6 +35,13 @@ abstract class BaseCommand extends Command
     protected OutputInterface $output;
     protected SymfonyStyle $io;
 
+    /**
+     * Create a new BaseCommand with the application's services and repositories.
+     *
+     * The constructor accepts and stores dependencies (environment and inventory services,
+     * process and prompting helpers, server/site repositories, SSH service, and the DI container)
+     * used by this command and its subclasses.
+     */
     public function __construct(
         // Framework
         protected readonly Container $container,
@@ -80,7 +87,15 @@ abstract class BaseCommand extends Command
     }
 
     /**
-     * Initialize IO and services.
+     * Prepare console IO and initialize environment, inventory, and repositories.
+     *
+     * Sets the command's input/output properties, creates a SymfonyStyle IO helper,
+     * applies any custom paths provided via the `--env` and `--inventory` options,
+     * loads the corresponding files, and populates the servers and sites repositories
+     * from the loaded inventory.
+     *
+     * @param InputInterface  $input  The current console input.
+     * @param OutputInterface $output The current console output.
      */
     protected function initialize(InputInterface $input, OutputInterface $output): void
     {
