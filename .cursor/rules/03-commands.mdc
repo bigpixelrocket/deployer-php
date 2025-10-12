@@ -63,7 +63,7 @@ protected function success(string $message): void {
 - Input trait: [ConsoleInputTrait.php](mdc:app/Traits/ConsoleInputTrait.php)
 - Output methods: `writeln()`, `info()`, `hr()`, `h1()`
 - Status methods: `success()`, `error()`, `warning()`
-- Input methods: `getOptionOrPrompt()`, `promptText()`, `promptPassword()`, `promptConfirm()`, `promptSelect()`, `promptMultiselect()`, `promptSuggest()`, `promptSearch()`, `promptPause()`, `promptSpin()`
+- Input methods: `getOptionOrPrompt()`, `getValidatedOptionOrPrompt()`, `promptText()`, `promptPassword()`, `promptConfirm()`, `promptSelect()`, `promptMultiselect()`, `promptSuggest()`, `promptSearch()`, `promptPause()`, `promptSpin()`
 - Helper methods: `showCommandHint()`
 
 **When to Add New Methods:**
@@ -294,6 +294,144 @@ All wrappers automatically suppress extra spacing for cleaner output.
 - Flexible - supports any prompt type via closures
 - Type-safe - preserves return types from prompts
 - DRY - single command serves both use cases
+
+### 🎯 Input Validation Pattern
+
+Validation traits provide reusable validation logic that integrates with both Laravel Prompts and CLI options.
+
+**Core Pattern:**
+
+Validation methods accept `mixed`, check type first, then return `?string` (error message or `null` if valid):
+
+```php
+// ✅ CORRECT - Accept mixed with type guard
+protected function validateNameInput(mixed $name): ?string
+{
+    if (!is_string($name)) {
+        return 'Server name must be a string';
+    }
+
+    if (trim($name) === '') {
+        return 'Server name cannot be empty';
+    }
+
+    // Check uniqueness
+    $existing = $this->servers->findByName($name);
+    if ($existing !== null) {
+        return "Server '{$name}' already exists";
+    }
+
+    return null;
+}
+
+// ❌ WRONG - Throws exception (not compatible with Laravel Prompts)
+protected function validateName(string $name): void
+{
+    if (trim($name) === '') {
+        throw new \InvalidArgumentException('Name cannot be empty');
+    }
+}
+
+// ❌ WRONG - Type-hinted as string (not PHPStan-compliant)
+protected function validateNameInput(string $name): ?string
+{
+    // ...
+}
+```
+
+**Using Validated Inputs:**
+
+Use `getValidatedOptionOrPrompt()` for inputs that require validation:
+
+```php
+$name = $this->getValidatedOptionOrPrompt(
+    'name',
+    fn ($validate) => $this->promptText(
+        label: 'Server name:',
+        placeholder: 'web1',
+        validate: $validate
+    ),
+    fn ($value) => $this->validateNameInput($value)
+);
+
+if ($name === null) {
+    return Command::FAILURE;
+}
+```
+
+**How It Works:**
+
+1. Validator is passed only once (third parameter)
+2. Method automatically injects validator into prompt callback
+3. Prompts validate interactively as user types
+4. CLI options are validated after retrieval
+5. Returns `null` on validation failure (error already displayed)
+6. Returns validated value on success
+
+**Naming Convention:**
+
+- Validation methods: `validate*Input()` (returns `?string`)
+- Exception-throwing validators: `validate*()` (for heavy I/O operations like git repo checks)
+
+**Examples:**
+
+- [ServerValidationTrait.php](mdc:app/Traits/ServerValidationTrait.php) - `validateHostInput()`, `validatePortInput()`, `validateNameInput()`
+- [SiteValidationTrait.php](mdc:app/Traits/SiteValidationTrait.php) - `validateDomainInput()`, `validateBranchInput()`
+
+**When to Use Exceptions:**
+
+For validation that involves heavy I/O operations (network calls, external processes), use exception-throwing methods:
+
+```php
+// Heavy I/O operation - throw exceptions
+protected function validateGitRepo(string $repo): void
+{
+    $process = $this->proc->run(['git', 'ls-remote', '--exit-code', $repo]);
+
+    if (!$process->isSuccessful()) {
+        throw new \RuntimeException("Cannot access git repository '{$repo}'");
+    }
+}
+
+// Used in commands with try-catch for user-friendly error display
+try {
+    $this->validateGitRepo($repo);
+    $this->success('Git repository is accessible');
+} catch (\RuntimeException $e) {
+    $this->error($e->getMessage());
+    return Command::FAILURE;
+}
+```
+
+**Testing Validation Traits:**
+
+Create a test fixture class that uses the trait and exposes methods:
+
+```php
+class TestServerValidator
+{
+    use ServerValidationTrait;
+
+    public function testValidateHost(mixed $host): ?string
+    {
+        return $this->validateHostInput($host);
+    }
+}
+
+// Test valid inputs return null
+expect($validator->testValidateHost('192.168.1.100'))->toBeNull();
+
+// Test invalid inputs return error messages
+expect($validator->testValidateHost('invalid'))->toContain('valid');
+```
+
+**Benefits:**
+
+- **Testable:** Easy to unit test without exception handling
+- **Reusable:** Same method works for interactive prompts AND CLI options
+- **User-friendly:** Integrates with Laravel Prompts' `validate` callback
+- **Consistent:** Uniform pattern across all validation logic
+- **Type-safe:** PHPStan compliant with proper type variance
 
 **See also:** "Command Options & Input" section below for mandatory naming conventions.
 

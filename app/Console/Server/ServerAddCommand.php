@@ -58,40 +58,55 @@ class ServerAddCommand extends BaseCommand
         //
         // Gather server details
 
-        /** @var string $name */
-        $name = $this->getOptionOrPrompt(
+        /** @var string|null $name */
+        $name = $this->getValidatedOptionOrPrompt(
             'name',
-            fn (): string => $this->promptText(
+            fn ($validate) => $this->promptText(
                 label: 'Server name:',
                 placeholder: 'web1',
-                required: true
-            )
+                required: true,
+                validate: $validate
+            ),
+            fn ($value) => $this->validateNameInput($value)
         );
 
-        /** @var string $host */
-        $host = $this->getOptionOrPrompt(
+        if ($name === null) {
+            return Command::FAILURE;
+        }
+
+        /** @var string|null $host */
+        $host = $this->getValidatedOptionOrPrompt(
             'host',
-            fn (): string => $this->promptText(
+            fn ($validate) => $this->promptText(
                 label: 'Host/IP address:',
                 placeholder: '192.168.1.100',
-                required: true
-            )
+                required: true,
+                validate: $validate
+            ),
+            fn ($value) => $this->validateHostInput($value)
         );
 
-        $this->validateHost($host);
+        if ($host === null) {
+            return Command::FAILURE;
+        }
 
-        /** @var string $portString */
-        $portString = $this->getOptionOrPrompt(
+        /** @var string|null $portString */
+        $portString = $this->getValidatedOptionOrPrompt(
             'port',
-            fn (): string => $this->promptText(
+            fn ($validate) => $this->promptText(
                 label: 'SSH port:',
                 default: '22',
-                required: true
-            )
+                required: true,
+                validate: $validate
+            ),
+            fn ($value) => $this->validatePortInput($value)
         );
 
+        if ($portString === null) {
+            return Command::FAILURE;
+        }
+
         $port = (int) $portString;
-        $this->validatePort($port);
 
         /** @var string $username */
         $username = $this->getOptionOrPrompt(

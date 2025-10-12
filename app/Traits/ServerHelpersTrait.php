@@ -19,22 +19,7 @@ use Symfony\Component\Console\Command\Command;
 trait ServerHelpersTrait
 {
     /**
-     * Display server details.
-     */
-    protected function displayServerDeets(ServerDTO $server): void
-    {
-        $this->writeln([
-            "  Name: <fg=gray>{$server->name}</>",
-            "  Host: <fg=gray>{$server->host}</>",
-            "  Port: <fg=gray>{$server->port}</>",
-            "  User: <fg=gray>{$server->username}</>",
-            '  Key:  <fg=gray>'.($server->privateKeyPath ?? 'default (~/.ssh/id_ed25519 or ~/.ssh/id_rsa)').'</>',
-            ' '
-        ]);
-    }
-
-    /**
-     * Select a server from inventory by server option or interactive prompt.
+     * Select a server from inventory by name option or interactive prompt.
      *
      * @return array{server: ServerDTO|null, exit_code: int} Server DTO and exit code (SUCCESS if empty inventory, FAILURE if not found)
      */
@@ -86,6 +71,21 @@ trait ServerHelpersTrait
         }
 
         return ['server' => $server, 'exit_code' => Command::SUCCESS];
+    }
+
+    /**
+     * Display server details.
+     */
+    protected function displayServerDeets(ServerDTO $server): void
+    {
+        $this->writeln([
+            "  Name: <fg=gray>{$server->name}</>",
+            "  Host: <fg=gray>{$server->host}</>",
+            "  Port: <fg=gray>{$server->port}</>",
+            "  User: <fg=gray>{$server->username}</>",
+            '  Key:  <fg=gray>'.($server->privateKeyPath ?? 'default (~/.ssh/id_ed25519 or ~/.ssh/id_rsa)').'</>',
+            ' '
+        ]);
     }
 
 }

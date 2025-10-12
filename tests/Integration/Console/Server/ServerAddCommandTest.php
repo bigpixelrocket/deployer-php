@@ -147,8 +147,9 @@ describe('ServerAddCommand', function () {
         $sshService = mockSSHServiceWithBehavior(true);
         $tester = createServerAddCommandTester($sshService);
 
-        // ACT & ASSERT - Provide all required options
-        expect(fn () => $tester->execute([
+        // ACT
+        ob_start();
+        $exitCode = $tester->execute([
             '--name' => 'test',
             '--host' => $invalidHost,
             '--port' => '22',
@@ -156,7 +157,14 @@ describe('ServerAddCommand', function () {
             '--private-key-path' => '',
             '--skip' => true,
             '--yes' => true,
-        ]))->toThrow(\InvalidArgumentException::class, 'Invalid host');
+        ]);
+        ob_end_clean();
+
+        // ASSERT
+        $output = $tester->getDisplay();
+        expect($exitCode)->toBe(Command::FAILURE)
+            ->and($output)->toContain('✗')
+            ->and($output)->toContain('valid');
     })->with([
         'underscore' => ['server_name'],
         'spaces' => ['my server'],
@@ -168,8 +176,9 @@ describe('ServerAddCommand', function () {
         $sshService = mockSSHServiceWithBehavior(true);
         $tester = createServerAddCommandTester($sshService);
 
-        // ACT & ASSERT - Provide all required options
-        expect(fn () => $tester->execute([
+        // ACT
+        ob_start();
+        $exitCode = $tester->execute([
             '--name' => 'test',
             '--host' => '192.168.1.1',
             '--port' => $invalidPort,
@@ -177,7 +186,14 @@ describe('ServerAddCommand', function () {
             '--private-key-path' => '',
             '--skip' => true,
             '--yes' => true,
-        ]))->toThrow(\InvalidArgumentException::class, 'between 1 and 65535');
+        ]);
+        ob_end_clean();
+
+        // ASSERT
+        $output = $tester->getDisplay();
+        expect($exitCode)->toBe(Command::FAILURE)
+            ->and($output)->toContain('✗')
+            ->and($output)->toMatch('/Port must be|between 1 and 65535/');
     })->with([
         'zero' => ['0'],
         'negative' => ['-1'],
@@ -220,8 +236,47 @@ describe('ServerAddCommand', function () {
         $output = $tester->getDisplay();
         expect($exitCode)->toBe(Command::FAILURE)
             ->and($output)->toContain('✗')
-            ->and($output)->toContain('Failed to add server')
+            ->and($output)->toContain('already exists')
             ->and($output)->toContain('duplicate-name');
+    });
+
+    it('prevents duplicate server hosts', function () {
+        // ARRANGE
+        $sshService = mockSSHServiceWithBehavior(true);
+        $tester = createServerAddCommandTester($sshService);
+
+        // ACT - Add first server (capture output)
+        ob_start();
+        $tester->execute([
+            '--name' => 'server-one',
+            '--host' => '192.168.1.100',
+            '--port' => '22',
+            '--username' => 'root',
+            '--private-key-path' => '',
+            '--skip' => true,
+            '--yes' => true,
+        ]);
+        ob_end_clean();
+
+        // ACT - Try to add different server with same host (capture output)
+        ob_start();
+        $exitCode = $tester->execute([
+            '--name' => 'server-two',
+            '--host' => '192.168.1.100',
+            '--port' => '22',
+            '--username' => 'root',
+            '--private-key-path' => '',
+            '--skip' => true,
+            '--yes' => true,
+        ]);
+        ob_end_clean();
+
+        // ASSERT
+        $output = $tester->getDisplay();
+        expect($exitCode)->toBe(Command::FAILURE)
+            ->and($output)->toContain('✗')
+            ->and($output)->toContain('already used by server')
+            ->and($output)->toContain('server-one');
     });
 
     it('handles SSH connection failure with troubleshooting tips', function () {
