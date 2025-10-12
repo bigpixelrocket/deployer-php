@@ -345,10 +345,10 @@ if (!function_exists('mockCommandContainer')) {
      *   $command = $container->build(ServerListCommand::class);
      */
     function mockCommandContainer(
-        // Base services
-        ?IOService $io = null,
+        // Base services (alphabetical order)
         ?EnvService $env = null,
         ?InventoryService $inventory = null,
+        ?IOService $io = null,
         ?ProcessService $proc = null,
 
         // Servers & sites
@@ -365,18 +365,18 @@ if (!function_exists('mockCommandContainer')) {
         $container = new Container();
 
         // Build or use provided services (matches BaseCommand constructor order)
-        $io ??= mockIOService();
         $env ??= mockEnvService($envFileExists, $envContent);
         $inventory ??= mockInventoryService($inventoryFileExists, $inventoryData);
+        $io ??= mockIOService();
         $proc ??= mockProcessService();
         $servers ??= mockServerRepository($inventoryFileExists, $inventoryData);
         $sites ??= mockSiteRepository($inventoryFileExists, $inventoryData);
         $ssh ??= mockSSHService();
 
         // Bind services to container (matches BaseCommand constructor order)
-        $container->bind(IOService::class, $io);
         $container->bind(EnvService::class, $env);
         $container->bind(InventoryService::class, $inventory);
+        $container->bind(IOService::class, $io);
         $container->bind(ProcessService::class, $proc);
         $container->bind(ServerRepository::class, $servers);
         $container->bind(SiteRepository::class, $sites);

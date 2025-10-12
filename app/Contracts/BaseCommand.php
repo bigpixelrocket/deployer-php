@@ -37,9 +37,9 @@ abstract class BaseCommand extends Command
         protected readonly Container $container,
 
         // Base services
-        protected readonly IOService $io,
         protected readonly EnvService $env,
         protected readonly InventoryService $inventory,
+        protected readonly IOService $io,
         protected readonly ProcessService $proc,
 
         // Servers & sites

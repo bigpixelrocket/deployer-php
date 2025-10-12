@@ -40,7 +40,7 @@ class IOService
      */
     public function initialize(Command $command, InputInterface $input, OutputInterface $output): void
     {
-        $this->command = $command;
+        $this->command = $command; // Used to inspect input definitions (like --yes and -y, etc.)
         $this->input = $input;
         $this->io = new SymfonyStyle($input, $output);
     }

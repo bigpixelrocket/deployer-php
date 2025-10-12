@@ -35,9 +35,9 @@ class TestConsoleCommand extends BaseCommand
      * Create a TestConsoleCommand instance with the required service and repository dependencies.
      *
      * @param Container $container Dependency injection container.
-     * @param IOService $io I/O service for console operations.
      * @param EnvService $env Environment service.
      * @param InventoryService $inventory Inventory management service.
+     * @param IOService $io I/O service for console operations.
      * @param ProcessService $proc Process execution service.
      * @param ServerRepository $servers Repository for server records.
      * @param SiteRepository $sites Repository for site records.
@@ -45,15 +45,15 @@ class TestConsoleCommand extends BaseCommand
      */
     public function __construct(
         Container $container,
-        IOService $io,
         EnvService $env,
         InventoryService $inventory,
+        IOService $io,
         ProcessService $proc,
         ServerRepository $servers,
         SiteRepository $sites,
         SSHService $ssh,
     ) {
-        parent::__construct($container, $io, $env, $inventory, $proc, $servers, $sites, $ssh);
+        parent::__construct($container, $env, $inventory, $io, $proc, $servers, $sites, $ssh);
     }
 
     /**
