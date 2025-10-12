@@ -56,13 +56,7 @@ trait ServerHelpersTrait
         //
         // Find server by name
 
-        $server = null;
-        foreach ($allServers as $s) {
-            if ($s->name === $name) {
-                $server = $s;
-                break;
-            }
-        }
+        $server = $this->servers->findByName($name);
 
         if ($server === null) {
             $this->error("Server '{$name}' not found in inventory");
