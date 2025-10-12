@@ -91,6 +91,8 @@ class TestConsoleCommand extends BaseCommand
                 'getOptionOrPromptEmpty' => $this->testGetOptionOrPromptEmpty(),
                 'getOptionOrPromptBoolean' => $this->testGetOptionOrPromptBoolean(),
                 'getOptionOrPromptTypes' => $this->testGetOptionOrPromptTypes(),
+                'getValidatedOptionOrPromptValid' => $this->testGetValidatedOptionOrPromptValid(),
+                'getValidatedOptionOrPromptInvalid' => $this->testGetValidatedOptionOrPromptInvalid(),
                 'testPromptSpin' => $this->testPromptSpinWrapper(),
                 'promptText' => $this->testPromptTextWrapper(),
                 'promptPassword' => $this->testPromptPasswordWrapper(),
@@ -171,6 +173,38 @@ class TestConsoleCommand extends BaseCommand
         } else {
             $this->io->text("Result: {$result}");
         }
+    }
+
+    /**
+     * Test getValidatedOptionOrPrompt with valid input.
+     */
+    private function testGetValidatedOptionOrPromptValid(): void
+    {
+        $result = $this->getValidatedOptionOrPrompt(
+            'name',
+            fn ($validate) => $this->promptText(label: 'Name:', validate: $validate),
+            fn ($value) => trim((string) $value) === '' ? 'Cannot be empty' : null
+        );
+
+        if ($result === null) {
+            $this->io->text('Result: null');
+        } else {
+            $this->io->text("Result: {$result}");
+        }
+    }
+
+    /**
+     * Test getValidatedOptionOrPrompt with invalid input.
+     */
+    private function testGetValidatedOptionOrPromptInvalid(): void
+    {
+        $result = $this->getValidatedOptionOrPrompt(
+            'name',
+            fn ($validate) => $this->promptText(label: 'Name:', validate: $validate),
+            fn ($value) => 'Always invalid'
+        );
+
+        $this->io->text('Result: '.($result ?? 'null'));
     }
 
     /**

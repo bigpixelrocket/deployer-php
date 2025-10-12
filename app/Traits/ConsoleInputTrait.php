@@ -98,6 +98,55 @@ trait ConsoleInputTrait
         return $promptCallback();
     }
 
+    /**
+     * Get option value or prompt user, with automatic validation.
+     *
+     * Combines getOptionOrPrompt with validation. The validator is automatically
+     * applied to both interactive prompts and CLI options.
+     *
+     * @param string $optionName The option name to check
+     * @param Closure(Closure): mixed $promptCallback Closure that receives validator and returns prompt result
+     * @param Closure(mixed): ?string $validator Validation closure that returns error message or null
+     *
+     * @return mixed The validated value, or null if validation failed
+     *
+     * @example
+     * $name = $this->getValidatedOptionOrPrompt(
+     *     'name',
+     *     fn($validate) => $this->promptText(
+     *         label: 'Server name:',
+     *         validate: $validate
+     *     ),
+     *     fn($value) => $this->validateNameInput($value)
+     * );
+     * if ($name === null) {
+     *     return Command::FAILURE;
+     * }
+     */
+    protected function getValidatedOptionOrPrompt(
+        string $optionName,
+        Closure $promptCallback,
+        Closure $validator
+    ): mixed {
+        // Pass validator to prompt callback
+        $value = $this->getOptionOrPrompt(
+            $optionName,
+            fn () => $promptCallback($validator)
+        );
+
+        // Validate if value came from CLI option (prompts already validated)
+        if ($this->input->getOption($optionName) !== null) {
+            $error = $validator($value);
+            if ($error !== null) {
+                $this->error($error);
+
+                return null;
+            }
+        }
+
+        return $value;
+    }
+
     //
     // Laravel Prompts Wrappers
     // -------------------------------------------------------------------------------

@@ -133,4 +133,72 @@ describe('ConsoleInputTrait', function () {
         // ASSERT
         expect($output)->toContain('Spin result: success');
     });
+
+    //
+    // getValidatedOptionOrPrompt
+    // -------------------------------------------------------------------------------
+
+    describe('getValidatedOptionOrPrompt', function () {
+        beforeEach(function () {
+            $container = mockCommandContainer();
+            $this->command = $container->build(\Bigpixelrocket\DeployerPHP\Tests\Fixtures\TestConsoleCommand::class);
+            $this->tester = new CommandTester($this->command);
+        });
+
+        it('returns validated value when CLI option is valid', function () {
+            // ARRANGE
+            $this->command->setTestMethod('getValidatedOptionOrPromptValid');
+
+            // ACT
+            $this->tester->execute(['--name' => 'valid-name']);
+            $output = $this->tester->getDisplay();
+
+            // ASSERT
+            expect($output)->toContain('Result: valid-name');
+        });
+
+        it('returns null and shows error when CLI option is invalid', function () {
+            // ARRANGE
+            $this->command->setTestMethod('getValidatedOptionOrPromptInvalid');
+
+            // ACT
+            $this->tester->execute(['--name' => 'anything']);
+            $output = $this->tester->getDisplay();
+
+            // ASSERT
+            expect($output)->toContain('✗')
+                ->and($output)->toContain('Always invalid')
+                ->and($output)->toContain('Result: null');
+        });
+
+        it('returns null when CLI option fails validation', function () {
+            // ARRANGE
+            $this->command->setTestMethod('getValidatedOptionOrPromptValid');
+
+            // ACT
+            $this->tester->execute(['--name' => '']);
+            $output = $this->tester->getDisplay();
+
+            // ASSERT
+            expect($output)->toContain('✗')
+                ->and($output)->toContain('Cannot be empty')
+                ->and($output)->toContain('Result: null');
+        });
+
+        it('validator is passed to prompt callback in non-interactive mode', function () {
+            // ARRANGE - Create command with mock prompter that has a value queued
+            $mockPrompter = mockPrompter(text: ['prompted-value']);
+            $container = mockCommandContainer(prompter: $mockPrompter);
+            $command = $container->build(\Bigpixelrocket\DeployerPHP\Tests\Fixtures\TestConsoleCommand::class);
+            $tester = new CommandTester($command);
+            $command->setTestMethod('getValidatedOptionOrPromptValid');
+
+            // ACT - No --name option, will use prompter
+            $tester->execute([]);
+            $output = $tester->getDisplay();
+
+            // ASSERT - MockPrompter returned value, validator was passed and validated
+            expect($output)->toContain('Result: prompted-value');
+        });
+    });
 });

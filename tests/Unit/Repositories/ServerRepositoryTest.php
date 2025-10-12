@@ -48,8 +48,19 @@ describe('ServerRepository', function () {
             ->and($found->username)->toBe('deployer')
             ->and($found->privateKeyPath)->toBe('~/.ssh/key');
 
+        // ASSERT - Find by host
+        $foundByHost = $repository->findByHost('192.168.1.1');
+        expect($foundByHost)->not->toBeNull()
+            ->and($foundByHost->name)->toBe('web1')
+            ->and($foundByHost->host)->toBe('192.168.1.1');
+
+        $foundByHost2 = $repository->findByHost('192.168.1.2');
+        expect($foundByHost2)->not->toBeNull()
+            ->and($foundByHost2->name)->toBe('web2');
+
         // ASSERT - Find returns null for missing
         expect($repository->findByName('nonexistent'))->toBeNull();
+        expect($repository->findByHost('10.0.0.1'))->toBeNull();
 
         // ASSERT - All returns both servers
         $all = $repository->all();
@@ -79,6 +90,20 @@ describe('ServerRepository', function () {
         // ACT & ASSERT
         expect(fn () => $repository->create(new ServerDTO('existing', '192.168.1.2')))
             ->toThrow(\RuntimeException::class, "Server 'existing' already exists");
+    });
+
+    it('prevents duplicate server hosts', function () {
+        // ARRANGE
+        $inventory = mockInventoryService(true, ['servers' => [
+            ['name' => 'existing', 'host' => '192.168.1.1', 'port' => 22, 'username' => 'root', 'privateKeyPath' => null],
+        ]]);
+        $inventory->loadInventoryFile();
+        $repository = new ServerRepository();
+        $repository->loadInventory($inventory);
+
+        // ACT & ASSERT
+        expect(fn () => $repository->create(new ServerDTO('different-name', '192.168.1.1')))
+            ->toThrow(\RuntimeException::class, "Host '192.168.1.1' is already used by server 'existing'");
     });
 
     //

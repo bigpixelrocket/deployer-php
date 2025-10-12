@@ -14,20 +14,30 @@ class TestServerValidator
 {
     use ServerValidationTrait;
 
+    public $servers;
+
     /**
-     * Expose protected validateHost for testing.
+     * Expose protected validateNameInput for testing.
      */
-    public function testValidateHost(string $host): void
+    public function testValidateName(mixed $name): ?string
     {
-        $this->validateHost($host);
+        return $this->validateNameInput($name);
     }
 
     /**
-     * Expose protected validatePort for testing.
+     * Expose protected validateHostInput for testing.
      */
-    public function testValidatePort(int $port): void
+    public function testValidateHost(mixed $host): ?string
     {
-        $this->validatePort($port);
+        return $this->validateHostInput($host);
+    }
+
+    /**
+     * Expose protected validatePortInput for testing.
+     */
+    public function testValidatePort(mixed $portString): ?string
+    {
+        return $this->validatePortInput($portString);
     }
 }
 
@@ -35,18 +45,73 @@ class TestServerValidator
 // Unit tests
 // -------------------------------------------------------------------------------
 
+require_once __DIR__ . '/../../TestHelpers.php';
+
 describe('ServerValidationTrait', function () {
     beforeEach(function () {
         $this->validator = new TestServerValidator();
     });
 
     //
-    // validateHost
+    // validateNameInput
+    // -------------------------------------------------------------------------------
+
+    it('accepts valid server names', function (string $name) {
+        // ARRANGE
+        $this->validator->servers = mockServerRepository(true, ['servers' => []]);
+
+        // ACT
+        $error = $this->validator->testValidateName($name);
+
+        // ASSERT
+        expect($error)->toBeNull();
+    })->with([
+        'simple name' => ['web1'],
+        'hyphenated' => ['web-server-01'],
+        'underscored' => ['web_server_01'],
+        'numeric' => ['server123'],
+        'mixed case' => ['WebServer01'],
+    ]);
+
+    it('rejects empty server names', function () {
+        // ARRANGE
+        $this->validator->servers = mockServerRepository(true, ['servers' => []]);
+
+        // ACT
+        $error = $this->validator->testValidateName('');
+
+        // ASSERT
+        expect($error)->toContain('cannot be empty');
+    });
+
+    it('rejects duplicate server names', function () {
+        // ARRANGE
+        $this->validator->servers = mockServerRepository(true, [
+            'servers' => [
+                ['name' => 'existing-server', 'host' => '192.168.1.1', 'port' => 22, 'username' => 'root'],
+            ],
+        ]);
+
+        // ACT
+        $error = $this->validator->testValidateName('existing-server');
+
+        // ASSERT
+        expect($error)->toContain('already exists');
+    });
+
+    //
+    // validateHostInput
     // -------------------------------------------------------------------------------
 
     it('accepts valid IPv4 addresses', function (string $host) {
-        // ARRANGE & ACT & ASSERT
-        expect(fn () => $this->validator->testValidateHost($host))->not->toThrow(\InvalidArgumentException::class);
+        // ARRANGE
+        $this->validator->servers = mockServerRepository(true, ['servers' => []]);
+
+        // ACT
+        $error = $this->validator->testValidateHost($host);
+
+        // ASSERT
+        expect($error)->toBeNull();
     })->with([
         'standard IPv4' => ['192.168.1.100'],
         'localhost' => ['127.0.0.1'],
@@ -55,8 +120,14 @@ describe('ServerValidationTrait', function () {
     ]);
 
     it('accepts valid IPv6 addresses', function (string $host) {
-        // ARRANGE & ACT & ASSERT
-        expect(fn () => $this->validator->testValidateHost($host))->not->toThrow(\InvalidArgumentException::class);
+        // ARRANGE
+        $this->validator->servers = mockServerRepository(true, ['servers' => []]);
+
+        // ACT
+        $error = $this->validator->testValidateHost($host);
+
+        // ASSERT
+        expect($error)->toBeNull();
     })->with([
         'full IPv6' => ['2001:0db8:85a3:0000:0000:8a2e:0370:7334'],
         'compressed IPv6' => ['2001:db8::1'],
@@ -64,8 +135,14 @@ describe('ServerValidationTrait', function () {
     ]);
 
     it('accepts valid domain names', function (string $host) {
-        // ARRANGE & ACT & ASSERT
-        expect(fn () => $this->validator->testValidateHost($host))->not->toThrow(\InvalidArgumentException::class);
+        // ARRANGE
+        $this->validator->servers = mockServerRepository(true, ['servers' => []]);
+
+        // ACT
+        $error = $this->validator->testValidateHost($host);
+
+        // ASSERT
+        expect($error)->toBeNull();
     })->with([
         'simple domain' => ['example.com'],
         'subdomain' => ['server.example.com'],
@@ -74,81 +151,95 @@ describe('ServerValidationTrait', function () {
         'numeric in domain' => ['server1.example.com'],
     ]);
 
-    it('rejects invalid hosts', function (string $host) {
-        // ARRANGE & ACT & ASSERT
-        expect(fn () => $this->validator->testValidateHost($host))
-            ->toThrow(\InvalidArgumentException::class, 'Invalid host');
+    it('rejects invalid hosts with error messages', function (string $host, string $expectedError) {
+        // ARRANGE
+        $this->validator->servers = mockServerRepository(true, ['servers' => []]);
+
+        // ACT
+        $error = $this->validator->testValidateHost($host);
+
+        // ASSERT
+        expect($error)->toContain($expectedError);
     })->with([
-        'empty string' => [''],
-        'underscore' => ['server_name'],
-        'spaces' => ['my server'],
-        'special chars' => ['server!@#'],
-        'double dots' => ['example..com'],
+        'empty string' => ['', 'valid'],
+        'underscore' => ['server_name', 'valid'],
+        'spaces' => ['my server', 'valid'],
+        'special chars' => ['server!@#', 'valid'],
+        'double dots' => ['example..com', 'valid'],
     ]);
 
-    it('provides helpful error message for invalid hosts', function () {
+    it('rejects duplicate server hosts', function (string $host) {
         // ARRANGE
-        $invalidHost = 'invalid_host';
+        $this->validator->servers = mockServerRepository(true, [
+            'servers' => [
+                ['name' => 'existing-server', 'host' => $host, 'port' => 22, 'username' => 'root'],
+            ],
+        ]);
 
-        // ACT & ASSERT
-        try {
-            $this->validator->testValidateHost($invalidHost);
-            throw new \Exception('Expected InvalidArgumentException was not thrown');
-        } catch (\InvalidArgumentException $e) {
-            expect($e->getMessage())
-                ->toContain('Invalid host')
-                ->and($e->getMessage())->toContain($invalidHost)
-                ->and($e->getMessage())->toContain('Examples:')
-                ->and($e->getMessage())->toContain('192.168.1.100')
-                ->and($e->getMessage())->toContain('example.com');
-        }
-    });
+        // ACT
+        $error = $this->validator->testValidateHost($host);
+
+        // ASSERT
+        expect($error)->toContain('already used by server')
+            ->and($error)->toContain('existing-server');
+    })->with([
+        'IP address' => ['192.168.1.100'],
+        'domain' => ['example.com'],
+    ]);
 
     //
-    // validatePort
+    // validatePortInput
     // -------------------------------------------------------------------------------
 
-    it('accepts valid port numbers', function (int $port) {
-        // ARRANGE & ACT & ASSERT
-        expect(fn () => $this->validator->testValidatePort($port))->not->toThrow(\InvalidArgumentException::class);
+    it('accepts valid port numbers', function (string $portString) {
+        // ARRANGE & ACT
+        $error = $this->validator->testValidatePort($portString);
+
+        // ASSERT
+        expect($error)->toBeNull();
     })->with([
-        'SSH default' => [22],
-        'HTTP' => [80],
-        'HTTPS' => [443],
-        'custom high' => [8080],
-        'alternative SSH' => [2222],
-        'minimum port' => [1],
-        'maximum port' => [65535],
+        'SSH default' => ['22'],
+        'HTTP' => ['80'],
+        'HTTPS' => ['443'],
+        'custom high' => ['8080'],
+        'alternative SSH' => ['2222'],
+        'minimum port' => ['1'],
+        'maximum port' => ['65535'],
     ]);
 
-    it('rejects invalid port numbers', function (int $port) {
-        // ARRANGE & ACT & ASSERT
-        expect(fn () => $this->validator->testValidatePort($port))
-            ->toThrow(\InvalidArgumentException::class, 'between 1 and 65535');
+    it('rejects non-numeric port strings', function (string $portString) {
+        // ARRANGE & ACT
+        $error = $this->validator->testValidatePort($portString);
+
+        // ASSERT
+        expect($error)->toContain('must be a number');
     })->with([
-        'zero' => [0],
-        'negative' => [-1],
-        'large negative' => [-100],
-        'too high' => [65536],
-        'way too high' => [100000],
+        'letters' => ['abc'],
+        'empty' => [''],
+        'special chars' => ['22!'],
+        'floating point' => ['22.5'],
     ]);
 
-    it('provides helpful error message for invalid ports', function () {
-        // ARRANGE
-        $invalidPort = 99999;
+    it('rejects out of range port numbers', function (string $portString, string $expectedError) {
+        // ARRANGE & ACT
+        $error = $this->validator->testValidatePort($portString);
 
-        // ACT & ASSERT
-        try {
-            $this->validator->testValidatePort($invalidPort);
-            throw new \Exception('Expected InvalidArgumentException was not thrown');
-        } catch (\InvalidArgumentException $e) {
-            expect($e->getMessage())
-                ->toContain('Invalid port')
-                ->and($e->getMessage())->toContain((string) $invalidPort)
-                ->and($e->getMessage())->toContain('between 1 and 65535')
-                ->and($e->getMessage())->toContain('Common SSH ports:')
-                ->and($e->getMessage())->toContain('22 (default)')
-                ->and($e->getMessage())->toContain('2222');
-        }
-    });
+        // ASSERT
+        expect($error)->toContain($expectedError);
+    })->with([
+        'zero' => ['0', 'between 1 and 65535'],
+        'too high' => ['65536', 'between 1 and 65535'],
+        'way too high' => ['100000', 'between 1 and 65535'],
+    ]);
+
+    it('rejects negative port numbers as non-numeric', function (string $portString) {
+        // ARRANGE & ACT
+        $error = $this->validator->testValidatePort($portString);
+
+        // ASSERT
+        expect($error)->toContain('must be a number');
+    })->with([
+        'negative' => ['-1'],
+        'large negative' => ['-100'],
+    ]);
 });

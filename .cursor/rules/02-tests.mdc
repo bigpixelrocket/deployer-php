@@ -130,7 +130,8 @@ it('does something specific', function () {
 ```php
 expect($x)->toBeInstanceOf(Class::class);     // Type-only testing
 expect($x)->toBeArray();                      // Generic assertions
-expect($x)->not->toBeNull();                  // Meaningless
+expect($x)->not->toBeNull();                  // Meaningless on its own
+expect($x)->not->toBeNull()->and($x)->toContain('text');  // Redundant (toContain already guarantees non-null)
 expect(true)->toBeTrue();                     // Literally meaningless
 sleep(...);                                   // Use time mocking
 ```
