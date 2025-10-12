@@ -81,8 +81,7 @@ describe('ServerValidationTrait', function () {
         $error = $this->validator->testValidateName('');
 
         // ASSERT
-        expect($error)->not->toBeNull()
-            ->and($error)->toContain('cannot be empty');
+        expect($error)->toContain('cannot be empty');
     });
 
     it('rejects duplicate server names', function () {
@@ -97,8 +96,7 @@ describe('ServerValidationTrait', function () {
         $error = $this->validator->testValidateName('existing-server');
 
         // ASSERT
-        expect($error)->not->toBeNull()
-            ->and($error)->toContain('already exists');
+        expect($error)->toContain('already exists');
     });
 
     //
@@ -161,8 +159,7 @@ describe('ServerValidationTrait', function () {
         $error = $this->validator->testValidateHost($host);
 
         // ASSERT
-        expect($error)->not->toBeNull()
-            ->and($error)->toContain($expectedError);
+        expect($error)->toContain($expectedError);
     })->with([
         'empty string' => ['', 'valid'],
         'underscore' => ['server_name', 'valid'],
@@ -183,8 +180,7 @@ describe('ServerValidationTrait', function () {
         $error = $this->validator->testValidateHost($host);
 
         // ASSERT
-        expect($error)->not->toBeNull()
-            ->and($error)->toContain('already used by server')
+        expect($error)->toContain('already used by server')
             ->and($error)->toContain('existing-server');
     })->with([
         'IP address' => ['192.168.1.100'],
@@ -216,8 +212,7 @@ describe('ServerValidationTrait', function () {
         $error = $this->validator->testValidatePort($portString);
 
         // ASSERT
-        expect($error)->not->toBeNull()
-            ->and($error)->toContain('must be a number');
+        expect($error)->toContain('must be a number');
     })->with([
         'letters' => ['abc'],
         'empty' => [''],
@@ -230,8 +225,7 @@ describe('ServerValidationTrait', function () {
         $error = $this->validator->testValidatePort($portString);
 
         // ASSERT
-        expect($error)->not->toBeNull()
-            ->and($error)->toContain($expectedError);
+        expect($error)->toContain($expectedError);
     })->with([
         'zero' => ['0', 'between 1 and 65535'],
         'too high' => ['65536', 'between 1 and 65535'],
@@ -243,8 +237,7 @@ describe('ServerValidationTrait', function () {
         $error = $this->validator->testValidatePort($portString);
 
         // ASSERT
-        expect($error)->not->toBeNull()
-            ->and($error)->toContain('must be a number');
+        expect($error)->toContain('must be a number');
     })->with([
         'negative' => ['-1'],
         'large negative' => ['-100'],
