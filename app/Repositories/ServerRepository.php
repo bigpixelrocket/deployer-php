@@ -49,9 +49,14 @@ final class ServerRepository
     {
         $this->assertInventoryLoaded();
 
-        $existing = $this->findByName($server->name);
-        if (null !== $existing) {
+        $existingName = $this->findByName($server->name);
+        if (null !== $existingName) {
             throw new \RuntimeException("Server '{$server->name}' already exists");
+        }
+
+        $existingHost = $this->findByHost($server->host);
+        if (null !== $existingHost) {
+            throw new \RuntimeException("Host '{$server->host}' is already used by server '{$existingHost->name}'");
         }
 
         $this->servers[] = $this->dehydrateServerDTO($server);
@@ -68,6 +73,22 @@ final class ServerRepository
 
         foreach ($this->servers as $server) {
             if (isset($server['name']) && $server['name'] === $name) {
+                return $this->hydrateServerDTO($server);
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Find a server by host.
+     */
+    public function findByHost(string $host): ?ServerDTO
+    {
+        $this->assertInventoryLoaded();
+
+        foreach ($this->servers as $server) {
+            if (isset($server['host']) && $server['host'] === $host) {
                 return $this->hydrateServerDTO($server);
             }
         }
