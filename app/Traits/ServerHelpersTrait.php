@@ -12,7 +12,8 @@ use Symfony\Component\Console\Command\Command;
 /**
  * Reusable server-related helpers for commands.
  *
- * Requires the using class to use the ConsoleOutputTrait and have:
+ * Requires the using class to have:
+ * - protected IOService $io
  * - protected ServerRepository $servers
  * - protected SSHService $ssh
  */
@@ -30,8 +31,8 @@ trait ServerHelpersTrait
 
         $allServers = $this->servers->all();
         if (count($allServers) === 0) {
-            $this->warning('No servers found in inventory');
-            $this->writeln([
+            $this->io->warning('No servers found in inventory');
+            $this->io->writeln([
                 '',
                 'Use <fg=cyan>server:add</> to add a server',
                 '',
@@ -45,9 +46,9 @@ trait ServerHelpersTrait
 
         $serverNames = array_map(fn (ServerDTO $server) => $server->name, $allServers);
 
-        $name = (string) $this->getOptionOrPrompt(
+        $name = (string) $this->io->getOptionOrPrompt(
             $optionName,
-            fn () => $this->promptSelect(
+            fn () => $this->io->promptSelect(
                 label: $promptLabel,
                 options: $serverNames,
             )
@@ -59,7 +60,7 @@ trait ServerHelpersTrait
         $server = $this->servers->findByName($name);
 
         if ($server === null) {
-            $this->error("Server '{$name}' not found in inventory");
+            $this->io->error("Server '{$name}' not found in inventory");
 
             return ['server' => null, 'exit_code' => Command::FAILURE];
         }
@@ -72,7 +73,7 @@ trait ServerHelpersTrait
      */
     protected function displayServerDeets(ServerDTO $server): void
     {
-        $this->writeln([
+        $this->io->writeln([
             "  Name: <fg=gray>{$server->name}</>",
             "  Host: <fg=gray>{$server->host}</>",
             "  Port: <fg=gray>{$server->port}</>",
