@@ -8,12 +8,11 @@ use Bigpixelrocket\DeployerPHP\Repositories\SiteRepository;
 use Bigpixelrocket\DeployerPHP\Services\EnvService;
 use Bigpixelrocket\DeployerPHP\Services\FilesystemService;
 use Bigpixelrocket\DeployerPHP\Services\InventoryService;
+use Bigpixelrocket\DeployerPHP\Services\IOService;
 use Bigpixelrocket\DeployerPHP\Services\ProcessService;
-use Bigpixelrocket\DeployerPHP\Services\PrompterService;
 use Bigpixelrocket\DeployerPHP\Services\SSHService;
 use Bigpixelrocket\DeployerPHP\Services\VersionService;
 use Bigpixelrocket\DeployerPHP\Tests\Fixtures\MockFilesystem;
-use Bigpixelrocket\DeployerPHP\Tests\Fixtures\MockPrompter;
 use Bigpixelrocket\DeployerPHP\Tests\Fixtures\MockSSHService;
 use Symfony\Component\Dotenv\Dotenv;
 use Symfony\Component\Filesystem\Filesystem;
@@ -216,41 +215,20 @@ if (!function_exists('mockSSHServiceWithBehavior')) {
     }
 }
 
-if (!function_exists('mockPrompter')) {
+if (!function_exists('mockIOService')) {
     /**
-     * Create a mock PrompterService for testing.
+     * Create an IOService for testing.
      *
-     * Returns predefined values instead of displaying interactive prompts.
-     * Values are consumed in order as prompts are called.
-     *
-     * @param array<string> $text Text input values
-     * @param array<string> $password Password input values
-     * @param array<bool> $confirm Confirmation values
-     * @param array<int|string> $select Selection values
-     * @param array<array<int|string>> $multiselect Multiselection values
-     * @param array<string> $suggest Suggestion values
-     * @param array<int|string> $search Search values
-     * @param array<bool> $pause Pause values
+     * Returns a plain IOService instance. Must call initialize() before using I/O methods.
+     * Prompts will run in non-interactive mode during tests.
      *
      * @example
-     *   // Mock text inputs
-     *   $prompter = mockPrompter(text: ['web1', '192.168.1.1']);
-     *
-     * @example
-     *   // Mock confirmations
-     *   $prompter = mockPrompter(confirm: [true, false]);
+     *   $io = mockIOService();
+     *   $io->initialize($command, $input, $output);
      */
-    function mockPrompter(
-        array $text = [],
-        array $password = [],
-        array $confirm = [],
-        array $select = [],
-        array $multiselect = [],
-        array $suggest = [],
-        array $search = [],
-        array $pause = []
-    ): MockPrompter {
-        return new MockPrompter($text, $password, $confirm, $select, $multiselect, $suggest, $search, $pause);
+    function mockIOService(): IOService
+    {
+        return new IOService();
     }
 }
 
@@ -368,10 +346,10 @@ if (!function_exists('mockCommandContainer')) {
      */
     function mockCommandContainer(
         // Base services
+        ?IOService $io = null,
         ?EnvService $env = null,
         ?InventoryService $inventory = null,
         ?ProcessService $proc = null,
-        ?PrompterService $prompter = null,
 
         // Servers & sites
         ?ServerRepository $servers = null,
@@ -387,19 +365,19 @@ if (!function_exists('mockCommandContainer')) {
         $container = new Container();
 
         // Build or use provided services (matches BaseCommand constructor order)
+        $io ??= mockIOService();
         $env ??= mockEnvService($envFileExists, $envContent);
         $inventory ??= mockInventoryService($inventoryFileExists, $inventoryData);
         $proc ??= mockProcessService();
-        $prompter ??= mockPrompter();
         $servers ??= mockServerRepository($inventoryFileExists, $inventoryData);
         $sites ??= mockSiteRepository($inventoryFileExists, $inventoryData);
         $ssh ??= mockSSHService();
 
         // Bind services to container (matches BaseCommand constructor order)
+        $container->bind(IOService::class, $io);
         $container->bind(EnvService::class, $env);
         $container->bind(InventoryService::class, $inventory);
         $container->bind(ProcessService::class, $proc);
-        $container->bind(PrompterService::class, $prompter);
         $container->bind(ServerRepository::class, $servers);
         $container->bind(SiteRepository::class, $sites);
         $container->bind(SSHService::class, $ssh);
