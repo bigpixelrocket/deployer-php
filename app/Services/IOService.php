@@ -2,20 +2,53 @@
 
 declare(strict_types=1);
 
-namespace Bigpixelrocket\DeployerPHP\Traits;
+namespace Bigpixelrocket\DeployerPHP\Services;
 
 use Closure;
 
+use function Laravel\Prompts\confirm;
+use function Laravel\Prompts\multiselect;
+use function Laravel\Prompts\password;
+use function Laravel\Prompts\pause;
+use function Laravel\Prompts\search;
+use function Laravel\Prompts\select;
+use function Laravel\Prompts\spin;
+use function Laravel\Prompts\suggest;
+use function Laravel\Prompts\text;
+
+use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Console\Style\SymfonyStyle;
+
 /**
- * Console input gathering helpers.
+ * Console I/O service.
  *
- * Requires the using class to have:
- * - `protected InputInterface $input` property
- * - `protected PrompterService $prompter` property
- * - `getDefinition()` method (typically from extending Command)
+ * Handles all console input/output operations including prompts, output formatting,
+ * and status messages. Must be initialized with a command context before use.
  */
-trait ConsoleInputTrait
+class IOService
 {
+    private Command $command;
+    private InputInterface $input;
+    private SymfonyStyle $io;
+
+    /**
+     * Initialize the I/O service with command context.
+     *
+     * Must be called before using any I/O methods.
+     */
+    public function initialize(Command $command, InputInterface $input, OutputInterface $output): void
+    {
+        $this->command = $command; // Used to inspect input definitions (like --yes and -y, etc.)
+        $this->input = $input;
+        $this->io = new SymfonyStyle($input, $output);
+    }
+
+    //
+    // Input Gathering
+    // -------------------------------------------------------------------------------
+
     /**
      * Get option value or prompt user interactively.
      *
@@ -31,24 +64,24 @@ trait ConsoleInputTrait
      *
      * @example
      * // Text input
-     * $name = $this->getOptionOrPrompt(
+     * $name = $this->io->getOptionOrPrompt(
      *     'name',
-     *     fn() => text('Server name:', placeholder: 'web1')
+     *     fn() => $this->io->promptText('Server name:', placeholder: 'web1')
      * );
      *
      * // Boolean flag (VALUE_NONE option)
-     * $skip = $this->getOptionOrPrompt(
+     * $skip = $this->io->getOptionOrPrompt(
      *     'skip',
-     *     fn() => confirm('Skip verification?', default: false)
+     *     fn() => $this->io->promptConfirm('Skip verification?', default: false)
      * );
      *
      * // Select input
-     * $env = $this->getOptionOrPrompt(
+     * $env = $this->io->getOptionOrPrompt(
      *     'environment',
-     *     fn() => select('Environment:', ['dev', 'staging', 'prod'])
+     *     fn() => $this->io->promptSelect('Environment:', ['dev', 'staging', 'prod'])
      * );
      */
-    protected function getOptionOrPrompt(
+    public function getOptionOrPrompt(
         string $optionName,
         Closure $promptCallback
     ): mixed {
@@ -61,7 +94,7 @@ trait ConsoleInputTrait
 
             // Try to find short flag from option definition
             try {
-                $inputDef = $this->getDefinition();
+                $inputDef = $this->command->getDefinition();
                 if ($inputDef->hasOption($optionName)) {
                     $option = $inputDef->getOption($optionName);
                     if ($option->getShortcut() !== null) {
@@ -111,9 +144,9 @@ trait ConsoleInputTrait
      * @return mixed The validated value, or null if validation failed
      *
      * @example
-     * $name = $this->getValidatedOptionOrPrompt(
+     * $name = $this->io->getValidatedOptionOrPrompt(
      *     'name',
-     *     fn($validate) => $this->promptText(
+     *     fn($validate) => $this->io->promptText(
      *         label: 'Server name:',
      *         validate: $validate
      *     ),
@@ -123,7 +156,7 @@ trait ConsoleInputTrait
      *     return Command::FAILURE;
      * }
      */
-    protected function getValidatedOptionOrPrompt(
+    public function getValidatedOptionOrPrompt(
         string $optionName,
         Closure $promptCallback,
         Closure $validator
@@ -163,7 +196,7 @@ trait ConsoleInputTrait
      *
      * @return string The user's input
      */
-    protected function promptText(
+    public function promptText(
         string $label,
         string $placeholder = '',
         string $default = '',
@@ -171,7 +204,9 @@ trait ConsoleInputTrait
         mixed $validate = null,
         string $hint = ''
     ): string {
-        return $this->prompter->text(
+        $this->suppressPromptSpacing();
+
+        return text(
             label: $label,
             placeholder: $placeholder,
             default: $default,
@@ -192,14 +227,16 @@ trait ConsoleInputTrait
      *
      * @return string The user's password input
      */
-    protected function promptPassword(
+    public function promptPassword(
         string $label,
         string $placeholder = '',
         bool $required = true,
         mixed $validate = null,
         string $hint = ''
     ): string {
-        return $this->prompter->password(
+        $this->suppressPromptSpacing();
+
+        return password(
             label: $label,
             placeholder: $placeholder,
             required: $required,
@@ -219,14 +256,16 @@ trait ConsoleInputTrait
      *
      * @return bool True if confirmed, false otherwise
      */
-    protected function promptConfirm(
+    public function promptConfirm(
         string $label,
         bool $default = true,
         string $yes = 'Yes',
         string $no = 'No',
         string $hint = ''
     ): bool {
-        return $this->prompter->confirm(
+        $this->suppressPromptSpacing();
+
+        return confirm(
             label: $label,
             default: $default,
             yes: $yes,
@@ -242,9 +281,11 @@ trait ConsoleInputTrait
      *
      * @return bool Always returns a boolean
      */
-    protected function promptPause(string $message = 'Press enter to continue...'): bool
+    public function promptPause(string $message = 'Press enter to continue...'): bool
     {
-        return $this->prompter->pause($message);
+        $this->suppressPromptSpacing();
+
+        return pause($message);
     }
 
     /**
@@ -259,7 +300,7 @@ trait ConsoleInputTrait
      *
      * @return int|string The selected option key
      */
-    protected function promptSelect(
+    public function promptSelect(
         string $label,
         array $options,
         int|string|null $default = null,
@@ -267,7 +308,9 @@ trait ConsoleInputTrait
         mixed $validate = null,
         string $hint = ''
     ): int|string {
-        return $this->prompter->select(
+        $this->suppressPromptSpacing();
+
+        return select(
             label: $label,
             options: $options,
             default: $default,
@@ -290,7 +333,7 @@ trait ConsoleInputTrait
      *
      * @return array<int|string> The selected option keys
      */
-    protected function promptMultiselect(
+    public function promptMultiselect(
         string $label,
         array $options,
         array $default = [],
@@ -299,7 +342,9 @@ trait ConsoleInputTrait
         mixed $validate = null,
         string $hint = ''
     ): array {
-        return $this->prompter->multiselect(
+        $this->suppressPromptSpacing();
+
+        return multiselect(
             label: $label,
             options: $options,
             default: $default,
@@ -324,7 +369,7 @@ trait ConsoleInputTrait
      *
      * @return string The user's input
      */
-    protected function promptSuggest(
+    public function promptSuggest(
         string $label,
         array|Closure $options,
         string $placeholder = '',
@@ -334,7 +379,9 @@ trait ConsoleInputTrait
         mixed $validate = null,
         string $hint = ''
     ): string {
-        return $this->prompter->suggest(
+        $this->suppressPromptSpacing();
+
+        return suggest(
             label: $label,
             options: $options,
             placeholder: $placeholder,
@@ -358,7 +405,7 @@ trait ConsoleInputTrait
      *
      * @return int|string The selected option key
      */
-    protected function promptSearch(
+    public function promptSearch(
         string $label,
         Closure $options,
         string $placeholder = '',
@@ -366,7 +413,9 @@ trait ConsoleInputTrait
         mixed $validate = null,
         string $hint = ''
     ): int|string {
-        return $this->prompter->search(
+        $this->suppressPromptSpacing();
+
+        return search(
             label: $label,
             options: $options,
             placeholder: $placeholder,
@@ -386,13 +435,143 @@ trait ConsoleInputTrait
      *
      * @return T Result from the callback
      */
-    protected function promptSpin(
+    public function promptSpin(
         Closure $callback,
         string $message = 'Loading...'
     ): mixed {
-        return $this->prompter->spin(
+        return spin(
             callback: $callback,
             message: $message
         );
+    }
+
+    //
+    // Output Methods
+    // -------------------------------------------------------------------------------
+
+    /**
+     * Write-out multiple lines.
+     *
+     * @param array<int, string> $lines
+     */
+    public function writeln(string|array $lines): void
+    {
+        $writeLines = is_array($lines) ? $lines : [$lines];
+        foreach ($writeLines as $line) {
+            $this->io->writeln(' '.$line);
+        }
+    }
+
+    /**
+     * Display an info message with cyan info symbol.
+     */
+    public function info(string $message): void
+    {
+        $this->writeln("<fg=cyan>ℹ {$message}</>");
+    }
+
+    /**
+     * Display a success message with green checkmark.
+     */
+    public function success(string $message): void
+    {
+        $this->writeln("<fg=green>✓ {$message}</>");
+    }
+
+    /**
+     * Display a warning message with yellow warning symbol.
+     */
+    public function warning(string $message): void
+    {
+        $this->writeln("<fg=yellow>⚠ {$message}</>");
+    }
+
+    /**
+     * Display an error message with red X.
+     */
+    public function error(string $message): void
+    {
+        $this->writeln("<fg=red>✗ {$message}</>");
+    }
+
+    /**
+     * Write-out a heading.
+     */
+    public function h1(string $text): void
+    {
+        $this->writeln([
+            '<fg=bright-blue>▸ </><fg=cyan;options=bold>'.$text.'</>',
+            '',
+        ]);
+    }
+
+    /**
+     * Write-out a separator line.
+     */
+    public function hr(): void
+    {
+        $this->writeln([
+            '<fg=cyan;options=bold>╭────────</><fg=blue;options=bold>──────────</><fg=bright-blue;options=bold>──────────</><fg=magenta;options=bold>──────────</><fg=gray;options=bold>─────────</>',
+            '',
+        ]);
+    }
+
+    /**
+     * Display a command replay hint showing how to run non-interactively.
+     *
+     * @param array<string, mixed> $options Array of option name => value pairs
+     */
+    public function showCommandHint(string $commandName, array $options): void
+    {
+        $this->writeln('<fg=cyan>◆ Run non-interactively:</>');
+        $this->writeln('');
+
+        //
+        // Build command options
+
+        $parts = [];
+        foreach ($options as $optionName => $value) {
+            if ($value === null || $value === '') {
+                continue;
+            }
+
+            // Format the option
+            $optionFlag = '--'.$optionName;
+            if (is_bool($value)) {
+                if ($value) {
+                    $parts[] = $optionFlag;
+                }
+            } else {
+                $stringValue = is_scalar($value) ? (string) $value : '';
+                $escapedValue = escapeshellarg($stringValue);
+                $parts[] = "{$optionFlag}={$escapedValue}";
+            }
+        }
+
+        //
+        // Display command hint
+
+        $this->writeln("  <fg=gray>vendor/bin/deployer {$commandName} \\ </>");
+
+        foreach ($parts as $index => $part) {
+            $last = $index === count($parts) - 1;
+            $this->writeln("  <fg=gray>  {$part}</>".($last ? '' : '<fg=gray> \\ </>'));
+        }
+    }
+
+    //
+    // Private Helpers
+    // -------------------------------------------------------------------------------
+
+    /**
+     * Remove the annoying newline that Laravel Prompts adds before each prompt.
+     *
+     * Uses ANSI escape sequence to move cursor up one line and clear it.
+     */
+    private function suppressPromptSpacing(): void
+    {
+        // Move cursor up one line and clear it
+        // This compensates for the newline Laravel Prompts adds
+        echo "\033[1A\033[2K";
     }
 }

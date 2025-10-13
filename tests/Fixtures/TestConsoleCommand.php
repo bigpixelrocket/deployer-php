@@ -10,8 +10,8 @@ use Bigpixelrocket\DeployerPHP\Repositories\ServerRepository;
 use Bigpixelrocket\DeployerPHP\Repositories\SiteRepository;
 use Bigpixelrocket\DeployerPHP\Services\EnvService;
 use Bigpixelrocket\DeployerPHP\Services\InventoryService;
+use Bigpixelrocket\DeployerPHP\Services\IOService;
 use Bigpixelrocket\DeployerPHP\Services\ProcessService;
-use Bigpixelrocket\DeployerPHP\Services\PrompterService;
 use Bigpixelrocket\DeployerPHP\Services\SSHService;
 use Bigpixelrocket\DeployerPHP\Traits\ServerHelpersTrait;
 use Symfony\Component\Console\Command\Command;
@@ -20,9 +20,9 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
 /**
- * Test fixture for BaseCommand trait testing.
+ * Test fixture for BaseCommand testing.
  *
- * Supports testing both ConsoleInputTrait, ConsoleOutputTrait, and ServerHelpersTrait methods.
+ * Supports testing IOService and ServerHelpersTrait methods.
  */
 class TestConsoleCommand extends BaseCommand
 {
@@ -37,8 +37,8 @@ class TestConsoleCommand extends BaseCommand
      * @param Container $container Dependency injection container.
      * @param EnvService $env Environment service.
      * @param InventoryService $inventory Inventory management service.
+     * @param IOService $io I/O service for console operations.
      * @param ProcessService $proc Process execution service.
-     * @param PrompterService $prompter Interactive prompt service.
      * @param ServerRepository $servers Repository for server records.
      * @param SiteRepository $sites Repository for site records.
      * @param SSHService $ssh SSH service for remote execution.
@@ -47,13 +47,13 @@ class TestConsoleCommand extends BaseCommand
         Container $container,
         EnvService $env,
         InventoryService $inventory,
+        IOService $io,
         ProcessService $proc,
-        PrompterService $prompter,
         ServerRepository $servers,
         SiteRepository $sites,
         SSHService $ssh,
     ) {
-        parent::__construct($container, $env, $inventory, $proc, $prompter, $servers, $sites, $ssh);
+        parent::__construct($container, $env, $inventory, $io, $proc, $servers, $sites, $ssh);
     }
 
     /**
@@ -78,14 +78,14 @@ class TestConsoleCommand extends BaseCommand
     {
         if ($this->methodToTest !== '') {
             match ($this->methodToTest) {
-                'info' => $this->info(...$this->testArgs),
-                'error' => $this->error(...$this->testArgs),
-                'success' => $this->success(...$this->testArgs),
-                'warning' => $this->warning(...$this->testArgs),
-                'h1' => $this->h1(...$this->testArgs),
-                'hr' => $this->hr(),
-                'writeln' => $this->writeln(...$this->testArgs),
-                'showCommandHint' => $this->showCommandHint(...$this->testArgs),
+                'info' => $this->io->info(...$this->testArgs),
+                'error' => $this->io->error(...$this->testArgs),
+                'success' => $this->io->success(...$this->testArgs),
+                'warning' => $this->io->warning(...$this->testArgs),
+                'h1' => $this->io->h1(...$this->testArgs),
+                'hr' => $this->io->hr(),
+                'writeln' => $this->io->writeln(...$this->testArgs),
+                'showCommandHint' => $this->io->showCommandHint(...$this->testArgs),
                 'displayServerDeets' => $this->displayServerDeets(...$this->testArgs),
                 'getOptionOrPrompt' => $this->testGetOptionOrPrompt(),
                 'getOptionOrPromptEmpty' => $this->testGetOptionOrPromptEmpty(),
@@ -114,11 +114,11 @@ class TestConsoleCommand extends BaseCommand
      */
     private function testGetOptionOrPrompt(): void
     {
-        $result = $this->getOptionOrPrompt(
+        $result = $this->io->getOptionOrPrompt(
             'name',
-            fn () => $this->promptText(label: 'Name:', required: true)
+            fn () => $this->io->promptText(label: 'Name:', required: true)
         );
-        $this->io->text("Result: {$result}");
+        $this->io->writeln("Result: {$result}");
     }
 
     /**
@@ -127,7 +127,7 @@ class TestConsoleCommand extends BaseCommand
     private function testGetOptionOrPromptEmpty(): void
     {
         $closureExecuted = false;
-        $result = $this->getOptionOrPrompt(
+        $result = $this->io->getOptionOrPrompt(
             'name',
             function () use (&$closureExecuted) {
                 $closureExecuted = true;
@@ -137,9 +137,9 @@ class TestConsoleCommand extends BaseCommand
         );
 
         if ($closureExecuted) {
-            $this->io->text('Closure executed');
+            $this->io->writeln('Closure executed');
         }
-        $this->io->text("Result: {$result}");
+        $this->io->writeln("Result: {$result}");
     }
 
     /**
@@ -147,11 +147,11 @@ class TestConsoleCommand extends BaseCommand
      */
     private function testGetOptionOrPromptBoolean(): void
     {
-        $result = $this->getOptionOrPrompt(
+        $result = $this->io->getOptionOrPrompt(
             'yes',
             fn () => false
         );
-        $this->io->text('Result: '.($result ? 'true' : 'false'));
+        $this->io->writeln('Result: '.($result ? 'true' : 'false'));
     }
 
     /**
@@ -161,17 +161,17 @@ class TestConsoleCommand extends BaseCommand
     {
         $expected = $this->testArgs[0] ?? 'default';
 
-        $result = $this->getOptionOrPrompt(
+        $result = $this->io->getOptionOrPrompt(
             'name',
             fn () => $expected
         );
 
         if (is_bool($result)) {
-            $this->io->text('Result: '.($result ? 'true' : 'false'));
+            $this->io->writeln('Result: '.($result ? 'true' : 'false'));
         } elseif (is_array($result)) {
-            $this->io->text('Result: '.json_encode($result));
+            $this->io->writeln('Result: '.json_encode($result));
         } else {
-            $this->io->text("Result: {$result}");
+            $this->io->writeln("Result: {$result}");
         }
     }
 
@@ -180,16 +180,16 @@ class TestConsoleCommand extends BaseCommand
      */
     private function testGetValidatedOptionOrPromptValid(): void
     {
-        $result = $this->getValidatedOptionOrPrompt(
+        $result = $this->io->getValidatedOptionOrPrompt(
             'name',
-            fn ($validate) => $this->promptText(label: 'Name:', validate: $validate),
+            fn ($validate) => $this->io->promptText(label: 'Name:', validate: $validate),
             fn ($value) => trim((string) $value) === '' ? 'Cannot be empty' : null
         );
 
         if ($result === null) {
-            $this->io->text('Result: null');
+            $this->io->writeln('Result: null');
         } else {
-            $this->io->text("Result: {$result}");
+            $this->io->writeln("Result: {$result}");
         }
     }
 
@@ -198,13 +198,13 @@ class TestConsoleCommand extends BaseCommand
      */
     private function testGetValidatedOptionOrPromptInvalid(): void
     {
-        $result = $this->getValidatedOptionOrPrompt(
+        $result = $this->io->getValidatedOptionOrPrompt(
             'name',
-            fn ($validate) => $this->promptText(label: 'Name:', validate: $validate),
+            fn ($validate) => $this->io->promptText(label: 'Name:', validate: $validate),
             fn ($value) => 'Always invalid'
         );
 
-        $this->io->text('Result: '.($result ?? 'null'));
+        $this->io->writeln('Result: '.($result ?? 'null'));
     }
 
     /**
@@ -212,12 +212,12 @@ class TestConsoleCommand extends BaseCommand
      */
     private function testPromptSpinWrapper(): void
     {
-        $result = $this->promptSpin(
+        $result = $this->io->promptSpin(
             fn () => 'success',
             'Testing...'
         );
 
-        $this->io->text("Spin result: {$result}");
+        $this->io->writeln("Spin result: {$result}");
     }
 
     /**
@@ -225,7 +225,7 @@ class TestConsoleCommand extends BaseCommand
      */
     private function testPromptTextWrapper(): void
     {
-        $this->promptText('Test:', required: false);
+        $this->io->promptText('Test:', required: false);
     }
 
     /**
@@ -233,7 +233,7 @@ class TestConsoleCommand extends BaseCommand
      */
     private function testPromptPasswordWrapper(): void
     {
-        $this->promptPassword('Test:', required: false);
+        $this->io->promptPassword('Test:', required: false);
     }
 
     /**
@@ -241,7 +241,7 @@ class TestConsoleCommand extends BaseCommand
      */
     private function testPromptConfirmWrapper(): void
     {
-        $this->promptConfirm('Test:');
+        $this->io->promptConfirm('Test:');
     }
 
     /**
@@ -249,7 +249,7 @@ class TestConsoleCommand extends BaseCommand
      */
     private function testPromptPauseWrapper(): void
     {
-        $this->promptPause('Test');
+        $this->io->promptPause('Test');
     }
 
     /**
@@ -257,7 +257,7 @@ class TestConsoleCommand extends BaseCommand
      */
     private function testPromptSelectWrapper(): void
     {
-        $this->promptSelect('Test:', ['a', 'b'], default: 'a');
+        $this->io->promptSelect('Test:', ['a', 'b'], default: 'a');
     }
 
     /**
@@ -265,7 +265,7 @@ class TestConsoleCommand extends BaseCommand
      */
     private function testPromptMultiselectWrapper(): void
     {
-        $this->promptMultiselect('Test:', ['a', 'b']);
+        $this->io->promptMultiselect('Test:', ['a', 'b']);
     }
 
     /**
@@ -273,7 +273,7 @@ class TestConsoleCommand extends BaseCommand
      */
     private function testPromptSuggestWrapper(): void
     {
-        $this->promptSuggest('Test:', ['a', 'b'], required: false);
+        $this->io->promptSuggest('Test:', ['a', 'b'], required: false);
     }
 
     /**
@@ -281,6 +281,6 @@ class TestConsoleCommand extends BaseCommand
      */
     private function testPromptSearchWrapper(): void
     {
-        $this->promptSearch('Test:', fn ($q) => ['a', 'b']);
+        $this->io->promptSearch('Test:', fn ($q) => ['a', 'b']);
     }
 }

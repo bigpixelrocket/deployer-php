@@ -9,37 +9,27 @@ use Bigpixelrocket\DeployerPHP\Repositories\ServerRepository;
 use Bigpixelrocket\DeployerPHP\Repositories\SiteRepository;
 use Bigpixelrocket\DeployerPHP\Services\EnvService;
 use Bigpixelrocket\DeployerPHP\Services\InventoryService;
+use Bigpixelrocket\DeployerPHP\Services\IOService;
 use Bigpixelrocket\DeployerPHP\Services\ProcessService;
-use Bigpixelrocket\DeployerPHP\Services\PrompterService;
 use Bigpixelrocket\DeployerPHP\Services\SSHService;
-use Bigpixelrocket\DeployerPHP\Traits\ConsoleInputTrait;
-use Bigpixelrocket\DeployerPHP\Traits\ConsoleOutputTrait;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Console\Style\SymfonyStyle;
 
 /**
  * Base command with shared functionality for all commands.
  *
- * Uses ConsoleInputTrait for input gathering and ConsoleOutputTrait
- * for formatted output. All console commands should extend this class.
+ * Uses IOService for all console input/output operations.
+ * All console commands should extend this class.
  */
 abstract class BaseCommand extends Command
 {
-    use ConsoleInputTrait;
-    use ConsoleOutputTrait;
-
-    protected InputInterface $input;
-    protected OutputInterface $output;
-    protected SymfonyStyle $io;
-
     /**
      * Create a new BaseCommand with the application's services and repositories.
      *
-     * The constructor accepts and stores dependencies (environment and inventory services,
-     * process and prompting helpers, server/site repositories, SSH service, and the DI container)
+     * The constructor accepts and stores dependencies (I/O service, environment and inventory services,
+     * process service, server/site repositories, SSH service, and the DI container)
      * used by this command and its subclasses.
      */
     public function __construct(
@@ -49,8 +39,8 @@ abstract class BaseCommand extends Command
         // Base services
         protected readonly EnvService $env,
         protected readonly InventoryService $inventory,
+        protected readonly IOService $io,
         protected readonly ProcessService $proc,
-        protected readonly PrompterService $prompter,
 
         // Servers & sites
         protected readonly ServerRepository $servers,
@@ -89,10 +79,9 @@ abstract class BaseCommand extends Command
     /**
      * Prepare console IO and initialize environment, inventory, and repositories.
      *
-     * Sets the command's input/output properties, creates a SymfonyStyle IO helper,
-     * applies any custom paths provided via the `--env` and `--inventory` options,
-     * loads the corresponding files, and populates the servers and sites repositories
-     * from the loaded inventory.
+     * Initializes the I/O service with command context, applies any custom paths provided
+     * via the `--env` and `--inventory` options, loads the corresponding files, and populates
+     * the servers and sites repositories from the loaded inventory.
      *
      * @param InputInterface  $input  The current console input.
      * @param OutputInterface $output The current console output.
@@ -101,9 +90,10 @@ abstract class BaseCommand extends Command
     {
         parent::initialize($input, $output);
 
-        $this->input = $input;
-        $this->output = $output;
-        $this->io = new SymfonyStyle($input, $output);
+        //
+        // Initialize I/O service
+
+        $this->io->initialize($this, $input, $output);
 
         //
         // Initialize env service
@@ -142,14 +132,14 @@ abstract class BaseCommand extends Command
 
         $envStatus = $this->env->getEnvFileStatus();
         $color = str_starts_with($envStatus, 'No .env') ? 'yellow' : 'gray';
-        $this->writeln([
+        $this->io->writeln([
             ' <fg=cyan>Environment:</> ',
             " <fg={$color}>{$envStatus}</>",
             '',
         ]);
 
         $inventoryStatus = $this->inventory->getInventoryFileStatus();
-        $this->writeln([
+        $this->io->writeln([
             ' <fg=cyan>Inventory:</> ',
             ' <fg=gray>'.$inventoryStatus.'</>',
             '',

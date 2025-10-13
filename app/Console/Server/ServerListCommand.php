@@ -27,15 +27,15 @@ class ServerListCommand extends BaseCommand
     {
         parent::execute($input, $output);
 
-        $this->hr();
+        $this->io->hr();
 
         //
         // Get all servers
 
         $allServers = $this->servers->all();
         if (count($allServers) === 0) {
-            $this->warning('No servers found in inventory');
-            $this->writeln([
+            $this->io->warning('No servers found in inventory');
+            $this->io->writeln([
                 '',
                 'Use <fg=cyan>server:add</> to add a server',
                 '',
@@ -44,7 +44,7 @@ class ServerListCommand extends BaseCommand
             return Command::SUCCESS;
         }
 
-        $this->h1('All Servers');
+        $this->io->h1('All Servers');
 
         foreach ($allServers as $server) {
             $this->displayServerDeets($server);

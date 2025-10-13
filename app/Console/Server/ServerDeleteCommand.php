@@ -41,9 +41,9 @@ class ServerDeleteCommand extends BaseCommand
     {
         parent::execute($input, $output);
 
-        $this->hr();
+        $this->io->hr();
 
-        $this->h1('Delete Server');
+        $this->io->h1('Delete Server');
 
         //
         // Select server
@@ -61,17 +61,17 @@ class ServerDeleteCommand extends BaseCommand
         // Confirm deletion
 
         /** @var bool $confirmed */
-        $confirmed = $this->getOptionOrPrompt(
+        $confirmed = $this->io->getOptionOrPrompt(
             'yes',
-            fn (): bool => $this->promptConfirm(
+            fn (): bool => $this->io->promptConfirm(
                 label: 'Are you sure you want to delete this server?',
                 default: true
             )
         );
 
         if (!$confirmed) {
-            $this->warning('Cancelled deleting server');
-            $this->writeln('');
+            $this->io->warning('Cancelled deleting server');
+            $this->io->writeln('');
 
             return Command::SUCCESS;
         }
@@ -81,13 +81,13 @@ class ServerDeleteCommand extends BaseCommand
 
         $this->servers->delete($server->name);
 
-        $this->success("Server '{$server->name}' deleted successfully");
-        $this->writeln('');
+        $this->io->success("Server '{$server->name}' deleted successfully");
+        $this->io->writeln('');
 
         //
         // Show command hint
 
-        $this->showCommandHint('server:delete', [
+        $this->io->showCommandHint('server:delete', [
             'server' => $server->name,
             'yes' => $confirmed,
         ]);

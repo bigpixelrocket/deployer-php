@@ -51,17 +51,17 @@ class ServerAddCommand extends BaseCommand
     {
         parent::execute($input, $output);
 
-        $this->hr();
+        $this->io->hr();
 
-        $this->h1('Add New Server');
+        $this->io->h1('Add New Server');
 
         //
         // Gather server details
 
         /** @var string|null $name */
-        $name = $this->getValidatedOptionOrPrompt(
+        $name = $this->io->getValidatedOptionOrPrompt(
             'name',
-            fn ($validate) => $this->promptText(
+            fn ($validate) => $this->io->promptText(
                 label: 'Server name:',
                 placeholder: 'web1',
                 required: true,
@@ -75,9 +75,9 @@ class ServerAddCommand extends BaseCommand
         }
 
         /** @var string|null $host */
-        $host = $this->getValidatedOptionOrPrompt(
+        $host = $this->io->getValidatedOptionOrPrompt(
             'host',
-            fn ($validate) => $this->promptText(
+            fn ($validate) => $this->io->promptText(
                 label: 'Host/IP address:',
                 placeholder: '192.168.1.100',
                 required: true,
@@ -91,9 +91,9 @@ class ServerAddCommand extends BaseCommand
         }
 
         /** @var string|null $portString */
-        $portString = $this->getValidatedOptionOrPrompt(
+        $portString = $this->io->getValidatedOptionOrPrompt(
             'port',
-            fn ($validate) => $this->promptText(
+            fn ($validate) => $this->io->promptText(
                 label: 'SSH port:',
                 default: '22',
                 required: true,
@@ -109,9 +109,9 @@ class ServerAddCommand extends BaseCommand
         $port = (int) $portString;
 
         /** @var string $username */
-        $username = $this->getOptionOrPrompt(
+        $username = $this->io->getOptionOrPrompt(
             'username',
-            fn (): string => $this->promptText(
+            fn (): string => $this->io->promptText(
                 label: 'SSH username:',
                 default: 'root',
                 required: true
@@ -119,9 +119,9 @@ class ServerAddCommand extends BaseCommand
         );
 
         /** @var string $privateKeyPathRaw */
-        $privateKeyPathRaw = $this->getOptionOrPrompt(
+        $privateKeyPathRaw = $this->io->getOptionOrPrompt(
             'private-key-path',
-            fn (): string => $this->promptText(
+            fn (): string => $this->io->promptText(
                 label: 'SSH private key path (leave empty for default ~/.ssh/id_ed25519 or ~/.ssh/id_rsa):',
                 default: '',
                 required: false
@@ -142,7 +142,7 @@ class ServerAddCommand extends BaseCommand
             privateKeyPath: $privateKeyPath
         );
 
-        $this->hr();
+        $this->io->hr();
 
         $this->displayServerDeets($server);
 
@@ -150,17 +150,17 @@ class ServerAddCommand extends BaseCommand
         // Verify connectivity
 
         /** @var bool $skipCheck */
-        $skipCheck = $this->getOptionOrPrompt(
+        $skipCheck = $this->io->getOptionOrPrompt(
             'skip',
-            fn (): bool => !$this->promptConfirm(
+            fn (): bool => !$this->io->promptConfirm(
                 label: 'Test SSH connection before saving?',
                 default: true
             )
         );
 
         if ($skipCheck) {
-            $this->warning('Skipping SSH connection check');
-            $this->writeln('');
+            $this->io->warning('Skipping SSH connection check');
+            $this->io->writeln('');
         } else {
             if (!$this->testConnection($server)) {
                 return Command::FAILURE;
@@ -171,17 +171,17 @@ class ServerAddCommand extends BaseCommand
         // Confirm creation
 
         /** @var bool $confirmed */
-        $confirmed = $this->getOptionOrPrompt(
+        $confirmed = $this->io->getOptionOrPrompt(
             'yes',
-            fn (): bool => $this->promptConfirm(
+            fn (): bool => $this->io->promptConfirm(
                 label: 'Save this server to inventory?',
                 default: true
             )
         );
 
         if (!$confirmed) {
-            $this->warning('Cancelled adding server');
-            $this->writeln('');
+            $this->io->warning('Cancelled adding server');
+            $this->io->writeln('');
 
             return Command::SUCCESS;
         }
@@ -192,18 +192,18 @@ class ServerAddCommand extends BaseCommand
         try {
             $this->servers->create($server);
         } catch (\RuntimeException $e) {
-            $this->error('Failed to add server: ' . $e->getMessage());
+            $this->io->error('Failed to add server: ' . $e->getMessage());
 
             return Command::FAILURE;
         }
 
-        $this->success('Server added successfully');
-        $this->writeln('');
+        $this->io->success('Server added successfully');
+        $this->io->writeln('');
 
         //
         // Show command hint
 
-        $this->showCommandHint('server:add', [
+        $this->io->showCommandHint('server:add', [
             'name' => $name,
             'host' => $host,
             'port' => $port,
@@ -226,7 +226,7 @@ class ServerAddCommand extends BaseCommand
     private function testConnection(ServerDTO $server): bool
     {
         try {
-            $this->promptSpin(
+            $this->io->promptSpin(
                 callback: fn () => $this->ssh->assertCanConnect(
                     $server->host,
                     $server->port,
@@ -236,13 +236,13 @@ class ServerAddCommand extends BaseCommand
                 message: 'Connecting to server...'
             );
 
-            $this->success('SSH connection successful');
+            $this->io->success('SSH connection successful');
 
             return true;
         } catch (\RuntimeException $e) {
-            $this->error($e->getMessage());
+            $this->io->error($e->getMessage());
 
-            $this->writeln([
+            $this->io->writeln([
                 '',
                 '  <fg=yellow>Common issues:</>',
                 '',
