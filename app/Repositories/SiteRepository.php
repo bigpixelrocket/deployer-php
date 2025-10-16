@@ -103,6 +103,27 @@ final class SiteRepository
     }
 
     /**
+     * Retrieve all sites that belong to a specific server.
+     *
+     * @param string $serverName Server name to filter by
+     * @return array<int, SiteDTO> Sites that include the server
+     */
+    public function findByServer(string $serverName): array
+    {
+        $this->assertInventoryLoaded();
+
+        $filtered = [];
+        foreach ($this->sites as $siteData) {
+            $site = $this->hydrateSiteDTO($siteData);
+            if (in_array($serverName, $site->servers, true)) {
+                $filtered[] = $site;
+            }
+        }
+
+        return $filtered;
+    }
+
+    /**
      * Remove the site with the given domain from the stored inventory.
      *
      * If no site matches the domain, the inventory remains unchanged.
@@ -146,35 +167,41 @@ final class SiteRepository
      * Serialize a SiteDTO into an associative array suitable for inventory storage.
      *
      * @param SiteDTO $site The site DTO to serialize.
-     * @return array<string, mixed> Associative array with keys `domain`, `repo`, `branch`, and `servers`.
+     * @return array<string, mixed> Associative array with keys `domain`, `servers`, and optionally `repo`/`branch` for git sites.
      */
     private function dehydrateSiteDTO(SiteDTO $site): array
     {
-        return [
+        $data = [
             'domain' => $site->domain,
-            'repo' => $site->repo,
-            'branch' => $site->branch,
             'servers' => $site->servers,
         ];
+
+        // Only include repo/branch for git-based sites
+        if (!$site->isLocal()) {
+            $data['repo'] = $site->repo;
+            $data['branch'] = $site->branch;
+        }
+
+        return $data;
     }
 
     /**
          * Create a SiteDTO from raw inventory data.
          *
          * @param array<string,mixed> $data Raw associative array from inventory.
-         * @return SiteDTO A SiteDTO where `domain`, `repo`, and `branch` are strings (empty string if missing or not a string) and `servers` is an array of strings (empty array if missing or invalid).
+         * @return SiteDTO A SiteDTO where `domain` is a string (empty if missing), `repo` and `branch` are nullable strings (null for local sites), and `servers` is an array of strings.
          */
     private function hydrateSiteDTO(array $data): SiteDTO
     {
         $domain = $data['domain'] ?? '';
-        $repo = $data['repo'] ?? '';
-        $branch = $data['branch'] ?? '';
+        $repo = $data['repo'] ?? null;
+        $branch = $data['branch'] ?? null;
         $servers = $data['servers'] ?? [];
 
         return new SiteDTO(
             domain: is_string($domain) ? $domain : '',
-            repo: is_string($repo) ? $repo : '',
-            branch: is_string($branch) ? $branch : '',
+            repo: is_string($repo) ? $repo : null,
+            branch: is_string($branch) ? $branch : null,
             servers: is_array($servers) ? array_values(array_filter($servers, 'is_string')) : [],
         );
     }
