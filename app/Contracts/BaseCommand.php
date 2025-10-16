@@ -8,6 +8,7 @@ use Bigpixelrocket\DeployerPHP\Container;
 use Bigpixelrocket\DeployerPHP\Repositories\ServerRepository;
 use Bigpixelrocket\DeployerPHP\Repositories\SiteRepository;
 use Bigpixelrocket\DeployerPHP\Services\EnvService;
+use Bigpixelrocket\DeployerPHP\Services\GitService;
 use Bigpixelrocket\DeployerPHP\Services\InventoryService;
 use Bigpixelrocket\DeployerPHP\Services\IOService;
 use Bigpixelrocket\DeployerPHP\Services\ProcessService;
@@ -38,6 +39,7 @@ abstract class BaseCommand extends Command
 
         // Base services
         protected readonly EnvService $env,
+        protected readonly GitService $git,
         protected readonly InventoryService $inventory,
         protected readonly IOService $io,
         protected readonly ProcessService $proc,
