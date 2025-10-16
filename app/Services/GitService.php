@@ -9,9 +9,9 @@ namespace Bigpixelrocket\DeployerPHP\Services;
  *
  * Provides utilities for detecting git repository information.
  */
-final class GitService
+final readonly class GitService
 {
-    public function __construct(private readonly ProcessService $proc)
+    public function __construct(private ProcessService $proc)
     {
     }
 
