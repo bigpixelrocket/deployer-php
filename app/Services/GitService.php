@@ -27,26 +27,10 @@ final readonly class GitService
      */
     public function detectRemoteUrl(?string $workingDir = null): ?string
     {
-        try {
-            $cwd = $workingDir ?? getcwd();
-            if ($cwd === false) {
-                return null;
-            }
-
-            $process = $this->proc->run(
-                ['git', 'config', '--get', 'remote.origin.url'],
-                $cwd,
-                2.0
-            );
-
-            if ($process->isSuccessful()) {
-                return trim($process->getOutput());
-            }
-
-            return null;
-        } catch (\Exception) {
-            return null;
-        }
+        return $this->runGitCommand(
+            ['git', 'config', '--get', 'remote.origin.url'],
+            $workingDir
+        );
     }
 
     /**
@@ -57,17 +41,32 @@ final readonly class GitService
      */
     public function detectCurrentBranch(?string $workingDir = null): ?string
     {
+        return $this->runGitCommand(
+            ['git', 'rev-parse', '--abbrev-ref', 'HEAD'],
+            $workingDir
+        );
+    }
+
+    //
+    // Helpers
+    // -------------------------------------------------------------------------------
+
+    /**
+     * Run a git command and return trimmed output or null on failure.
+     *
+     * @param list<string> $cmd Git command and arguments
+     * @param string|null $workingDir Working directory (defaults to current)
+     * @return string|null Command output or null on failure
+     */
+    private function runGitCommand(array $cmd, ?string $workingDir): ?string
+    {
         try {
             $cwd = $workingDir ?? getcwd();
             if ($cwd === false) {
                 return null;
             }
 
-            $process = $this->proc->run(
-                ['git', 'rev-parse', '--abbrev-ref', 'HEAD'],
-                $cwd,
-                2.0
-            );
+            $process = $this->proc->run($cmd, $cwd, 2.0);
 
             if ($process->isSuccessful()) {
                 return trim($process->getOutput());
