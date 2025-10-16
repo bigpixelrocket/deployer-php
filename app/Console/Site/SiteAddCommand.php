@@ -110,7 +110,7 @@ class SiteAddCommand extends BaseCommand
         $branch = null;
 
         if (!$isLocal) {
-            $defaultRepo = $this->detectGitRemote() ?? 'git@github.com:user/repo.git';
+            $defaultRepo = $this->git->detectRemoteUrl() ?? 'git@github.com:user/repo.git';
 
             /** @var string $repo */
             $repo = $this->io->getOptionOrPrompt(
@@ -123,7 +123,7 @@ class SiteAddCommand extends BaseCommand
                 )
             );
 
-            $defaultBranch = $this->detectGitBranch() ?? 'main';
+            $defaultBranch = $this->git->detectCurrentBranch() ?? 'main';
 
             /** @var string|null $branch */
             $branch = $this->io->getValidatedOptionOrPrompt(
@@ -146,7 +146,13 @@ class SiteAddCommand extends BaseCommand
         //
         // Select servers
 
-        $selectedServers = $this->selectServers();
+        try {
+            $selectedServers = $this->selectServers();
+        } catch (\RuntimeException $e) {
+            $this->io->error($e->getMessage());
+
+            return Command::FAILURE;
+        }
 
         //
         // Validate selections
@@ -205,63 +211,4 @@ class SiteAddCommand extends BaseCommand
 
         return Command::SUCCESS;
     }
-
-    //
-    // Private Helpers
-    // -------------------------------------------------------------------------------
-
-    /**
-     * Detect git remote origin URL from current directory.
-     */
-    private function detectGitRemote(): ?string
-    {
-        try {
-            $cwd = getcwd();
-            if ($cwd === false) {
-                return null;
-            }
-
-            $process = $this->proc->run(
-                ['git', 'config', '--get', 'remote.origin.url'],
-                $cwd,
-                2.0
-            );
-
-            if ($process->isSuccessful()) {
-                return trim($process->getOutput());
-            }
-
-            return null;
-        } catch (\Exception) {
-            return null;
-        }
-    }
-
-    /**
-     * Detect current git branch name.
-     */
-    private function detectGitBranch(): ?string
-    {
-        try {
-            $cwd = getcwd();
-            if ($cwd === false) {
-                return null;
-            }
-
-            $process = $this->proc->run(
-                ['git', 'rev-parse', '--abbrev-ref', 'HEAD'],
-                $cwd,
-                2.0
-            );
-
-            if ($process->isSuccessful()) {
-                return trim($process->getOutput());
-            }
-
-            return null;
-        } catch (\Exception) {
-            return null;
-        }
-    }
-
 }
