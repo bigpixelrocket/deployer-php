@@ -14,6 +14,7 @@ use Bigpixelrocket\DeployerPHP\Services\IOService;
 use Bigpixelrocket\DeployerPHP\Services\ProcessService;
 use Bigpixelrocket\DeployerPHP\Services\SSHService;
 use Bigpixelrocket\DeployerPHP\Traits\ServerHelpersTrait;
+use Bigpixelrocket\DeployerPHP\Traits\SiteHelpersTrait;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -27,6 +28,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 class TestConsoleCommand extends BaseCommand
 {
     use ServerHelpersTrait;
+    use SiteHelpersTrait;
     private string $methodToTest = '';
 
     private array $testArgs = [];
@@ -87,6 +89,7 @@ class TestConsoleCommand extends BaseCommand
                 'writeln' => $this->io->writeln(...$this->testArgs),
                 'showCommandHint' => $this->io->showCommandHint(...$this->testArgs),
                 'displayServerDeets' => $this->displayServerDeets(...$this->testArgs),
+                'displaySiteDeets' => $this->displaySiteDeets(...$this->testArgs),
                 'getOptionOrPrompt' => $this->testGetOptionOrPrompt(),
                 'getOptionOrPromptEmpty' => $this->testGetOptionOrPromptEmpty(),
                 'getOptionOrPromptBoolean' => $this->testGetOptionOrPromptBoolean(),
