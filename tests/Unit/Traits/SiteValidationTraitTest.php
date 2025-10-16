@@ -37,6 +37,14 @@ class TestSiteValidator
     }
 
     /**
+     * Expose protected validateRepoInput for testing.
+     */
+    public function testValidateRepo(mixed $repo): ?string
+    {
+        return $this->validateRepoInput($repo);
+    }
+
+    /**
      * Expose protected validateGitRepo for testing.
      */
     public function testValidateGitRepo(string $repo): void
@@ -178,6 +186,69 @@ describe('SiteValidationTrait', function () {
 
         // ASSERT
         expect($error)->toBe('Branch name must be a string');
+    });
+
+    //
+    // validateRepoInput
+    // -------------------------------------------------------------------------------
+
+    it('accepts valid git repository URLs', function (string $repo) {
+        // ACT
+        $error = $this->validator->testValidateRepo($repo);
+
+        // ASSERT
+        expect($error)->toBeNull();
+    })->with([
+        'HTTPS GitHub' => ['https://github.com/user/repo.git'],
+        'HTTPS GitLab' => ['https://gitlab.com/user/repo.git'],
+        'HTTPS Bitbucket' => ['https://bitbucket.org/user/repo.git'],
+        'HTTP URL' => ['http://example.com/repo.git'],
+        'SSH GitHub' => ['git@github.com:user/repo.git'],
+        'SSH GitLab' => ['git@gitlab.com:user/repo.git'],
+        'SSH Bitbucket' => ['git@bitbucket.org:user/repo.git'],
+        'SSH protocol' => ['ssh://git@github.com/user/repo.git'],
+        'HTTPS without .git' => ['https://github.com/user/repo'],
+        'SSH custom port' => ['ssh://git@example.com:2222/repo.git'],
+        'HTTPS with subdomain' => ['https://git.example.com/repo.git'],
+    ]);
+
+    it('rejects empty repository URLs', function () {
+        // ACT
+        $error = $this->validator->testValidateRepo('');
+
+        // ASSERT
+        expect($error)->toContain('cannot be empty');
+    });
+
+    it('rejects whitespace-only repository URLs', function () {
+        // ACT
+        $error = $this->validator->testValidateRepo('   ');
+
+        // ASSERT
+        expect($error)->toContain('cannot be empty');
+    });
+
+    it('rejects invalid repository URL formats', function (string $repo, string $expectedError) {
+        // ACT
+        $error = $this->validator->testValidateRepo($repo);
+
+        // ASSERT
+        expect($error)->not->toBeNull()
+            ->and($error)->toContain($expectedError);
+    })->with([
+        'no protocol' => ['github.com/user/repo.git', 'must start with'],
+        'invalid protocol' => ['ftp://github.com/user/repo.git', 'must start with'],
+        'plain path' => ['/path/to/repo', 'must start with'],
+        'relative path' => ['../repo', 'must start with'],
+        'just domain' => ['example.com', 'must start with'],
+    ]);
+
+    it('rejects non-string repository input', function () {
+        // ACT
+        $error = $this->validator->testValidateRepo(123);
+
+        // ASSERT
+        expect($error)->toBe('Repository URL must be a string');
     });
 
     //
