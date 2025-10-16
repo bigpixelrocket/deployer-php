@@ -8,6 +8,9 @@ use Bigpixelrocket\DeployerPHP\Console\HelloCommand;
 use Bigpixelrocket\DeployerPHP\Console\Server\ServerAddCommand;
 use Bigpixelrocket\DeployerPHP\Console\Server\ServerDeleteCommand;
 use Bigpixelrocket\DeployerPHP\Console\Server\ServerListCommand;
+use Bigpixelrocket\DeployerPHP\Console\Site\SiteAddCommand;
+use Bigpixelrocket\DeployerPHP\Console\Site\SiteDeleteCommand;
+use Bigpixelrocket\DeployerPHP\Console\Site\SiteListCommand;
 use Bigpixelrocket\DeployerPHP\Services\VersionService;
 use Symfony\Component\Console\Application as SymfonyApplication;
 use Symfony\Component\Console\Command\Command;
@@ -120,6 +123,9 @@ final class SymfonyApp extends SymfonyApplication
             ServerAddCommand::class,
             ServerDeleteCommand::class,
             ServerListCommand::class,
+            SiteAddCommand::class,
+            SiteDeleteCommand::class,
+            SiteListCommand::class,
         ];
 
         foreach ($commands as $command) {

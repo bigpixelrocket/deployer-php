@@ -7,6 +7,7 @@ use Bigpixelrocket\DeployerPHP\Repositories\ServerRepository;
 use Bigpixelrocket\DeployerPHP\Repositories\SiteRepository;
 use Bigpixelrocket\DeployerPHP\Services\EnvService;
 use Bigpixelrocket\DeployerPHP\Services\FilesystemService;
+use Bigpixelrocket\DeployerPHP\Services\GitService;
 use Bigpixelrocket\DeployerPHP\Services\InventoryService;
 use Bigpixelrocket\DeployerPHP\Services\IOService;
 use Bigpixelrocket\DeployerPHP\Services\ProcessService;
@@ -257,6 +258,23 @@ if (!function_exists('mockVersionService')) {
     }
 }
 
+if (!function_exists('mockGitService')) {
+    /**
+     * Create a GitService for testing with mocked ProcessService.
+     *
+     * Returns a GitService instance with a real ProcessService for testing git command execution.
+     *
+     * @example
+     *   $git = mockGitService();
+     *   // Use in tests that need git functionality
+     */
+    function mockGitService(): GitService
+    {
+        $proc = mockProcessService();
+        return new GitService($proc);
+    }
+}
+
 //
 // Repository Layer Mocks
 // -------------------------------------------------------------------------------
@@ -347,6 +365,7 @@ if (!function_exists('mockCommandContainer')) {
     function mockCommandContainer(
         // Base services (alphabetical order)
         ?EnvService $env = null,
+        ?GitService $git = null,
         ?InventoryService $inventory = null,
         ?IOService $io = null,
         ?ProcessService $proc = null,
@@ -366,6 +385,7 @@ if (!function_exists('mockCommandContainer')) {
 
         // Build or use provided services (matches BaseCommand constructor order)
         $env ??= mockEnvService($envFileExists, $envContent);
+        $git ??= mockGitService();
         $inventory ??= mockInventoryService($inventoryFileExists, $inventoryData);
         $io ??= mockIOService();
         $proc ??= mockProcessService();
@@ -375,6 +395,7 @@ if (!function_exists('mockCommandContainer')) {
 
         // Bind services to container (matches BaseCommand constructor order)
         $container->bind(EnvService::class, $env);
+        $container->bind(GitService::class, $git);
         $container->bind(InventoryService::class, $inventory);
         $container->bind(IOService::class, $io);
         $container->bind(ProcessService::class, $proc);

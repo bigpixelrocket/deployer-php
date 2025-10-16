@@ -9,11 +9,13 @@ use Bigpixelrocket\DeployerPHP\Contracts\BaseCommand;
 use Bigpixelrocket\DeployerPHP\Repositories\ServerRepository;
 use Bigpixelrocket\DeployerPHP\Repositories\SiteRepository;
 use Bigpixelrocket\DeployerPHP\Services\EnvService;
+use Bigpixelrocket\DeployerPHP\Services\GitService;
 use Bigpixelrocket\DeployerPHP\Services\InventoryService;
 use Bigpixelrocket\DeployerPHP\Services\IOService;
 use Bigpixelrocket\DeployerPHP\Services\ProcessService;
 use Bigpixelrocket\DeployerPHP\Services\SSHService;
 use Bigpixelrocket\DeployerPHP\Traits\ServerHelpersTrait;
+use Bigpixelrocket\DeployerPHP\Traits\SiteHelpersTrait;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -27,6 +29,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 class TestConsoleCommand extends BaseCommand
 {
     use ServerHelpersTrait;
+    use SiteHelpersTrait;
     private string $methodToTest = '';
 
     private array $testArgs = [];
@@ -36,6 +39,7 @@ class TestConsoleCommand extends BaseCommand
      *
      * @param Container $container Dependency injection container.
      * @param EnvService $env Environment service.
+     * @param GitService $git Git service for repository operations.
      * @param InventoryService $inventory Inventory management service.
      * @param IOService $io I/O service for console operations.
      * @param ProcessService $proc Process execution service.
@@ -46,6 +50,7 @@ class TestConsoleCommand extends BaseCommand
     public function __construct(
         Container $container,
         EnvService $env,
+        GitService $git,
         InventoryService $inventory,
         IOService $io,
         ProcessService $proc,
@@ -53,7 +58,7 @@ class TestConsoleCommand extends BaseCommand
         SiteRepository $sites,
         SSHService $ssh,
     ) {
-        parent::__construct($container, $env, $inventory, $io, $proc, $servers, $sites, $ssh);
+        parent::__construct($container, $env, $git, $inventory, $io, $proc, $servers, $sites, $ssh);
     }
 
     /**
@@ -71,6 +76,7 @@ class TestConsoleCommand extends BaseCommand
         $this->setName('test-console')->setDescription('Test console trait methods');
         $this->addOption('name', null, InputOption::VALUE_REQUIRED, 'Test name option');
         $this->addOption('host', null, InputOption::VALUE_REQUIRED, 'Test host option');
+        $this->addOption('servers', null, InputOption::VALUE_REQUIRED, 'Test servers option');
         $this->addOption('yes', 'y', InputOption::VALUE_NONE, 'Test yes flag');
     }
 
@@ -87,6 +93,9 @@ class TestConsoleCommand extends BaseCommand
                 'writeln' => $this->io->writeln(...$this->testArgs),
                 'showCommandHint' => $this->io->showCommandHint(...$this->testArgs),
                 'displayServerDeets' => $this->displayServerDeets(...$this->testArgs),
+                'displaySiteDeets' => $this->displaySiteDeets(...$this->testArgs),
+                'selectServers' => $this->selectServers(),
+                'selectSite' => $this->selectSite(),
                 'getOptionOrPrompt' => $this->testGetOptionOrPrompt(),
                 'getOptionOrPromptEmpty' => $this->testGetOptionOrPromptEmpty(),
                 'getOptionOrPromptBoolean' => $this->testGetOptionOrPromptBoolean(),

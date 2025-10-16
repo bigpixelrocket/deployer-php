@@ -1,4 +1,5 @@
 .deployer/
+.cursor/.agent-tools/
 .experiments/
 .idea/
 .vscode/

@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Bigpixelrocket\DeployerPHP\Console\Server;
+namespace Bigpixelrocket\DeployerPHP\Console\Site;
 
 use Bigpixelrocket\DeployerPHP\Contracts\BaseCommand;
-use Bigpixelrocket\DeployerPHP\Traits\ServerHelpersTrait;
+use Bigpixelrocket\DeployerPHP\Traits\SiteHelpersTrait;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -13,12 +13,12 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
 /**
- * Delete a server from the inventory.
+ * Delete a site from the inventory.
  */
-#[AsCommand(name: 'server:delete', description: 'Delete a server from the inventory')]
-class ServerDeleteCommand extends BaseCommand
+#[AsCommand(name: 'site:delete', description: 'Delete a site from the inventory')]
+class SiteDeleteCommand extends BaseCommand
 {
-    use ServerHelpersTrait;
+    use SiteHelpersTrait;
 
     //
     // Configuration
@@ -29,7 +29,7 @@ class ServerDeleteCommand extends BaseCommand
         parent::configure();
 
         $this
-            ->addOption('server', null, InputOption::VALUE_REQUIRED, 'Server name')
+            ->addOption('site', null, InputOption::VALUE_REQUIRED, 'Site domain')
             ->addOption('yes', 'y', InputOption::VALUE_NONE, 'Skip confirmation prompt');
     }
 
@@ -43,36 +43,19 @@ class ServerDeleteCommand extends BaseCommand
 
         $this->io->hr();
 
-        $this->io->h1('Delete Server');
+        $this->io->h1('Delete Site');
 
         //
-        // Select server
+        // Select site
 
-        $selection = $this->selectServer();
+        $selection = $this->selectSite();
 
-        if ($selection['server'] === null) {
+        if ($selection['site'] === null) {
             return $selection['exit_code'];
         }
 
-        $server = $selection['server'];
-        $this->displayServerDeets($server);
-
-        // Get sites for this server
-        $serverSites = $this->sites->findByServer($server->name);
-
-        if (count($serverSites) > 0) {
-            $this->io->writeln(['  Sites:']);
-            foreach ($serverSites as $site) {
-                $this->io->writeln(["    • <fg=gray>{$site->domain}</>"]);
-            }
-
-            $this->io->writeln('');
-
-            $this->io->error("Cannot delete server '{$server->name}' because it has one or more sites.");
-
-            return Command::FAILURE;
-
-        }
+        $site = $selection['site'];
+        $this->displaySiteDeets($site);
 
         //
         // Confirm deletion
@@ -83,31 +66,31 @@ class ServerDeleteCommand extends BaseCommand
         $confirmed = $this->io->getOptionOrPrompt(
             'yes',
             fn (): bool => $this->io->promptConfirm(
-                label: 'Are you sure you want to delete this server?',
+                label: 'Are you sure you want to delete this site?',
                 default: true
             )
         );
 
         if (!$confirmed) {
-            $this->io->warning('Cancelled deleting server');
+            $this->io->warning('Cancelled deleting site');
             $this->io->writeln('');
 
             return Command::SUCCESS;
         }
 
         //
-        // Delete server
+        // Delete site
 
-        $this->servers->delete($server->name);
+        $this->sites->delete($site->domain);
 
-        $this->io->success("Server '{$server->name}' deleted successfully");
+        $this->io->success("Site '{$site->domain}' deleted successfully");
         $this->io->writeln('');
 
         //
         // Show command hint
 
-        $this->io->showCommandHint('server:delete', [
-            'server' => $server->name,
+        $this->io->showCommandHint('site:delete', [
+            'site' => $site->domain,
             'yes' => $confirmed,
         ]);
 

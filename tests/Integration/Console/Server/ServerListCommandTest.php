@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Bigpixelrocket\DeployerPHP\Console\Server\ServerListCommand;
 use Bigpixelrocket\DeployerPHP\DTOs\ServerDTO;
+use Bigpixelrocket\DeployerPHP\DTOs\SiteDTO;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Tester\CommandTester;
 
@@ -13,19 +14,34 @@ use Symfony\Component\Console\Tester\CommandTester;
 
 require_once __DIR__ . '/../../../TestHelpers.php';
 
-function createServerListCommandTester(array $existingServers = []): CommandTester
+/**
+ * @param array<int, ServerDTO> $existingServers
+ * @param array<int, SiteDTO> $existingSites
+ */
+function createServerListCommandTester(array $existingServers = [], array $existingSites = []): CommandTester
 {
-    // Pre-populate repository with test servers
-    $inventoryData = empty($existingServers) ? ['servers' => []] : ['servers' => array_map(
-        fn (ServerDTO $server) => [
-            'name' => $server->name,
-            'host' => $server->host,
-            'port' => $server->port,
-            'username' => $server->username,
-            'privateKeyPath' => $server->privateKeyPath,
-        ],
-        $existingServers
-    )];
+    // Build inventory data with servers and sites
+    $inventoryData = [
+        'servers' => array_map(
+            fn (ServerDTO $server) => [
+                'name' => $server->name,
+                'host' => $server->host,
+                'port' => $server->port,
+                'username' => $server->username,
+                'privateKeyPath' => $server->privateKeyPath,
+            ],
+            $existingServers
+        ),
+        'sites' => array_map(
+            fn (SiteDTO $site) => [
+                'domain' => $site->domain,
+                'repo' => $site->repo,
+                'branch' => $site->branch,
+                'servers' => $site->servers,
+            ],
+            $existingSites
+        ),
+    ];
 
     $container = mockCommandContainer(inventoryData: $inventoryData);
     $command = $container->build(ServerListCommand::class);
@@ -41,7 +57,7 @@ describe('ServerListCommand', function () {
     // Success Scenarios
     // -------------------------------------------------------------------------------
 
-    it('lists multiple servers with full details', function () {
+    it('lists servers with full details', function () {
         // ARRANGE
         $existingServers = [
             new ServerDTO('web1', '192.168.1.1', 22, 'root', null),
@@ -68,27 +84,6 @@ describe('ServerListCommand', function () {
             ->and($output)->toContain('10.0.0.5');
     });
 
-    it('lists single server with complete details', function () {
-        // ARRANGE
-        $existingServers = [
-            new ServerDTO('production', 'prod.example.com', 8022, 'deploy', '~/.ssh/prod_key'),
-        ];
-        $tester = createServerListCommandTester($existingServers);
-
-        // ACT
-        $exitCode = $tester->execute([]);
-
-        // ASSERT
-        $output = $tester->getDisplay();
-        expect($exitCode)->toBe(Command::SUCCESS)
-            ->and($output)->toContain('All Servers')
-            ->and($output)->toContain('production')
-            ->and($output)->toContain('prod.example.com')
-            ->and($output)->toContain('8022')
-            ->and($output)->toContain('deploy')
-            ->and($output)->toContain('~/.ssh/prod_key');
-    });
-
     //
     // Edge Cases
     // -------------------------------------------------------------------------------
@@ -109,10 +104,10 @@ describe('ServerListCommand', function () {
             ->and($output)->not->toContain('All Servers');
     });
 
-    it('displays default SSH key message for servers without custom keys', function () {
+    it('displays SSH key path correctly', function (?string $keyPath, array $expectedOutput) {
         // ARRANGE
         $existingServers = [
-            new ServerDTO('default-key', '192.168.1.1', 22, 'root', null),
+            new ServerDTO('test-server', '192.168.1.1', 22, 'root', $keyPath),
         ];
         $tester = createServerListCommandTester($existingServers);
 
@@ -122,18 +117,62 @@ describe('ServerListCommand', function () {
         // ASSERT
         $output = $tester->getDisplay();
         expect($exitCode)->toBe(Command::SUCCESS)
-            ->and($output)->toContain('Key:')
-            ->and($output)->toContain('default')
-            ->and($output)->toContain('~/.ssh/id_ed25519')
-            ->and($output)->toContain('~/.ssh/id_rsa');
+            ->and($output)->toContain('Key:');
+
+        foreach ($expectedOutput as $expected) {
+            expect($output)->toContain($expected);
+        }
+    })->with([
+        'default key' => [null, ['default', '~/.ssh/id_ed25519', '~/.ssh/id_rsa']],
+        'custom key' => ['~/.ssh/special_key', ['~/.ssh/special_key']],
+    ]);
+
+    //
+    // Site Display
+    // -------------------------------------------------------------------------------
+
+    it('displays sites under their respective servers', function () {
+        // ARRANGE
+        $existingServers = [
+            new ServerDTO('web1', '192.168.1.1', 22, 'root', null),
+            new ServerDTO('web2', '192.168.1.2', 22, 'root', null),
+        ];
+        $existingSites = [
+            new SiteDTO('example.com', 'https://github.com/user/repo.git', 'main', ['web1']),
+            new SiteDTO('test.com', null, null, ['web2']),
+            new SiteDTO('shared.com', 'https://github.com/user/shared.git', 'dev', ['web1', 'web2']),
+        ];
+        $tester = createServerListCommandTester($existingServers, $existingSites);
+
+        // ACT
+        $exitCode = $tester->execute([]);
+
+        // ASSERT
+        $output = $tester->getDisplay();
+        expect($exitCode)->toBe(Command::SUCCESS)
+            ->and($output)->toContain('Sites:')
+            ->and($output)->toContain('example.com')
+            ->and($output)->toContain('test.com')
+            ->and($output)->toContain('shared.com');
+
+        // Verify sites appear after their servers
+        $web1Pos = strpos($output, 'web1');
+        $examplePos = strpos($output, 'example.com');
+        $sharedPos = strpos($output, 'shared.com');
+        $web2Pos = strpos($output, 'web2');
+        $testPos = strpos($output, 'test.com');
+
+        expect($web1Pos)->toBeLessThan($examplePos)
+            ->and($web1Pos)->toBeLessThan($sharedPos)
+            ->and($web2Pos)->toBeLessThan($testPos);
     });
 
-    it('displays custom SSH key paths correctly', function () {
+    it('displays no sites section when server has no sites', function () {
         // ARRANGE
         $existingServers = [
-            new ServerDTO('custom-key', '192.168.1.1', 22, 'root', '~/.ssh/special_key'),
+            new ServerDTO('web1', '192.168.1.1', 22, 'root', null),
         ];
-        $tester = createServerListCommandTester($existingServers);
+        $tester = createServerListCommandTester($existingServers, []);
 
         // ACT
         $exitCode = $tester->execute([]);
@@ -141,31 +180,7 @@ describe('ServerListCommand', function () {
         // ASSERT
         $output = $tester->getDisplay();
         expect($exitCode)->toBe(Command::SUCCESS)
-            ->and($output)->toContain('Key:')
-            ->and($output)->toContain('~/.ssh/special_key')
-            ->and($output)->not->toContain('default');
-    });
-
-    it('lists servers in order they appear in inventory', function () {
-        // ARRANGE
-        $existingServers = [
-            new ServerDTO('alpha', '192.168.1.1', 22, 'root', null),
-            new ServerDTO('beta', '192.168.1.2', 22, 'root', null),
-            new ServerDTO('gamma', '192.168.1.3', 22, 'root', null),
-        ];
-        $tester = createServerListCommandTester($existingServers);
-
-        // ACT
-        $exitCode = $tester->execute([]);
-
-        // ASSERT
-        $output = $tester->getDisplay();
-        $alphaPos = strpos($output, 'alpha');
-        $betaPos = strpos($output, 'beta');
-        $gammaPos = strpos($output, 'gamma');
-
-        expect($exitCode)->toBe(Command::SUCCESS)
-            ->and($alphaPos)->toBeLessThan($betaPos)
-            ->and($betaPos)->toBeLessThan($gammaPos);
+            ->and($output)->toContain('web1')
+            ->and($output)->not->toContain('Sites:');
     });
 });

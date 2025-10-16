@@ -17,7 +17,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 /**
  * Add and register a new server to the inventory.
  *
- * Prompts for server details and verifies SSH connectivity before saving.
+ * Prompts for server details and saves to inventory.
  */
 #[AsCommand(name: 'server:add', description: 'Add a new server to the inventory')]
 class ServerAddCommand extends BaseCommand
@@ -38,9 +38,7 @@ class ServerAddCommand extends BaseCommand
             ->addOption('host', null, InputOption::VALUE_REQUIRED, 'Host/IP address')
             ->addOption('port', null, InputOption::VALUE_REQUIRED, 'SSH port (default: 22)')
             ->addOption('username', null, InputOption::VALUE_REQUIRED, 'SSH username (default: root)')
-            ->addOption('private-key-path', null, InputOption::VALUE_REQUIRED, 'SSH private key path')
-            ->addOption('skip', null, InputOption::VALUE_NONE, 'Skip SSH connection check')
-            ->addOption('yes', 'y', InputOption::VALUE_NONE, 'Skip confirmation prompt');
+            ->addOption('private-key-path', null, InputOption::VALUE_REQUIRED, 'SSH private key path');
     }
 
     //
@@ -147,46 +145,6 @@ class ServerAddCommand extends BaseCommand
         $this->displayServerDeets($server);
 
         //
-        // Verify connectivity
-
-        /** @var bool $skipCheck */
-        $skipCheck = $this->io->getOptionOrPrompt(
-            'skip',
-            fn (): bool => !$this->io->promptConfirm(
-                label: 'Test SSH connection before saving?',
-                default: true
-            )
-        );
-
-        if ($skipCheck) {
-            $this->io->warning('Skipping SSH connection check');
-            $this->io->writeln('');
-        } else {
-            if (!$this->testConnection($server)) {
-                return Command::FAILURE;
-            }
-        }
-
-        //
-        // Confirm creation
-
-        /** @var bool $confirmed */
-        $confirmed = $this->io->getOptionOrPrompt(
-            'yes',
-            fn (): bool => $this->io->promptConfirm(
-                label: 'Save this server to inventory?',
-                default: true
-            )
-        );
-
-        if (!$confirmed) {
-            $this->io->warning('Cancelled adding server');
-            $this->io->writeln('');
-
-            return Command::SUCCESS;
-        }
-
-        //
         // Save to repository
 
         try {
@@ -209,53 +167,9 @@ class ServerAddCommand extends BaseCommand
             'port' => $port,
             'username' => $username,
             'private-key-path' => $privateKeyPath,
-            'skip' => $skipCheck,
-            'yes' => $confirmed,
         ]);
 
         return Command::SUCCESS;
     }
 
-    //
-    // Private Helpers
-    // -------------------------------------------------------------------------------
-
-    /**
-     * Test SSH connection to server with detailed output.
-     */
-    private function testConnection(ServerDTO $server): bool
-    {
-        try {
-            $this->io->promptSpin(
-                callback: fn () => $this->ssh->assertCanConnect(
-                    $server->host,
-                    $server->port,
-                    $server->username,
-                    $server->privateKeyPath
-                ),
-                message: 'Connecting to server...'
-            );
-
-            $this->io->success('SSH connection successful');
-
-            return true;
-        } catch (\RuntimeException $e) {
-            $this->io->error($e->getMessage());
-
-            $this->io->writeln([
-                '',
-                '  <fg=yellow>Common issues:</>',
-                '',
-                '  <fg=gray>• Check that the server is accessible from your network</>',
-                '  <fg=gray>• Verify SSH is running on the server (port '.$server->port.')</>',
-                '  <fg=gray>• Ensure your SSH key has correct permissions (chmod 600)</>',
-                '  <fg=gray>• Confirm username "'.$server->username.'" exists on the server</>',
-                '',
-                '  <fg=gray>Tip: Use</> <fg=cyan>--skip</> <fg=gray>to add server without testing connection.</>',
-                '',
-            ]);
-
-            return false;
-        }
-    }
 }

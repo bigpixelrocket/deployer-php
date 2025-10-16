@@ -172,6 +172,7 @@ class IOService
             $error = $validator($value);
             if ($error !== null) {
                 $this->error($error);
+                $this->writeln('');
 
                 return null;
             }
