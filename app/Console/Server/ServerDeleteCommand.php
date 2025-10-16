@@ -57,8 +57,27 @@ class ServerDeleteCommand extends BaseCommand
         $server = $selection['server'];
         $this->displayServerDeets($server);
 
+        // Get sites for this server
+        $serverSites = $this->sites->findByServer($server->name);
+
+        if (count($serverSites) > 0) {
+            $this->io->writeln(['  Sites:']);
+            foreach ($serverSites as $site) {
+                $this->io->writeln(["    • <fg=gray>{$site->domain}</>"]);
+            }
+
+            $this->io->writeln('');
+
+            $this->io->error("Cannot delete server '{$server->name}' because it has one or more sites.");
+
+            return Command::FAILURE;
+
+        }
+
         //
         // Confirm deletion
+
+        $this->io->writeln('');
 
         /** @var bool $confirmed */
         $confirmed = $this->io->getOptionOrPrompt(
