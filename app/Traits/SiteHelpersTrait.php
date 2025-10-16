@@ -105,6 +105,13 @@ trait SiteHelpersTrait
         if (is_string($serversInput)) {
             // Parse comma-separated server names from CLI option
             $selectedServers = array_map('trim', explode(',', $serversInput));
+
+            // Validate servers exist
+            foreach ($selectedServers as $serverName) {
+                if ($this->servers->findByName($serverName) === null) {
+                    throw new \RuntimeException("Server '{$serverName}' not found in inventory");
+                }
+            }
         } else {
             // Already an array from interactive prompt
             $selectedServers = $serversInput;

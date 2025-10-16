@@ -79,4 +79,42 @@ describe('SiteHelpersTrait', function () {
         'single server' => [['web1'], 'single.com'],
         'multiple servers' => [['web1', 'web2', 'web3'], 'multi.com'],
     ]);
+
+    //
+    // selectServers (CLI validation)
+    // -------------------------------------------------------------------------------
+
+    it('validates server names in CLI option', function () {
+        // ARRANGE
+        $container = mockCommandContainer(
+            inventoryData: ['servers' => [
+                ['name' => 'web1', 'host' => '192.168.1.1', 'port' => 22, 'username' => 'root'],
+                ['name' => 'web2', 'host' => '192.168.1.2', 'port' => 22, 'username' => 'root'],
+            ]]
+        );
+        $command = $container->build(\Bigpixelrocket\DeployerPHP\Tests\Fixtures\TestConsoleCommand::class);
+        $command->setTestMethod('selectServers');
+
+        // ACT & ASSERT
+        $tester = new CommandTester($command);
+        $exitCode = $tester->execute(['--servers' => 'web1,web2']);
+
+        expect($exitCode)->toBe(\Symfony\Component\Console\Command\Command::SUCCESS);
+    });
+
+    it('rejects non-existent server names from CLI option', function () {
+        // ARRANGE
+        $container = mockCommandContainer(
+            inventoryData: ['servers' => [
+                ['name' => 'web1', 'host' => '192.168.1.1', 'port' => 22, 'username' => 'root'],
+            ]]
+        );
+        $command = $container->build(\Bigpixelrocket\DeployerPHP\Tests\Fixtures\TestConsoleCommand::class);
+        $command->setTestMethod('selectServers');
+
+        // ACT & ASSERT
+        $tester = new CommandTester($command);
+        expect(fn () => $tester->execute(['--servers' => 'web1,non-existent']))
+            ->toThrow(\RuntimeException::class, "Server 'non-existent' not found");
+    });
 });
