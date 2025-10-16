@@ -56,6 +56,40 @@ trait SiteValidationTrait
     }
 
     /**
+     * Validate git repository URL format.
+     *
+     * @return string|null Error message if invalid, null if valid
+     */
+    protected function validateRepoInput(mixed $repo): ?string
+    {
+        if (!is_string($repo)) {
+            return 'Repository URL must be a string';
+        }
+
+        if (trim($repo) === '') {
+            return 'Repository URL cannot be empty';
+        }
+
+        // Basic format check - should start with git@, https://, http://, or ssh://
+        $repo = trim($repo);
+        $validPrefixes = ['git@', 'https://', 'http://', 'ssh://'];
+        $hasValidPrefix = false;
+
+        foreach ($validPrefixes as $prefix) {
+            if (str_starts_with($repo, $prefix)) {
+                $hasValidPrefix = true;
+                break;
+            }
+        }
+
+        if (!$hasValidPrefix) {
+            return 'Repository URL must start with git@, https://, http://, or ssh://';
+        }
+
+        return null;
+    }
+
+    /**
      * Validate git repository is accessible.
      *
      * @throws \RuntimeException When repository is not accessible

@@ -110,18 +110,24 @@ class SiteAddCommand extends BaseCommand
         $branch = null;
 
         if (!$isLocal) {
-            $defaultRepo = $this->git->detectRemoteUrl() ?? 'git@github.com:user/repo.git';
+            $defaultRepo = $this->git->detectRemoteUrl() ?? '';
 
-            /** @var string $repo */
-            $repo = $this->io->getOptionOrPrompt(
+            /** @var string|null $repo */
+            $repo = $this->io->getValidatedOptionOrPrompt(
                 'repo',
-                fn (): string => $this->io->promptText(
+                fn ($validate) => $this->io->promptText(
                     label: 'Git repository URL:',
-                    placeholder: $defaultRepo,
+                    placeholder: 'git@github.com:user/repo.git',
                     default: $defaultRepo,
-                    required: true
-                )
+                    required: true,
+                    validate: $validate
+                ),
+                fn ($value) => $this->validateRepoInput($value)
             );
+
+            if ($repo === null) {
+                return Command::FAILURE;
+            }
 
             $defaultBranch = $this->git->detectCurrentBranch() ?? 'main';
 
