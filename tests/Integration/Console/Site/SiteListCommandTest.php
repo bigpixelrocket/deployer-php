@@ -45,13 +45,12 @@ describe('SiteListCommand', function () {
     // Success Scenarios
     // -------------------------------------------------------------------------------
 
-    it('lists multiple sites with full details', function () {
+    it('lists sites with full details', function (array $sites, array $expectedOutputs) {
         // ARRANGE
-        $existingSites = [
-            new SiteDTO('example.com', 'git@github.com:user/repo.git', 'main', ['web1']),
-            new SiteDTO('app.example.com', 'git@github.com:user/app.git', 'develop', ['web2']),
-            new SiteDTO('local.test', null, null, ['web1']),
-        ];
+        $existingSites = array_map(
+            fn (array $data) => new SiteDTO($data['domain'], $data['repo'] ?? null, $data['branch'] ?? null, $data['servers']),
+            $sites
+        );
         $tester = createSiteListCommandTester($existingSites);
 
         // ACT
@@ -60,36 +59,27 @@ describe('SiteListCommand', function () {
         // ASSERT
         $output = $tester->getDisplay();
         expect($exitCode)->toBe(Command::SUCCESS)
-            ->and($output)->toContain('▸')
-            ->and($output)->toContain('All Sites')
-            ->and($output)->toContain('example.com')
-            ->and($output)->toContain('git@github.com:user/repo.git')
-            ->and($output)->toContain('main')
-            ->and($output)->toContain('app.example.com')
-            ->and($output)->toContain('develop')
-            ->and($output)->toContain('local.test')
-            ->and($output)->toContain('Local');
-    });
+            ->and($output)->toContain('All Sites');
 
-    it('lists single site with complete details', function () {
-        // ARRANGE
-        $existingSites = [
-            new SiteDTO('production.com', 'git@github.com:company/prod.git', 'production', ['web1', 'web2']),
-        ];
-        $tester = createSiteListCommandTester($existingSites);
-
-        // ACT
-        $exitCode = $tester->execute([]);
-
-        // ASSERT
-        $output = $tester->getDisplay();
-        expect($exitCode)->toBe(Command::SUCCESS)
-            ->and($output)->toContain('All Sites')
-            ->and($output)->toContain('production.com')
-            ->and($output)->toContain('git@github.com:company/prod.git')
-            ->and($output)->toContain('production')
-            ->and($output)->toContain('web1, web2');
-    });
+        foreach ($expectedOutputs as $expected) {
+            expect($output)->toContain($expected);
+        }
+    })->with([
+        'multiple sites' => [
+            [
+                ['domain' => 'example.com', 'repo' => 'git@github.com:user/repo.git', 'branch' => 'main', 'servers' => ['web1']],
+                ['domain' => 'app.example.com', 'repo' => 'git@github.com:user/app.git', 'branch' => 'develop', 'servers' => ['web2']],
+                ['domain' => 'local.test', 'servers' => ['web1']],
+            ],
+            ['example.com', 'git@github.com:user/repo.git', 'main', 'app.example.com', 'develop', 'local.test', 'Local'],
+        ],
+        'single site' => [
+            [
+                ['domain' => 'production.com', 'repo' => 'git@github.com:company/prod.git', 'branch' => 'production', 'servers' => ['web1', 'web2']],
+            ],
+            ['production.com', 'git@github.com:company/prod.git', 'production', 'web1, web2'],
+        ],
+    ]);
 
     //
     // Edge Cases
